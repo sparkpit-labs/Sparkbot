@@ -1,0 +1,2 @@
+"""Sparkbot server package."""
+
