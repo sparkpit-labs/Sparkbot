@@ -24,6 +24,10 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Run frontend advisory check
+        working-directory: frontend
+        run: npm audit --audit-level=moderate
+
       - name: Run frontend tests
         working-directory: frontend
         run: npm test -- --run
