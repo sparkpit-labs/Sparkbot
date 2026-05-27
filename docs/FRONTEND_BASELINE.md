@@ -42,3 +42,9 @@ cd frontend && npm test -- --run && npm run build
 ## Status Limitations
 
 This frontend baseline is intentionally minimal. It does not claim release readiness and does not include full product surfaces. Public setup and release documentation will expand in later phases.
+
+## Dependency Advisory Status
+
+Moderate npm advisories were observed during early frontend skeleton audit.
+They are tracked as part of release hardening for this branch.
+This baseline does not make a production runtime claim, and release readiness requires advisory review before the frontend can be treated as hardened for broader public use.
