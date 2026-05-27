@@ -129,6 +129,79 @@ h3 {
   border-color: #d0d6e0;
 }
 
+.status-preview {
+  background: #e6f4f5;
+  color: #14616b;
+  border-color: #b7dadd;
+}
+
+.round-table-preview {
+  border: 1px solid #ccd7df;
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(244, 248, 250, 0.98)),
+    repeating-linear-gradient(90deg, rgba(39, 111, 182, 0.05) 0, rgba(39, 111, 182, 0.05) 1px, transparent 1px, transparent 18px);
+  padding: 18px;
+  display: grid;
+  gap: 16px;
+  box-shadow: 0 12px 26px rgba(12, 18, 25, 0.06);
+}
+
+.round-table-copy {
+  display: grid;
+  gap: 8px;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #276fb6;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.round-table-copy p,
+.round-table-seat p,
+.round-table-note {
+  margin: 0;
+  color: #4b5b6c;
+}
+
+.round-table-layout {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.round-table-seat {
+  border: 1px solid #d7dce3;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  padding: 12px;
+  min-height: 170px;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.round-table-seat-top {
+  display: grid;
+  gap: 8px;
+}
+
+.round-table-role {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #283746;
+}
+
+.round-table-note {
+  border-top: 1px solid #d7dce3;
+  padding-top: 12px;
+  font-size: 0.94rem;
+}
+
 .roadmap-grid {
   display: grid;
 }
@@ -224,8 +297,18 @@ dd {
     grid-template-columns: 1fr;
   }
 
+  .round-table-layout {
+    grid-template-columns: 1fr;
+  }
+
   .health-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1040px) {
+  .round-table-layout {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

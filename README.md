@@ -11,8 +11,9 @@ Sparkbot is in early public v1.0.0 planning and bootstrap.
 A minimal public server skeleton exists in this repository, including a FastAPI health endpoint at `GET /health`.
 A minimal public frontend shell exists, including a health panel that can query the backend health endpoint.
 A local Workstation shell skeleton now exists as a read-only product layout in the frontend.
+The Workstation shell includes a static Round Table preview with inert Operator, Assistant, Research, Builder, and Reviewer seats.
 
-Round table surfaces, provider setup, guardian-gated controls, desktop packaging, and broader runtime integration are still in progress for later phases.
+Active multi-agent collaboration, provider setup, guardian-gated controls, desktop packaging, and broader runtime integration are still in progress for later phases.
 Install and release instructions are not final and will be published after broader validation.
 
 ## Direction

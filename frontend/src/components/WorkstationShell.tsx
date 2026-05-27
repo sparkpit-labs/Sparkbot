@@ -1,4 +1,5 @@
 import RoadmapCard from "./RoadmapCard";
+import RoundTablePreview from "./RoundTablePreview";
 import StatusCard from "./StatusCard";
 import { workstationRoadmapItems, workstationStatusItems } from "../workstation/workstationStatus";
 
@@ -18,6 +19,8 @@ export default function WorkstationShell() {
           <StatusCard key={item.name} name={item.name} status={item.status} summary={item.summary} />
         ))}
       </div>
+
+      <RoundTablePreview />
 
       <div className="roadmap-grid">
         <RoadmapCard title="Planned Follow-up Work" items={workstationRoadmapItems} />

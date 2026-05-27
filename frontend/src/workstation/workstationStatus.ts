@@ -24,8 +24,8 @@ export const workstationStatusItems: WorkstationStatusItem[] = [
   },
   {
     name: "Round Table",
-    status: "planned",
-    summary: "Collaborative workspace surface is planned for a future public slice."
+    status: "skeleton",
+    summary: "Read-only Round Table preview surface is present without meeting or model behavior."
   },
   {
     name: "Provider setup",
@@ -41,6 +41,6 @@ export const workstationStatusItems: WorkstationStatusItem[] = [
 
 export const workstationRoadmapItems: string[] = [
   "Define workstation view structure with stable public contracts.",
-  "Introduce non-interactive Round Table placeholders as layout surfaces.",
+  "Expand Round Table preview surfaces only after public interaction contracts are documented.",
   "Prepare provider and guardrail integration points without runtime activation."
 ];
