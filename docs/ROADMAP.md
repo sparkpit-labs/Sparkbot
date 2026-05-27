@@ -8,7 +8,7 @@ Establish the clean public repository, documentation standards, release standard
 
 ## Phase 1: Sanitized source inventory
 
-Review existing private research and development work, identify public candidates, and rewrite or import only material that meets public release standards.
+Review candidate ideas and implementation approaches, then rewrite or import only material that meets public release standards.
 
 ## Phase 2: Minimal buildable shell
 

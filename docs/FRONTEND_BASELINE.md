@@ -10,11 +10,12 @@ This repository now includes an early public v1.0.0 frontend foundation for Spar
 - Configurable API base URL via `VITE_SPARKBOT_API_BASE_URL`.
 - Minimal frontend test coverage with Vitest and Testing Library.
 - Frontend-only continuous integration workflow.
+- Static Workstation and Round Table preview surfaces.
 
 ## What Is Intentionally Excluded
 
-- Product workstation surfaces.
-- Round table surfaces.
+- Active Workstation runtime behavior.
+- Active Round Table runtime behavior.
 - Desktop packaging.
 - Provider setup and model runtime wiring.
 - Guarded control runtimes.
@@ -26,7 +27,7 @@ From the repository root:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm test -- --run
 npm run build
 ```
@@ -41,10 +42,8 @@ cd frontend && npm test -- --run && npm run build
 
 ## Status Limitations
 
-This frontend baseline is intentionally minimal. It does not claim release readiness and does not include full product surfaces. Public setup and release documentation will expand in later phases.
+This frontend baseline is intentionally minimal. It does not claim release readiness and does not include active product runtimes. Public setup and release documentation will expand in later phases.
 
 ## Dependency Advisory Status
 
-Moderate npm advisories were observed during early frontend skeleton audit.
-They are tracked as part of release hardening for this branch.
-This baseline does not make a production runtime claim, and release readiness requires advisory review before the frontend can be treated as hardened for broader public use.
+Frontend development tooling was updated to clear the Vite development server advisory chain during the Round Table shell slice. Current validation uses Node 22.22.0; contributors should use Node 20.19.0 or newer for the current Vite toolchain.
