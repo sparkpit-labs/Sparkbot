@@ -22,6 +22,22 @@ Install and release instructions are not final and will be published after broad
 
 - Build a stable public local server and frontend foundation first.
 - Expand the Workstation shell into broader product surfaces in phased follow-up branches.
+- Keep release claims aligned with current validated shell behavior only.
+
+## Quickstart
+
+For local validation of the current shell baseline:
+
+```bash
+bash scripts/validate-public-shell.sh
+```
+
+For step-by-step development and validation details, see:
+
+- docs/DEVELOPMENT.md
+- docs/VALIDATION.md
+- docs/RELEASE_READINESS.md
+- docs/PUBLIC_ARTIFACT_MANIFEST.md
 
 ## Repository standards
 
