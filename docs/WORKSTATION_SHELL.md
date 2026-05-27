@@ -8,6 +8,7 @@ This branch adds a local Workstation shell skeleton for the Sparkbot public fron
 - Structured status cards for implemented, skeleton, and planned product areas.
 - Planned follow-up roadmap card for next product slices.
 - Static Round Table preview with inert Operator, Assistant, Research, Builder, and Reviewer seats.
+- Static Provider Setup preview with inert local, compatible provider, and custom endpoint cards.
 - Existing backend health panel retained in the same frontend app.
 
 ## Current Status Model
@@ -16,7 +17,7 @@ This branch adds a local Workstation shell skeleton for the Sparkbot public fron
 - Frontend shell: implemented
 - Workstation shell: skeleton
 - Round Table: skeleton preview
-- Provider setup: planned
+- Provider setup: skeleton preview
 - Guardian-gated controls: planned
 
 ## What Is Intentionally Excluded
@@ -26,7 +27,7 @@ This branch adds a local Workstation shell skeleton for the Sparkbot public fron
 - Chat implementation
 - Model calls
 - Tool execution
-- Provider setup forms
+- Provider setup runtime forms
 - Guardian runtime controls
 - Desktop and Tauri surfaces
 
@@ -46,4 +47,4 @@ pytest backend/tests -q
 
 ## Scope Notes
 
-This is a product-direction shell slice only. It does not claim release readiness and does not activate Round Table runtime behavior beyond the existing read-only backend health fetch.
+This is a product-direction shell slice only. It does not claim release readiness and does not activate Round Table or Provider Setup runtime behavior beyond the existing read-only backend health fetch.
