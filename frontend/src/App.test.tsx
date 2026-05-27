@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import App from "./App";
 
 describe("App", () => {
-  it("renders workstation shell status, Round Table preview, and health panel", () => {
+  it("renders workstation shell status, Round Table preview, provider setup preview, and health panel", () => {
     render(<App />);
 
     expect(screen.getByRole("heading", { name: "Sparkbot" })).toBeDefined();
@@ -20,10 +20,21 @@ describe("App", () => {
     expect(screen.getByText(/multi-agent collaboration is planned/i)).toBeDefined();
     expect(screen.getByText(/does not start meetings, call models, run a turn engine/i)).toBeDefined();
     expect(screen.getAllByText("Preview").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole("heading", { name: "Provider Setup Preview" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Local model provider" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "OpenAI-compatible provider" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Anthropic-compatible provider" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Google-compatible provider" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Custom endpoint" })).toBeDefined();
+    expect(screen.getByText(/provider configuration is planned for later slices/i)).toBeDefined();
+    expect(screen.getByText(/no API key fields, no save actions, and no test-connection actions/i)).toBeDefined();
     expect(screen.getByRole("heading", { name: "Provider setup" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Guardian-gated controls" })).toBeDefined();
+    expect(screen.getAllByText("Skeleton").length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByText("Planned").length).toBeGreaterThanOrEqual(3);
     expect(screen.getByRole("heading", { name: "Backend Health" })).toBeDefined();
+    expect(screen.queryByPlaceholderText(/api key/i)).toBeNull();
+    expect(screen.queryByRole("button", { name: /save|test connection|connect/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /start|join|send|run/i })).toBeNull();
   });
 });

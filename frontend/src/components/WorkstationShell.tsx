@@ -1,3 +1,4 @@
+import ProviderSetupPreview from "./ProviderSetupPreview";
 import RoadmapCard from "./RoadmapCard";
 import RoundTablePreview from "./RoundTablePreview";
 import StatusCard from "./StatusCard";
@@ -21,6 +22,7 @@ export default function WorkstationShell() {
       </div>
 
       <RoundTablePreview />
+      <ProviderSetupPreview />
 
       <div className="roadmap-grid">
         <RoadmapCard title="Planned Follow-up Work" items={workstationRoadmapItems} />

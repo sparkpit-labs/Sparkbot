@@ -22,14 +22,18 @@ Add the initial local-first backend and frontend surfaces with safe defaults and
 
 Establish a read-only Workstation shell skeleton and static Round Table preview seats. Active collaboration behavior remains planned until public interaction contracts and validation gates are documented.
 
-## Phase 5: Guardian-gated controls
+## Phase 5: Provider setup shell preview
+
+Add a read-only Provider Setup preview with planned provider profiles and no credential, save, test, or runtime behavior.
+
+## Phase 6: Guardian-gated controls
 
 Add guarded control surfaces for sensitive actions. Sensitive capabilities must default off and require explicit configuration.
 
-## Phase 6: Desktop packaging and release testing
+## Phase 7: Desktop packaging and release testing
 
 Define the Windows/local desktop path, smoke tests, release artifacts, and fresh clone validation.
 
-## Phase 7: Plugins and future runtime integration
+## Phase 8: Plugins and future runtime integration
 
 Expand toward plugins, skills, and deeper runtime integration after the public v1.0.0 foundation is stable.

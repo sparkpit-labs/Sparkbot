@@ -29,8 +29,8 @@ export const workstationStatusItems: WorkstationStatusItem[] = [
   },
   {
     name: "Provider setup",
-    status: "planned",
-    summary: "Provider configuration and runtime wiring are planned for later phases."
+    status: "skeleton",
+    summary: "Read-only Provider Setup preview surface is present without credential handling or provider calls."
   },
   {
     name: "Guardian-gated controls",
@@ -42,5 +42,6 @@ export const workstationStatusItems: WorkstationStatusItem[] = [
 export const workstationRoadmapItems: string[] = [
   "Define workstation view structure with stable public contracts.",
   "Expand Round Table preview surfaces only after public interaction contracts are documented.",
+  "Document provider setup contracts before enabling credential or network behavior.",
   "Prepare provider and guardrail integration points without runtime activation."
 ];
