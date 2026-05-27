@@ -18,9 +18,9 @@ Create a minimal buildable Sparkbot shell with a clear project structure and rep
 
 Add the initial local-first backend and frontend surfaces with safe defaults and clear setup documentation.
 
-## Phase 4: Workstation and Round Table
+## Phase 4: Workstation shell skeleton and Round Table planning
 
-Bring forward the Workstation and Round Table concepts as the core Sparkbot user experience.
+Establish a read-only Workstation shell skeleton and define Round Table follow-up scope for later implementation slices.
 
 ## Phase 5: Guardian-gated controls
 

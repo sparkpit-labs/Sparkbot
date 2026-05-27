@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { API_BASE_URL, fetchBackendHealth, type HealthPayload } from "./api";
+import WorkstationShell from "./components/WorkstationShell";
 
 type HealthState =
   | { phase: "idle"; message: string; payload: null }
@@ -42,22 +43,14 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      <section className="panel">
+      <header className="shell-header">
         <h1>Sparkbot</h1>
         <p className="intro">Sparkbot is an early local-first AI workstation shell from SparkPit Labs.</p>
+      </header>
 
-        <ul className="status-list">
-          <li>Server baseline exists in this public repository.</li>
-          <li>Frontend shell exists in this branch.</li>
-          <li>Workstation surfaces are planned and not implemented in this branch.</li>
-          <li>Round table surfaces are planned and not implemented in this branch.</li>
-          <li>Desktop packaging is planned and not implemented in this branch.</li>
-          <li>Provider setup is planned and not implemented in this branch.</li>
-          <li>Guarded control surfaces are planned and not implemented in this branch.</li>
-        </ul>
-      </section>
+      <WorkstationShell />
 
-      <section className="panel health-panel">
+      <section className="health-panel">
         <div className="health-header">
           <h2>Backend Health</h2>
           <button type="button" onClick={runHealthCheck} disabled={healthState.phase === "loading"}>

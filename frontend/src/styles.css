@@ -3,8 +3,10 @@
   font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #13243a;
-  background: linear-gradient(160deg, #f5f8fc 0%, #e9f0f9 100%);
+  color: #1c2530;
+  background:
+    radial-gradient(circle at top right, rgba(236, 244, 255, 0.7), rgba(236, 244, 255, 0) 45%),
+    linear-gradient(180deg, #f5f7fa 0%, #eef2f6 100%);
 }
 
 * {
@@ -17,45 +19,142 @@ body {
 }
 
 .app-shell {
-  max-width: 960px;
+  width: min(1160px, 100% - 40px);
   margin: 0 auto;
-  padding: 32px 20px 48px;
+  padding: 36px 0 48px;
   display: grid;
-  gap: 20px;
+  gap: 22px;
 }
 
-.panel {
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid #d8e3f0;
-  border-radius: 8px;
-  padding: 24px;
-  box-shadow: 0 12px 30px rgba(17, 39, 66, 0.08);
+.shell-header {
+  display: grid;
+  gap: 10px;
 }
 
 h1 {
-  margin: 0 0 8px;
+  margin: 0;
   font-size: 2rem;
 }
 
 h2 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.4rem;
+}
+
+h3 {
+  margin: 0;
+  font-size: 1rem;
 }
 
 .intro {
-  margin-top: 0;
-  margin-bottom: 16px;
-  color: #32465f;
-}
-
-.status-list {
   margin: 0;
-  padding-left: 20px;
-  color: #223750;
+  color: #4b5b6c;
+  max-width: 76ch;
 }
 
-.status-list li {
-  margin-bottom: 8px;
+.workstation-shell {
+  display: grid;
+  gap: 16px;
+}
+
+.workstation-shell-header {
+  display: grid;
+  gap: 8px;
+}
+
+.workstation-shell-header p {
+  margin: 0;
+  color: #4b5b6c;
+  max-width: 82ch;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.status-card {
+  border: 1px solid #d7dce3;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+  min-height: 136px;
+  box-shadow: 0 10px 22px rgba(12, 18, 25, 0.05);
+}
+
+.status-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.status-card p {
+  margin: 0;
+  color: #4b5b6c;
+  font-size: 0.95rem;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  min-width: 96px;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.status-implemented {
+  background: #e7f6ec;
+  color: #1f6a3c;
+  border-color: #b6dec4;
+}
+
+.status-skeleton {
+  background: #fff4de;
+  color: #915b00;
+  border-color: #ecd3a4;
+}
+
+.status-planned {
+  background: #edf0f5;
+  color: #455568;
+  border-color: #d0d6e0;
+}
+
+.roadmap-grid {
+  display: grid;
+}
+
+.roadmap-card {
+  border: 1px solid #d7dce3;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 14px;
+  box-shadow: 0 10px 22px rgba(12, 18, 25, 0.05);
+}
+
+.roadmap-card ul {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: #4b5b6c;
+  display: grid;
+  gap: 8px;
+}
+
+.health-panel {
+  border: 1px solid #d7dce3;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 18px;
+  box-shadow: 0 10px 22px rgba(12, 18, 25, 0.05);
 }
 
 .health-header {
@@ -63,12 +162,12 @@ h2 {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 button {
-  border: 1px solid #0b5aa4;
-  background: #0b5aa4;
+  border: 1px solid #276fb6;
+  background: #276fb6;
   color: #ffffff;
   border-radius: 6px;
   padding: 8px 14px;
@@ -84,7 +183,7 @@ button[disabled] {
 .health-base-url,
 .health-message {
   margin: 8px 0;
-  color: #32465f;
+  color: #4b5b6c;
 }
 
 .health-grid {
@@ -95,32 +194,34 @@ button[disabled] {
 }
 
 .health-grid div {
-  border: 1px solid #d8e3f0;
+  border: 1px solid #d7dce3;
   border-radius: 6px;
   padding: 10px;
-  background: #f8fbff;
+  background: #f7f9fc;
 }
 
 dt {
   font-size: 0.8rem;
   text-transform: uppercase;
-  color: #4c6888;
+  color: #5c6b7c;
 }
 
 dd {
   margin: 6px 0 0;
   font-size: 1rem;
   font-weight: 600;
-  color: #13243a;
+  color: #1c2530;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 760px) {
   .app-shell {
-    padding: 20px 14px 28px;
+    width: min(1160px, 100% - 24px);
+    padding: 24px 0 32px;
+    gap: 16px;
   }
 
-  .panel {
-    padding: 18px;
+  .status-grid {
+    grid-template-columns: 1fr;
   }
 
   .health-header {
