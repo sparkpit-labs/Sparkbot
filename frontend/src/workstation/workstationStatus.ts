@@ -34,8 +34,8 @@ export const workstationStatusItems: WorkstationStatusItem[] = [
   },
   {
     name: "Guardian-gated controls",
-    status: "planned",
-    summary: "Guarded control surfaces are planned and are not active in this branch."
+    status: "skeleton",
+    summary: "Read-only Guardian Controls preview surface is present without approvals, enforcement, or sensitive actions."
   }
 ];
 
@@ -43,5 +43,6 @@ export const workstationRoadmapItems: string[] = [
   "Define workstation view structure with stable public contracts.",
   "Expand Round Table preview surfaces only after public interaction contracts are documented.",
   "Document provider setup contracts before enabling credential or network behavior.",
+  "Document Guardian control contracts before enabling approval or enforcement behavior.",
   "Prepare provider and guardrail integration points without runtime activation."
 ];

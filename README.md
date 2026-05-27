@@ -13,6 +13,7 @@ A minimal public frontend shell exists, including a health panel that can query 
 A local Workstation shell skeleton now exists as a read-only product layout in the frontend.
 The Workstation shell includes a static Round Table preview with inert Operator, Assistant, Research, Builder, and Reviewer seats.
 The Workstation shell includes a static Provider Setup preview with inert Local model, OpenAI-compatible, Anthropic-compatible, Google-compatible, and Custom endpoint cards.
+The Workstation shell includes a static Guardian Controls preview with inert Local actions, Provider access, Files and workspace, External connections, Approval checkpoints, and Audit trail cards.
 
 Active multi-agent collaboration, provider setup, guardian-gated controls, desktop packaging, and broader runtime integration are still in progress for later phases.
 Install and release instructions are not final and will be published after broader validation. The current frontend toolchain is validated with Node 22.22.0 and should be run with Node 20.19.0 or newer.

@@ -1,3 +1,4 @@
+import GuardianControlsPreview from "./GuardianControlsPreview";
 import ProviderSetupPreview from "./ProviderSetupPreview";
 import RoadmapCard from "./RoadmapCard";
 import RoundTablePreview from "./RoundTablePreview";
@@ -23,6 +24,7 @@ export default function WorkstationShell() {
 
       <RoundTablePreview />
       <ProviderSetupPreview />
+      <GuardianControlsPreview />
 
       <div className="roadmap-grid">
         <RoadmapCard title="Planned Follow-up Work" items={workstationRoadmapItems} />

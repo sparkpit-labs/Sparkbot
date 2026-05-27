@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import App from "./App";
 
 describe("App", () => {
-  it("renders workstation shell status, Round Table preview, provider setup preview, and health panel", () => {
+  it("renders workstation shell status, Round Table preview, provider setup preview, Guardian Controls preview, and health panel", () => {
     render(<App />);
 
     expect(screen.getByRole("heading", { name: "Sparkbot" })).toBeDefined();
@@ -30,11 +30,21 @@ describe("App", () => {
     expect(screen.getByText(/no API key fields, no save actions, and no test-connection actions/i)).toBeDefined();
     expect(screen.getByRole("heading", { name: "Provider setup" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Guardian-gated controls" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Guardian Controls Preview" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Local actions" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Provider access" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Files and workspace" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "External connections" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Approval checkpoints" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Audit trail" })).toBeDefined();
+    expect(screen.getByText(/Guardian-gated controls are planned for later slices/i)).toBeDefined();
+    expect(screen.getByText(/no approval buttons, no execution controls, no save actions/i)).toBeDefined();
     expect(screen.getAllByText("Skeleton").length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByText("Planned").length).toBeGreaterThanOrEqual(3);
     expect(screen.getByRole("heading", { name: "Backend Health" })).toBeDefined();
     expect(screen.queryByPlaceholderText(/api key/i)).toBeNull();
     expect(screen.queryByRole("button", { name: /save|test connection|connect/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /approve|execute|enforce|allow|deny/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /start|join|send|run/i })).toBeNull();
   });
 });

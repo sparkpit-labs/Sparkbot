@@ -26,9 +26,9 @@ Establish a read-only Workstation shell skeleton and static Round Table preview 
 
 Add a read-only Provider Setup preview with planned provider profiles and no credential, save, test, or runtime behavior.
 
-## Phase 6: Guardian-gated controls
+## Phase 6: Guardian-gated controls shell preview
 
-Add guarded control surfaces for sensitive actions. Sensitive capabilities must default off and require explicit configuration.
+Add a read-only Guardian Controls preview with planned control categories and no approval, enforcement, execution, connector, or mutation behavior.
 
 ## Phase 7: Desktop packaging and release testing
 
