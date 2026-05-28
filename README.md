@@ -43,6 +43,10 @@ For step-by-step development and validation details, see:
 
 This repository is maintained as a professional public project. Public documentation should describe only supported or planned public functionality and should avoid private infrastructure details, internal operating notes, or unsupported claims.
 
+## License
+
+This repository is licensed under the MIT License. The license applies to the contents of this public `sparkpit-labs/Sparkbot` repository only.
+
 ## Maintainers
 
 Maintained by Spark Pit Team.

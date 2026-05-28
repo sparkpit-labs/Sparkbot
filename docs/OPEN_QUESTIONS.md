@@ -2,7 +2,6 @@
 
 These questions must be resolved before Sparkbot public v1.0.0 release.
 
-- What license should Sparkbot use?
 - What should the first public package layout be?
 - What provider setup should be supported first?
 - What local model path should be documented first?

@@ -42,3 +42,7 @@ Before a public release, the project should pass:
 - Private reference scan
 - Documentation review
 - License decision gate
+
+## Licensing scope
+
+The public repository license applies only to the contents of this public `sparkpit-labs/Sparkbot` repository and does not imply licensing terms for any separate proprietary or non-public Spark Pit Labs codebase.
