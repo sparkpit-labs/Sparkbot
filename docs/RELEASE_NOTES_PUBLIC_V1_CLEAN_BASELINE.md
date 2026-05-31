@@ -34,7 +34,7 @@ The clean baseline has been validated with:
 
 Sparkbot is licensed under the MIT License.
 
-Copyright (c) 2026 Spark Pit Team
+Copyright (c) 2026 Spark Pit Labs Team
 
 The license applies only to the contents of this public `sparkpit-labs/Sparkbot` repository.
 

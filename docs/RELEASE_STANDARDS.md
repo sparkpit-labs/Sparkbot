@@ -4,7 +4,7 @@ Sparkbot public releases should meet professional GitHub project standards.
 
 ## Publishing identity
 
-Public project work should be published by Phil Lima or Spark Pit Team.
+Public project work should be published by Phil Lima or Spark Pit Labs Team.
 
 ## Documentation standards
 

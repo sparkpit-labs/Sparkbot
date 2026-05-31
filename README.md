@@ -134,4 +134,4 @@ This repository is licensed under the MIT License. The license applies to the co
 
 ## Maintainers
 
-Maintained by Spark Pit Team.
+Maintained by Spark Pit Labs Team.
