@@ -1,46 +1,65 @@
 # Sparkbot
 
-Sparkbot is an early local-first AI workstation shell from SparkPit Labs.
+Sparkbot is an early public, local-first AI workstation shell from SparkPit Labs. It is for builders, hobbyists, and technical users who want a self-hosted workspace for future chat, model seats, Round Table collaboration, provider setup, and safety-gated controls.
 
-The project is focused on private, self-hosted AI workflows for builders, hobbyists, and technical users.
+The current repository is a validated shell baseline. It is useful for review, local validation, and continued public development, but it is not a complete product release.
 
-## Project status
+## Who this is for
 
-Sparkbot is in early public v1.0.0 planning and bootstrap.
+- Hobbyists and tinkerers who want to inspect and run the local shell baseline.
+- Developers evaluating the project structure, validation path, and public roadmap.
+- Security-conscious users who want clear boundaries before provider credentials, model calls, or sensitive actions exist.
+- Future contributors who want to understand what is implemented, what is preview-only, and what is intentionally excluded.
 
-A minimal public server skeleton exists in this repository, including a FastAPI health endpoint at `GET /health`.
-A minimal public frontend shell exists, including a health panel that can query the backend health endpoint.
-A local Workstation shell skeleton exists as a read-only product layout in the frontend.
-The Workstation shell includes a static Chat Shell preview with a disabled read-only planned composer and no send action.
-The Workstation shell includes a static Round Table preview with inert Operator, Assistant, Research, Builder, and Reviewer seats.
-The Workstation shell includes a static Provider Setup preview with inert Local model, OpenAI-compatible, Anthropic-compatible, Google-compatible, and Custom endpoint cards.
-The Workstation shell includes a static Guardian Controls preview with inert Local actions, Provider access, Files and workspace, External connections, Approval checkpoints, and Audit trail cards.
+## Current status at a glance
 
-Active chat runtime, multi-agent collaboration, provider setup, guardian-gated controls, desktop packaging, and broader runtime integration are still in progress for later phases.
-Desktop packaging is planned but not implemented; see `docs/DESKTOP_PACKAGING_PLAN.md` for the current planning notes and release gates.
-Install and release instructions are not final and will be published after broader validation. The current frontend toolchain is validated with Node 22.22.0 and should be run with Node 20.19.0 or newer. Backend development expects Python 3.12 or newer.
+| Area | Current status | Notes |
+| --- | --- | --- |
+| Backend health endpoint | Works | FastAPI exposes local `GET /health`. |
+| Frontend shell | Works | React/Vite shell builds and tests successfully. |
+| Workstation shell | Preview | Read-only product layout. |
+| Chat shell | Preview | Disabled planned composer; no send action. |
+| Round Table | Preview | Inert planned seats for future collaboration. |
+| Provider Setup | Preview only | No API key fields, save action, or provider calls. |
+| Guardian Controls | Preview only | No approvals, enforcement, or sensitive actions. |
+| Desktop packaging | Planning only | No installer or desktop binary exists yet. |
+| Model calls | Not implemented | No model routing or provider runtime is active. |
+| Credential storage | Not implemented | No secrets are accepted, stored, or transmitted. |
+| Tool execution | Not implemented | No terminal, tool execution, connector calls, or external sends. |
 
-## Direction
+## Release and checkpoint status
 
-- Build a stable public local server and frontend foundation first.
-- Expand the Workstation shell into broader product surfaces in phased follow-up branches.
-- Keep release claims aligned with current validated shell behavior only.
+The latest public checkpoint tag on `main` is `public-v1-desktop-packaging-plan-0`.
+
+The GitHub pre-release `public-v1-shell-baseline-0` remains the first published shell baseline release. Development continues on `main` through checkpoint tags, so `main` may include newer docs and planning checkpoints than the first pre-release page.
 
 ## Quickstart
 
-Run the full local validation path:
+### Prerequisites
+
+- Python 3.12 or newer
+- Node.js 20.19.0 or newer
+- npm
+
+### 1. Validate the full shell baseline
+
+From the repository root:
 
 ```bash
 bash scripts/validate-public-shell.sh
 ```
 
-Run the public safety scan:
+This runs backend compile/tests, frontend install/audit/tests/build, and does not start long-running services.
+
+### 2. Run the public safety scan
 
 ```bash
 bash scripts/check-public-safety.sh
 ```
 
-Start the backend development server after installing backend dependencies:
+This checks for blocked private references, unexpected publishing identity references, and non-BMP characters.
+
+### 3. Start the backend in terminal 1
 
 ```bash
 python3 -m venv .venv-local
@@ -50,7 +69,13 @@ python -m pip install -e "backend[dev]"
 bash scripts/start-backend-dev.sh
 ```
 
-Start the frontend development server after installing frontend dependencies:
+Expected backend health URL:
+
+```text
+http://127.0.0.1:8000/health
+```
+
+### 4. Start the frontend in terminal 2
 
 ```bash
 cd frontend
@@ -59,19 +84,43 @@ cd ..
 bash scripts/start-frontend-dev.sh
 ```
 
-The development server scripts bind to `127.0.0.1` and are opt-in. They do not configure providers, store credentials, run models, or enable chat behavior.
+Expected frontend URL:
 
-For step-by-step development and validation details, see:
+```text
+http://127.0.0.1:5173
+```
 
-- CHANGELOG.md
-- docs/DEVELOPMENT.md
-- docs/LOCAL_DEVELOPMENT.md
-- docs/VALIDATION.md
-- docs/CHAT_SHELL.md
-- docs/DESKTOP_PACKAGING_PLAN.md
-- docs/RELEASE_READINESS.md
-- docs/RELEASE_NOTES_PUBLIC_V1_CLEAN_BASELINE.md
-- docs/PUBLIC_ARTIFACT_MANIFEST.md
+Vite may print the exact local URL when the frontend server starts.
+
+## What this repository does not do yet
+
+- No desktop installer or desktop binary.
+- No real chat runtime.
+- No model calls or model routing.
+- No provider credential setup.
+- No credential storage.
+- No Round Table meeting engine.
+- No Guardian policy enforcement runtime.
+- No terminal, tool execution, connector calls, external sends, or file mutation controls.
+- No production deployment workflow.
+
+## Documentation map
+
+Start with `docs/README.md` for a grouped documentation index.
+
+Key docs:
+
+- `docs/DEVELOPMENT.md` for local development workflow.
+- `docs/VALIDATION.md` for validation commands.
+- `docs/LOCAL_DEVELOPMENT.md` for local runner scripts.
+- `docs/ROADMAP.md` for staged product direction.
+- `docs/RELEASE_READINESS.md` for current release-readiness boundaries.
+- `docs/PUBLIC_ARTIFACT_MANIFEST.md` for included and excluded public artifacts.
+- `docs/DESKTOP_PACKAGING_PLAN.md` for desktop packaging planning only.
+
+## Security and privacy posture
+
+Current validation does not require secrets. The repository does not accept provider credentials, store credentials, call models, execute tools, run connectors, or send data to external services. Product surfaces beyond the backend health endpoint and frontend shell are previews until explicit public contracts and runtime gates are added.
 
 ## Repository standards
 

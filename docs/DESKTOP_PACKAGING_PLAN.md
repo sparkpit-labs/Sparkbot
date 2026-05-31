@@ -67,7 +67,7 @@ Desktop packaging should not be claimed until these gates pass:
 - Versioning and artifact naming are documented.
 - Update strategy is documented, even if automatic updates are intentionally deferred.
 
-## Explicit exclusions for the current branch
+## Explicit exclusions for the current baseline
 
 - No installer is added.
 - No desktop binary is added.

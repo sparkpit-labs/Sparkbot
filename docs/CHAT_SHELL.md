@@ -1,6 +1,6 @@
 # Chat Shell
 
-This branch adds a static Chat Shell preview to the public Sparkbot Workstation shell.
+The current public shell baseline includes a static Chat Shell preview in the public Sparkbot Workstation shell.
 
 The preview is intentionally read-only. It does not implement chat runtime behavior, message sending, message persistence, model calls, model routing, provider credential handling, or backend chat endpoints.
 
@@ -12,7 +12,7 @@ The preview is intentionally read-only. It does not implement chat runtime behav
 - There is no send button.
 - Existing backend `GET /health` remains the only frontend network call.
 
-## Excluded from this branch
+## Excluded from this baseline
 
 - Real chat runtime
 - User-entered message handling

@@ -22,7 +22,7 @@ The preview is intentionally read-only and does not implement approvals, policy 
 - The preview includes no policy enforcement behavior.
 - Existing backend `GET /health` check remains unchanged as the only frontend network call.
 
-## Excluded from this branch
+## Excluded from this baseline
 
 - Real Guardian implementation
 - Approval token implementation

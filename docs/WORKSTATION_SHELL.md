@@ -1,6 +1,6 @@
 # Workstation Shell
 
-This branch adds a local Workstation shell skeleton for the Sparkbot public frontend.
+The current public shell baseline includes a local Workstation shell skeleton for the Sparkbot public frontend.
 
 ## What Exists
 

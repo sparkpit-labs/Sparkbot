@@ -11,6 +11,7 @@ This changelog tracks public Sparkbot repository baselines and release-facing do
 - Local development runner scripts for backend and frontend dev servers.
 - Public safety scan helper and local development documentation.
 - Desktop packaging planning document with candidate paths, decision criteria, and release gates.
+- Public visitor README polish and documentation index.
 
 ### Not Included
 
