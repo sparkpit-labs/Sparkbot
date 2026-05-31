@@ -22,6 +22,10 @@ Add the initial local-first backend and frontend surfaces with safe defaults and
 
 Establish a read-only Workstation shell skeleton and static Round Table preview seats. Active collaboration behavior remains planned until public interaction contracts and validation gates are documented.
 
+## Phase 4a: Chat shell preview
+
+Add a read-only Chat Shell preview with no message handling, persistence, model calls, provider credentials, or send actions.
+
 ## Phase 5: Provider setup shell preview
 
 Add a read-only Provider Setup preview with planned provider profiles and no credential, save, test, or runtime behavior.

@@ -2,6 +2,17 @@
 
 This changelog tracks public Sparkbot repository baselines and release-facing documentation.
 
+## Unreleased
+
+### Added
+
+- Chat Shell preview with disabled read-only planned composer and no send action.
+- Chat Shell documentation describing the public skeleton boundary.
+
+### Not Included
+
+- No real chat runtime, message persistence, model calls, provider credentials, or backend chat endpoint.
+
 ## public-v1-clean-baseline-0 - 2026-05-30
 
 This tag is an early public shell baseline for review, validation, and continued public development. It is not a complete product release.

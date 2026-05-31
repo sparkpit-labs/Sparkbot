@@ -3,13 +3,20 @@ import { render, screen } from "@testing-library/react";
 import App from "./App";
 
 describe("App", () => {
-  it("renders workstation shell status, Round Table preview, provider setup preview, Guardian Controls preview, and health panel", () => {
+  it("renders workstation shell status, Chat shell preview, Round Table preview, provider setup preview, Guardian Controls preview, and health panel", () => {
     render(<App />);
 
-    expect(screen.getByRole("heading", { name: "Sparkbot" })).toBeDefined();
+    expect(screen.getByRole("heading", { level: 1, name: "Sparkbot" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Workstation Shell" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Server baseline" })).toBeDefined();
     expect(screen.getByText(/product shell layout exists as a read-only baseline/i)).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Chat shell" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Chat Shell Preview" })).toBeDefined();
+    expect(screen.getByText(/chat runtime is planned for later slices/i)).toBeDefined();
+    expect(screen.getByText(/no enabled send action, no chat endpoint/i)).toBeDefined();
+    const plannedComposer = screen.getByLabelText("Chat message composer planned") as HTMLTextAreaElement;
+    expect(plannedComposer.disabled).toBe(true);
+    expect(plannedComposer.readOnly).toBe(true);
     expect(screen.getByRole("heading", { name: "Round Table" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Round Table Preview" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Operator" })).toBeDefined();

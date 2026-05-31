@@ -23,6 +23,11 @@ export const workstationStatusItems: WorkstationStatusItem[] = [
     summary: "Product shell layout exists as a read-only baseline in this branch."
   },
   {
+    name: "Chat shell",
+    status: "skeleton",
+    summary: "Read-only Chat Shell preview surface is present without message handling or model behavior."
+  },
+  {
     name: "Round Table",
     status: "skeleton",
     summary: "Read-only Round Table preview surface is present without meeting or model behavior."
@@ -41,6 +46,7 @@ export const workstationStatusItems: WorkstationStatusItem[] = [
 
 export const workstationRoadmapItems: string[] = [
   "Define workstation view structure with stable public contracts.",
+  "Document chat interaction contracts before enabling message handling or model behavior.",
   "Expand Round Table preview surfaces only after public interaction contracts are documented.",
   "Document provider setup contracts before enabling credential or network behavior.",
   "Document Guardian control contracts before enabling approval or enforcement behavior.",

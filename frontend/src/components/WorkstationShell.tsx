@@ -1,3 +1,4 @@
+import ChatShellPreview from "./ChatShellPreview";
 import GuardianControlsPreview from "./GuardianControlsPreview";
 import ProviderSetupPreview from "./ProviderSetupPreview";
 import RoadmapCard from "./RoadmapCard";
@@ -22,6 +23,7 @@ export default function WorkstationShell() {
         ))}
       </div>
 
+      <ChatShellPreview />
       <RoundTablePreview />
       <ProviderSetupPreview />
       <GuardianControlsPreview />
