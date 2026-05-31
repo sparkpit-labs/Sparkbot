@@ -8,6 +8,8 @@ This changelog tracks public Sparkbot repository baselines and release-facing do
 
 - Chat Shell preview with disabled read-only planned composer and no send action.
 - Chat Shell documentation describing the public skeleton boundary.
+- Local development runner scripts for backend and frontend dev servers.
+- Public safety scan helper and local development documentation.
 
 ### Not Included
 

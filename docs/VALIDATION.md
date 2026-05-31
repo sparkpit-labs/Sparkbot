@@ -8,6 +8,31 @@ Validation commands in this repository are intended for local development checks
 bash scripts/validate-public-shell.sh
 ```
 
+This script performs:
+
+- backend bytecode compilation
+- temporary backend virtual environment creation outside the repository
+- backend development dependency install
+- backend tests
+- frontend dependency install
+- frontend moderate-level npm audit
+- frontend tests
+- frontend production build
+
+It does not start long-running development servers and does not require secrets.
+
+## Public safety scan
+
+```bash
+bash scripts/check-public-safety.sh
+```
+
+This script performs:
+
+- strict blocked-term scan for private or unsafe public-release references
+- publishing identity scan with the expected release standards line allowed
+- emoji and non-BMP character scan
+
 ## Manual backend validation
 
 ```bash
@@ -32,4 +57,13 @@ npm audit --audit-level=moderate
 npm test -- --run
 npm run build
 cd ..
+```
+
+## Development server scripts
+
+The development server scripts are opt-in only and are not part of full validation:
+
+```bash
+bash scripts/start-backend-dev.sh
+bash scripts/start-frontend-dev.sh
 ```

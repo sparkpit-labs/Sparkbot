@@ -10,14 +10,14 @@ Sparkbot is in early public v1.0.0 planning and bootstrap.
 
 A minimal public server skeleton exists in this repository, including a FastAPI health endpoint at `GET /health`.
 A minimal public frontend shell exists, including a health panel that can query the backend health endpoint.
-A local Workstation shell skeleton now exists as a read-only product layout in the frontend.
+A local Workstation shell skeleton exists as a read-only product layout in the frontend.
 The Workstation shell includes a static Chat Shell preview with a disabled read-only planned composer and no send action.
 The Workstation shell includes a static Round Table preview with inert Operator, Assistant, Research, Builder, and Reviewer seats.
 The Workstation shell includes a static Provider Setup preview with inert Local model, OpenAI-compatible, Anthropic-compatible, Google-compatible, and Custom endpoint cards.
 The Workstation shell includes a static Guardian Controls preview with inert Local actions, Provider access, Files and workspace, External connections, Approval checkpoints, and Audit trail cards.
 
 Active chat runtime, multi-agent collaboration, provider setup, guardian-gated controls, desktop packaging, and broader runtime integration are still in progress for later phases.
-Install and release instructions are not final and will be published after broader validation. The current frontend toolchain is validated with Node 22.22.0 and should be run with Node 20.19.0 or newer.
+Install and release instructions are not final and will be published after broader validation. The current frontend toolchain is validated with Node 22.22.0 and should be run with Node 20.19.0 or newer. Backend development expects Python 3.12 or newer.
 
 ## Direction
 
@@ -27,16 +27,44 @@ Install and release instructions are not final and will be published after broad
 
 ## Quickstart
 
-For local validation of the current shell baseline:
+Run the full local validation path:
 
 ```bash
 bash scripts/validate-public-shell.sh
 ```
 
+Run the public safety scan:
+
+```bash
+bash scripts/check-public-safety.sh
+```
+
+Start the backend development server after installing backend dependencies:
+
+```bash
+python3 -m venv .venv-local
+. .venv-local/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e "backend[dev]"
+bash scripts/start-backend-dev.sh
+```
+
+Start the frontend development server after installing frontend dependencies:
+
+```bash
+cd frontend
+npm ci
+cd ..
+bash scripts/start-frontend-dev.sh
+```
+
+The development server scripts bind to `127.0.0.1` and are opt-in. They do not configure providers, store credentials, run models, or enable chat behavior.
+
 For step-by-step development and validation details, see:
 
 - CHANGELOG.md
 - docs/DEVELOPMENT.md
+- docs/LOCAL_DEVELOPMENT.md
 - docs/VALIDATION.md
 - docs/CHAT_SHELL.md
 - docs/RELEASE_READINESS.md
