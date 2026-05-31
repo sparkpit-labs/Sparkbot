@@ -28,3 +28,7 @@ This repository does not claim production readiness or complete product function
 ## Desktop packaging status
 
 Desktop packaging is planned but not implemented. The current repository contains planning notes and release gates only. No installer, desktop binary, auto-update path, or code signing configuration is present.
+
+## Contribution and security posture
+
+The repository includes lightweight contribution and security reporting guidance for quiet public review. The current baseline does not provide a production support guarantee.

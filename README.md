@@ -110,6 +110,8 @@ Start with `docs/README.md` for a grouped documentation index.
 
 Key docs:
 
+- `CONTRIBUTING.md` for contribution scope and validation expectations.
+- `SECURITY.md` for reporting security concerns.
 - `docs/DEVELOPMENT.md` for local development workflow.
 - `docs/VALIDATION.md` for validation commands.
 - `docs/LOCAL_DEVELOPMENT.md` for local runner scripts.
