@@ -34,9 +34,11 @@ bash scripts/validate-public-shell.sh
 
 For step-by-step development and validation details, see:
 
+- CHANGELOG.md
 - docs/DEVELOPMENT.md
 - docs/VALIDATION.md
 - docs/RELEASE_READINESS.md
+- docs/RELEASE_NOTES_PUBLIC_V1_CLEAN_BASELINE.md
 - docs/PUBLIC_ARTIFACT_MANIFEST.md
 
 ## Repository standards

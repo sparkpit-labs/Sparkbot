@@ -7,7 +7,9 @@
 - docs/
 - scripts/
 - .github/workflows/
+- CHANGELOG.md
 - README.md
+- LICENSE
 - .gitignore
 
 ## Excluded from current baseline scope
@@ -21,3 +23,5 @@
 ## Notes
 
 This manifest reflects the current review baseline and can be revised as future public slices are validated.
+
+The clean baseline release notes are tracked in `docs/RELEASE_NOTES_PUBLIC_V1_CLEAN_BASELINE.md`.
