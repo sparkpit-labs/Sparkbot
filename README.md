@@ -17,6 +17,7 @@ The Workstation shell includes a static Provider Setup preview with inert Local 
 The Workstation shell includes a static Guardian Controls preview with inert Local actions, Provider access, Files and workspace, External connections, Approval checkpoints, and Audit trail cards.
 
 Active chat runtime, multi-agent collaboration, provider setup, guardian-gated controls, desktop packaging, and broader runtime integration are still in progress for later phases.
+Desktop packaging is planned but not implemented; see `docs/DESKTOP_PACKAGING_PLAN.md` for the current planning notes and release gates.
 Install and release instructions are not final and will be published after broader validation. The current frontend toolchain is validated with Node 22.22.0 and should be run with Node 20.19.0 or newer. Backend development expects Python 3.12 or newer.
 
 ## Direction
@@ -67,6 +68,7 @@ For step-by-step development and validation details, see:
 - docs/LOCAL_DEVELOPMENT.md
 - docs/VALIDATION.md
 - docs/CHAT_SHELL.md
+- docs/DESKTOP_PACKAGING_PLAN.md
 - docs/RELEASE_READINESS.md
 - docs/RELEASE_NOTES_PUBLIC_V1_CLEAN_BASELINE.md
 - docs/PUBLIC_ARTIFACT_MANIFEST.md

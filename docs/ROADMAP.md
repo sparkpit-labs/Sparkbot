@@ -36,7 +36,7 @@ Add a read-only Guardian Controls preview with planned control categories and no
 
 ## Phase 7: Desktop packaging and release testing
 
-Define the Windows/local desktop path, smoke tests, release artifacts, and fresh clone validation.
+Define the Windows/local desktop path, smoke tests, release artifacts, and fresh clone validation. Desktop packaging is planned only; no installer or desktop binary exists in the current baseline.
 
 ## Phase 8: Plugins and future runtime integration
 

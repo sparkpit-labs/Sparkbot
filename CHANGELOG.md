@@ -10,10 +10,11 @@ This changelog tracks public Sparkbot repository baselines and release-facing do
 - Chat Shell documentation describing the public skeleton boundary.
 - Local development runner scripts for backend and frontend dev servers.
 - Public safety scan helper and local development documentation.
+- Desktop packaging planning document with candidate paths, decision criteria, and release gates.
 
 ### Not Included
 
-- No real chat runtime, message persistence, model calls, provider credentials, or backend chat endpoint.
+- No real chat runtime, message persistence, model calls, provider credentials, backend chat endpoint, desktop app, installer, auto-update path, or code signing setup.
 
 ## public-v1-clean-baseline-0 - 2026-05-30
 

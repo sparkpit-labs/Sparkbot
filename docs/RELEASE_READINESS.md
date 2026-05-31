@@ -16,6 +16,7 @@ This document tracks public shell readiness for review and phased release decisi
 - Policy enforcement runtime
 - Sensitive action execution
 - Desktop packaging and install artifacts
+- Desktop binaries, installers, auto-update, and code signing
 - Deployment workflows
 
 ## Readiness position
@@ -23,3 +24,7 @@ This document tracks public shell readiness for review and phased release decisi
 This repository is suitable for professional public review as an early shell baseline.
 
 This repository does not claim production readiness or complete product functionality.
+
+## Desktop packaging status
+
+Desktop packaging is planned but not implemented. The current repository contains planning notes and release gates only. No installer, desktop binary, auto-update path, or code signing configuration is present.

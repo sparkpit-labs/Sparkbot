@@ -5,6 +5,7 @@
 - backend/
 - frontend/
 - docs/
+  - includes desktop packaging planning notes only
 - scripts/
 - .github/workflows/
 - CHANGELOG.md
@@ -15,6 +16,7 @@
 ## Excluded from current baseline scope
 
 - Desktop packaging artifacts
+- Desktop binaries, installers, auto-update files, and signing configuration
 - Deployment artifacts
 - Runtime provider integrations
 - Runtime approval or policy enforcement integrations
