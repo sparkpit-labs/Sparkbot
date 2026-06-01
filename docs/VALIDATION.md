@@ -59,6 +59,18 @@ npm run build
 cd ..
 ```
 
+## Local smoke check
+
+After starting local development servers, verify them with:
+
+```bash
+SPARKBOT_BACKEND_URL=http://127.0.0.1:18000 \
+SPARKBOT_FRONTEND_URL=http://127.0.0.1:15173 \
+bash scripts/smoke-check-local.sh
+```
+
+See `LOCAL_SMOKE_TEST.md` for the complete alternate-port flow.
+
 ## Development server scripts
 
 The development server scripts are opt-in only and are not part of full validation:

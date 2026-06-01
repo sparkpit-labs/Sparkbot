@@ -29,7 +29,7 @@ The current repository is a validated shell baseline. It is useful for review, l
 
 ## Release and checkpoint status
 
-The latest public checkpoint tag on `main` is `public-v1-desktop-packaging-plan-0`.
+The latest public checkpoint tag on `main` is `public-v1-workstation-navigation-polish-0`.
 
 The GitHub pre-release `public-v1-shell-baseline-0` remains the first published shell baseline release. Development continues on `main` through checkpoint tags, so `main` may include newer docs and planning checkpoints than the first pre-release page.
 
@@ -92,6 +92,29 @@ http://127.0.0.1:5173
 
 Vite may print the exact local URL when the frontend server starts.
 
+### 5. Optional alternate-port smoke test
+
+When the default ports are already in use, run the shell on alternate localhost ports and verify both surfaces:
+
+```bash
+SPARKBOT_BACKEND_PORT=18000 bash scripts/start-backend-dev.sh
+```
+
+```bash
+SPARKBOT_BACKEND_PORT=18000 \
+VITE_SPARKBOT_API_BASE_URL=http://127.0.0.1:18000 \
+SPARKBOT_FRONTEND_PORT=15173 \
+bash scripts/start-frontend-dev.sh
+```
+
+```bash
+SPARKBOT_BACKEND_URL=http://127.0.0.1:18000 \
+SPARKBOT_FRONTEND_URL=http://127.0.0.1:15173 \
+bash scripts/smoke-check-local.sh
+```
+
+Open `http://127.0.0.1:15173` for the browser check. See `docs/LOCAL_SMOKE_TEST.md` for details.
+
 ## What this repository does not do yet
 
 - No desktop installer or desktop binary.
@@ -115,6 +138,7 @@ Key docs:
 - `docs/DEVELOPMENT.md` for local development workflow.
 - `docs/VALIDATION.md` for validation commands.
 - `docs/LOCAL_DEVELOPMENT.md` for local runner scripts.
+- `docs/LOCAL_SMOKE_TEST.md` for alternate-port local smoke testing.
 - `docs/ROADMAP.md` for staged product direction.
 - `docs/RELEASE_READINESS.md` for current release-readiness boundaries.
 - `docs/PUBLIC_ARTIFACT_MANIFEST.md` for included and excluded public artifacts.

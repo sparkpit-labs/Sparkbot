@@ -8,6 +8,7 @@ This index groups the public Sparkbot documentation for first-time visitors, loc
 - [Security](../SECURITY.md): supported status, security report scope, and reporting guidance.
 - [Development](DEVELOPMENT.md): prerequisites, backend workflow, frontend workflow, and current limitations.
 - [Local Development](LOCAL_DEVELOPMENT.md): local runner scripts and what they do not enable.
+- [Local Smoke Test](LOCAL_SMOKE_TEST.md): alternate-port local smoke testing without touching existing services.
 - [Validation](VALIDATION.md): full validation, safety scans, backend checks, and frontend checks.
 
 ## Product shell previews

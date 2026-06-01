@@ -4,6 +4,17 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKEND_DIR="${ROOT_DIR}/backend"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
+SPARKBOT_BACKEND_HOST="${SPARKBOT_BACKEND_HOST:-127.0.0.1}"
+SPARKBOT_BACKEND_PORT="${SPARKBOT_BACKEND_PORT:-8000}"
+
+case "${SPARKBOT_BACKEND_HOST}" in
+  127.0.0.1|localhost)
+    ;;
+  *)
+    echo "Backend dev server must bind to 127.0.0.1 or localhost." >&2
+    exit 1
+    ;;
+esac
 
 if [[ -x "${ROOT_DIR}/.venv-local/bin/python" ]]; then
   PYTHON_BIN="${ROOT_DIR}/.venv-local/bin/python"
@@ -23,4 +34,4 @@ MSG
 fi
 
 cd "${BACKEND_DIR}"
-exec "${PYTHON_BIN}" -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+exec "${PYTHON_BIN}" -m uvicorn app.main:app --reload --host "${SPARKBOT_BACKEND_HOST}" --port "${SPARKBOT_BACKEND_PORT}"
