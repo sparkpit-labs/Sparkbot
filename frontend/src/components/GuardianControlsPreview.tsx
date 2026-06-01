@@ -1,14 +1,15 @@
 import { guardianControlItems, guardianControlsSummary } from "../guardian/guardianControlsStatus";
-
-function formatStatus(status: "skeleton" | "planned") {
-  return status === "skeleton" ? "Skeleton" : "Planned";
-}
+import { formatShellStatus } from "./ShellNavigation";
 
 export default function GuardianControlsPreview() {
   return (
-    <section className="guardian-controls-preview" aria-labelledby="guardian-controls-heading">
+    <section
+      className="guardian-controls-preview section-panel"
+      id="guardian-controls"
+      aria-labelledby="guardian-controls-heading"
+    >
       <div className="guardian-controls-copy">
-        <p className="eyebrow">Planned surface</p>
+        <p className="eyebrow">Planned</p>
         <h2 id="guardian-controls-heading">Guardian Controls Preview</h2>
         <p>{guardianControlsSummary}</p>
       </div>
@@ -18,7 +19,7 @@ export default function GuardianControlsPreview() {
           <article className="guardian-card" key={control.name}>
             <div className="guardian-card-top">
               <h3>{control.name}</h3>
-              <span className={`status-badge status-${control.status}`}>{formatStatus(control.status)}</span>
+              <span className={`status-badge status-${control.status}`}>{formatShellStatus(control.status)}</span>
             </div>
             <p>{control.summary}</p>
           </article>

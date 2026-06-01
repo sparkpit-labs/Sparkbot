@@ -1,4 +1,6 @@
-export type GuardianControlStatus = "skeleton" | "planned";
+import type { ShellSectionStatus } from "../workstation/shellSections";
+
+export type GuardianControlStatus = Extract<ShellSectionStatus, "preview" | "planned">;
 
 export type GuardianControlItem = {
   name: string;
@@ -9,7 +11,7 @@ export type GuardianControlItem = {
 export const guardianControlItems: GuardianControlItem[] = [
   {
     name: "Local actions",
-    status: "skeleton",
+    status: "planned",
     summary: "Planned review surface for local actions. No approval or execution behavior is active."
   },
   {

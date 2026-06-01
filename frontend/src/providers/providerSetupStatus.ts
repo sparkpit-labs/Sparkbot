@@ -1,4 +1,6 @@
-export type ProviderPreviewStatus = "skeleton" | "planned";
+import type { ShellSectionStatus } from "../workstation/shellSections";
+
+export type ProviderPreviewStatus = Extract<ShellSectionStatus, "preview" | "planned">;
 
 export type ProviderPreviewItem = {
   name: string;
@@ -9,7 +11,7 @@ export type ProviderPreviewItem = {
 export const providerPreviewItems: ProviderPreviewItem[] = [
   {
     name: "Local model provider",
-    status: "skeleton",
+    status: "planned",
     summary: "Planned local model configuration surface. Runtime configuration is not active in this branch."
   },
   {

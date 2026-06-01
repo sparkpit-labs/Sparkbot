@@ -42,6 +42,7 @@ strict_pattern="$(join_by_pipe "${strict_terms[@]}")"
 strict_output="$(grep -RInE "${strict_pattern}" . \
   --exclude-dir=.git \
   --exclude-dir=node_modules \
+  --exclude-dir=.venv-local \
   --exclude-dir=.venv-public-test \
   --exclude=scripts/check-public-safety.sh || true)"
 
@@ -58,6 +59,8 @@ identity_pattern="$(join_by_pipe "${identity_terms[@]}")"
 identity_output="$(grep -RInE "${identity_pattern}" . \
   --exclude-dir=.git \
   --exclude-dir=node_modules \
+  --exclude-dir=.venv-local \
+  --exclude-dir=.venv-public-test \
   --exclude=scripts/check-public-safety.sh || true)"
 
 if [[ -n "${identity_output}" ]]; then
@@ -75,7 +78,8 @@ python3 - <<'PY'
 from pathlib import Path
 bad = []
 for p in Path('.').rglob('*'):
-    if p.is_file() and p.suffix in {'.md', '.py', '.toml', '.yml', '.yaml', '.sh', '.example', '.gitignore', '.tsx', '.ts', '.css', '.html', '.json'} and '.git' not in p.parts and 'node_modules' not in p.parts:
+    ignored_dirs = {'.git', 'node_modules', '.venv-local', '.venv-public-test'}
+    if p.is_file() and p.suffix in {'.md', '.py', '.toml', '.yml', '.yaml', '.sh', '.example', '.gitignore', '.tsx', '.ts', '.css', '.html', '.json'} and not ignored_dirs.intersection(p.parts):
         text = p.read_text(errors='ignore')
         for ch in text:
             if ord(ch) > 0xFFFF:

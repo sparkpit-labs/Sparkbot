@@ -1,4 +1,6 @@
-export type WorkstreamStatus = "implemented" | "skeleton" | "planned";
+import type { ShellSectionStatus } from "./shellSections";
+
+export type WorkstreamStatus = ShellSectionStatus;
 
 export type WorkstationStatusItem = {
   name: string;
@@ -9,37 +11,37 @@ export type WorkstationStatusItem = {
 export const workstationStatusItems: WorkstationStatusItem[] = [
   {
     name: "Server baseline",
-    status: "implemented",
+    status: "worksToday",
     summary: "FastAPI health endpoint and backend validation path are present."
   },
   {
     name: "Frontend shell",
-    status: "implemented",
+    status: "worksToday",
     summary: "Public React and TypeScript shell with build and test workflows is present."
   },
   {
     name: "Workstation shell",
-    status: "skeleton",
-    summary: "Product shell layout exists as a read-only baseline in this branch."
+    status: "worksToday",
+    summary: "Product shell layout, section selector, and status model exist as a read-only baseline."
   },
   {
     name: "Chat shell",
-    status: "skeleton",
-    summary: "Read-only Chat Shell preview surface is present without message handling or model behavior."
+    status: "preview",
+    summary: "Read-only Chat Shell preview is visible without message handling, storage, or model behavior."
   },
   {
     name: "Round Table",
-    status: "skeleton",
+    status: "preview",
     summary: "Read-only Round Table preview surface is present without meeting or model behavior."
   },
   {
     name: "Provider setup",
-    status: "skeleton",
+    status: "planned",
     summary: "Read-only Provider Setup preview surface is present without credential handling or provider calls."
   },
   {
     name: "Guardian-gated controls",
-    status: "skeleton",
+    status: "planned",
     summary: "Read-only Guardian Controls preview surface is present without approvals, enforcement, or sensitive actions."
   }
 ];

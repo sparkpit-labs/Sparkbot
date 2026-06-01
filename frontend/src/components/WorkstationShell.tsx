@@ -1,35 +1,54 @@
+import { useState } from "react";
+
 import ChatShellPreview from "./ChatShellPreview";
 import GuardianControlsPreview from "./GuardianControlsPreview";
 import ProviderSetupPreview from "./ProviderSetupPreview";
 import RoadmapCard from "./RoadmapCard";
 import RoundTablePreview from "./RoundTablePreview";
+import ShellNavigation from "./ShellNavigation";
 import StatusCard from "./StatusCard";
 import { workstationRoadmapItems, workstationStatusItems } from "../workstation/workstationStatus";
 
 export default function WorkstationShell() {
+  const [activeSectionId, setActiveSectionId] = useState("workstation-overview");
+
   return (
     <section className="workstation-shell" aria-label="Workstation shell status">
       <div className="workstation-shell-header">
         <h2>Workstation Shell</h2>
         <p>
-          This product slice establishes a local workstation shell structure and status model without enabling
-          orchestration, chat, model execution, or tool runtime actions.
+          A read-only map of the current public shell surfaces. It shows what works today, what is only previewed, and
+          what remains planned without enabling orchestration, chat runtime, model execution, or tool actions.
         </p>
       </div>
 
-      <div className="status-grid">
-        {workstationStatusItems.map((item) => (
-          <StatusCard key={item.name} name={item.name} status={item.status} summary={item.summary} />
-        ))}
-      </div>
+      <div className="workstation-layout">
+        <ShellNavigation activeSectionId={activeSectionId} onSelectSection={setActiveSectionId} />
 
-      <ChatShellPreview />
-      <RoundTablePreview />
-      <ProviderSetupPreview />
-      <GuardianControlsPreview />
+        <div className="workstation-content">
+          <section className="section-panel" id="workstation-overview" aria-labelledby="workstation-overview-heading">
+            <div className="section-panel-heading">
+              <p className="eyebrow">Works Today</p>
+              <h2 id="workstation-overview-heading">Workstation Overview</h2>
+              <p>Current public shell status across the visible surfaces.</p>
+            </div>
 
-      <div className="roadmap-grid">
-        <RoadmapCard title="Planned Follow-up Work" items={workstationRoadmapItems} />
+            <div className="status-grid">
+              {workstationStatusItems.map((item) => (
+                <StatusCard key={item.name} name={item.name} status={item.status} summary={item.summary} />
+              ))}
+            </div>
+          </section>
+
+          <ChatShellPreview />
+          <RoundTablePreview />
+          <ProviderSetupPreview />
+          <GuardianControlsPreview />
+
+          <div className="roadmap-grid">
+            <RoadmapCard title="Planned Follow-up Work" items={workstationRoadmapItems} />
+          </div>
+        </div>
       </div>
     </section>
   );

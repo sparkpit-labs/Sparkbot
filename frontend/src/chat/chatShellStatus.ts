@@ -1,4 +1,6 @@
-export type ChatPreviewStatus = "skeleton" | "planned";
+import type { ShellSectionStatus } from "../workstation/shellSections";
+
+export type ChatPreviewStatus = Extract<ShellSectionStatus, "preview" | "planned">;
 
 export type ChatPreviewMessage = {
   speaker: string;
@@ -9,8 +11,8 @@ export type ChatPreviewMessage = {
 export const chatPreviewMessages: ChatPreviewMessage[] = [
   {
     speaker: "Draft prompt",
-    status: "skeleton",
-    summary: "A future local chat prompt starts here. This preview does not accept or send messages."
+    status: "preview",
+    summary: "A future local chat prompt starts here. This preview does not accept, store, or send messages."
   },
   {
     speaker: "Assistant preview",
@@ -20,4 +22,4 @@ export const chatPreviewMessages: ChatPreviewMessage[] = [
 ];
 
 export const chatShellSummary =
-  "Chat runtime is planned for later slices. This preview is read-only and does not call models, store messages, or send anything.";
+  "Chat runtime is planned for later slices. This preview is read-only and keeps the future conversation area understandable without calling models, storing messages, or sending anything.";

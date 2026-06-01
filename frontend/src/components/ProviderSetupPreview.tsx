@@ -1,14 +1,11 @@
 import { providerPreviewItems, providerPreviewSummary } from "../providers/providerSetupStatus";
-
-function formatStatus(status: "skeleton" | "planned") {
-  return status === "skeleton" ? "Skeleton" : "Planned";
-}
+import { formatShellStatus } from "./ShellNavigation";
 
 export default function ProviderSetupPreview() {
   return (
-    <section className="provider-setup-preview" aria-labelledby="provider-setup-heading">
+    <section className="provider-setup-preview section-panel" id="provider-setup" aria-labelledby="provider-setup-heading">
       <div className="provider-setup-copy">
-        <p className="eyebrow">Planned surface</p>
+        <p className="eyebrow">Planned</p>
         <h2 id="provider-setup-heading">Provider Setup Preview</h2>
         <p>{providerPreviewSummary}</p>
       </div>
@@ -18,7 +15,7 @@ export default function ProviderSetupPreview() {
           <article className="provider-card" key={provider.name}>
             <div className="provider-card-top">
               <h3>{provider.name}</h3>
-              <span className={`status-badge status-${provider.status}`}>{formatStatus(provider.status)}</span>
+              <span className={`status-badge status-${provider.status}`}>{formatShellStatus(provider.status)}</span>
             </div>
             <p>{provider.summary}</p>
           </article>

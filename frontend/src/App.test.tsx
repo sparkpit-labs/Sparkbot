@@ -3,16 +3,25 @@ import { render, screen } from "@testing-library/react";
 import App from "./App";
 
 describe("App", () => {
-  it("renders workstation shell status, Chat shell preview, Round Table preview, provider setup preview, Guardian Controls preview, and health panel", () => {
+  it("renders workstation navigation, preview-only shell sections, and read-only health panel", () => {
     render(<App />);
 
     expect(screen.getByRole("heading", { level: 1, name: "Sparkbot" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Workstation Shell" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Shell Sections" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Workstation Overview" })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Workstation.*Works Today/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Chat.*Preview/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Round Table.*Preview/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Provider Setup.*Planned/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Guardian Controls.*Planned/i })).toBeDefined();
+    expect(screen.getByText("Not Implemented")).toBeDefined();
     expect(screen.getByRole("heading", { name: "Server baseline" })).toBeDefined();
-    expect(screen.getByText(/product shell layout exists as a read-only baseline/i)).toBeDefined();
+    expect(screen.getByText(/section selector, and status model exist as a read-only baseline/i)).toBeDefined();
     expect(screen.getByRole("heading", { name: "Chat shell" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Chat Shell Preview" })).toBeDefined();
     expect(screen.getByText(/chat runtime is planned for later slices/i)).toBeDefined();
+    expect(screen.getByText(/Empty state: chat history will appear here/i)).toBeDefined();
     expect(screen.getByText(/no enabled send action, no chat endpoint/i)).toBeDefined();
     const plannedComposer = screen.getByLabelText("Chat message composer planned") as HTMLTextAreaElement;
     expect(plannedComposer.disabled).toBe(true);
@@ -26,7 +35,7 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Reviewer seat" })).toBeDefined();
     expect(screen.getByText(/multi-agent collaboration is planned/i)).toBeDefined();
     expect(screen.getByText(/does not start meetings, call models, run a turn engine/i)).toBeDefined();
-    expect(screen.getAllByText("Preview").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Preview").length).toBeGreaterThanOrEqual(3);
     expect(screen.getByRole("heading", { name: "Provider Setup Preview" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Local model provider" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "OpenAI-compatible provider" })).toBeDefined();
@@ -46,7 +55,7 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Audit trail" })).toBeDefined();
     expect(screen.getByText(/Guardian-gated controls are planned for later slices/i)).toBeDefined();
     expect(screen.getByText(/no approval buttons, no execution controls, no save actions/i)).toBeDefined();
-    expect(screen.getAllByText("Skeleton").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("Works Today").length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByText("Planned").length).toBeGreaterThanOrEqual(3);
     expect(screen.getByRole("heading", { name: "Backend Health" })).toBeDefined();
     expect(screen.queryByPlaceholderText(/api key/i)).toBeNull();
