@@ -13,8 +13,8 @@ export default function ShellNavigation({ activeSectionId, onSelectSection }: Sh
   return (
     <aside className="shell-navigation" aria-label="Workstation sections">
       <div className="shell-navigation-header">
-        <h3>Shell Sections</h3>
-        <p>Use this read-only selector to scan the current public surfaces.</p>
+        <h3>Workstation Sections</h3>
+        <p>Select a section to inspect the active local surfaces.</p>
       </div>
 
       <div className="shell-navigation-list" role="list">
@@ -36,7 +36,7 @@ export default function ShellNavigation({ activeSectionId, onSelectSection }: Sh
       <dl className="status-legend" aria-label="Status label meanings">
         <div>
           <dt>Works Today</dt>
-          <dd>Visible shell surface or local read-only utility exists now.</dd>
+          <dd>Visible local runtime or utility exists now.</dd>
         </div>
         <div>
           <dt>Preview</dt>
@@ -48,7 +48,7 @@ export default function ShellNavigation({ activeSectionId, onSelectSection }: Sh
         </div>
         <div>
           <dt>Not Implemented</dt>
-          <dd>No public runtime capability is active in this shell slice.</dd>
+          <dd>No public runtime capability is active in this slice.</dd>
         </div>
       </dl>
     </aside>

@@ -45,7 +45,7 @@ export default function App() {
     <main className="app-shell">
       <header className="shell-header">
         <h1>Sparkbot</h1>
-        <p className="intro">Sparkbot is an early local-first AI workstation shell from SparkPit Labs.</p>
+        <p className="intro">Sparkbot is an early local-first AI workstation from Spark Pit Labs.</p>
       </header>
 
       <WorkstationShell />

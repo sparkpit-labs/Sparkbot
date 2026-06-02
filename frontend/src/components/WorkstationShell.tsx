@@ -1,8 +1,7 @@
 import { useState } from "react";
 
-import ChatShellPreview from "./ChatShellPreview";
+import ChatRuntime from "./ChatRuntime";
 import GuardianControlsPreview from "./GuardianControlsPreview";
-import ProviderSetupPreview from "./ProviderSetupPreview";
 import RoadmapCard from "./RoadmapCard";
 import RoundTablePreview from "./RoundTablePreview";
 import ShellNavigation from "./ShellNavigation";
@@ -13,12 +12,12 @@ export default function WorkstationShell() {
   const [activeSectionId, setActiveSectionId] = useState("workstation-overview");
 
   return (
-    <section className="workstation-shell" aria-label="Workstation shell status">
+    <section className="workstation-shell" aria-label="Sparkbot workstation">
       <div className="workstation-shell-header">
-        <h2>Workstation Shell</h2>
+        <h2>Workstation</h2>
         <p>
-          A read-only map of the current public shell surfaces. It shows what works today, what is only previewed, and
-          what remains planned without enabling orchestration, chat runtime, model execution, or tool actions.
+          A local-first workstation for chat and provider routing. Round Table and Guardian controls remain gated for
+          later runtime slices.
         </p>
       </div>
 
@@ -30,7 +29,7 @@ export default function WorkstationShell() {
             <div className="section-panel-heading">
               <p className="eyebrow">Works Today</p>
               <h2 id="workstation-overview-heading">Workstation Overview</h2>
-              <p>Current public shell status across the visible surfaces.</p>
+              <p>Current public runtime status across the visible surfaces.</p>
             </div>
 
             <div className="status-grid">
@@ -40,9 +39,8 @@ export default function WorkstationShell() {
             </div>
           </section>
 
-          <ChatShellPreview />
+          <ChatRuntime />
           <RoundTablePreview />
-          <ProviderSetupPreview />
           <GuardianControlsPreview />
 
           <div className="roadmap-grid">

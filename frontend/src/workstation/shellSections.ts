@@ -19,13 +19,13 @@ export const shellSections: ShellSection[] = [
     id: "workstation-overview",
     label: "Workstation",
     status: "worksToday",
-    summary: "Read-only shell map, status cards, and local health check surface."
+    summary: "Local workstation frame, status cards, and backend health surface."
   },
   {
     id: "chat-shell",
     label: "Chat",
-    status: "preview",
-    summary: "Static chat preview with message actions inactive."
+    status: "worksToday",
+    summary: "Runtime chat surface connected to the backend provider router."
   },
   {
     id: "round-table",
@@ -35,9 +35,9 @@ export const shellSections: ShellSection[] = [
   },
   {
     id: "provider-setup",
-    label: "Provider Setup",
-    status: "planned",
-    summary: "Read-only provider planning cards with credentials inactive."
+    label: "Provider",
+    status: "worksToday",
+    summary: "Backend-configured provider and model status for chat requests."
   },
   {
     id: "guardian-controls",

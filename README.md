@@ -1,8 +1,8 @@
 # Sparkbot
 
-Sparkbot is an early public, local-first AI workstation shell from SparkPit Labs. It is for builders, hobbyists, and technical users who want a self-hosted workspace for future chat, model seats, Round Table collaboration, provider setup, and safety-gated controls.
+Sparkbot is an early public, local-first AI workstation from SparkPit Labs. It is for builders, hobbyists, and technical users who want a self-hosted workspace for chat, provider routing, future model seats, Round Table collaboration, and safety-gated controls.
 
-The current repository is a validated shell baseline. It is useful for review, local validation, and continued public development, but it is not a complete product release.
+The current repository now includes the first real runtime slice: backend-configured provider routing and chat. Round Table, persistent provider settings, memory, and Guardian action confirmations remain future slices.
 
 ## Who this is for
 
@@ -16,15 +16,15 @@ The current repository is a validated shell baseline. It is useful for review, l
 | Area | Current status | Notes |
 | --- | --- | --- |
 | Backend health endpoint | Works | FastAPI exposes local `GET /health`. |
-| Frontend shell | Works | React/Vite shell builds and tests successfully. |
-| Workstation shell | Preview | Read-only product layout. |
-| Chat shell | Preview | Disabled planned composer; no send action. |
+| Backend chat endpoint | Works | FastAPI exposes local `POST /api/chat`. |
+| Provider status endpoint | Works | FastAPI exposes local `GET /api/providers/status`. |
+| Frontend workstation | Works | React/Vite workstation builds and tests successfully. |
+| Chat runtime | Works | Composer sends messages to the backend provider router and displays responses. |
+| Provider runtime | Works | Supports backend-configured `openai`, `openai_compatible`, and `ollama`. |
 | Round Table | Preview | Inert planned seats for future collaboration. |
-| Provider Setup | Preview only | No API key fields, save action, or provider calls. |
 | Guardian Controls | Preview only | No approvals, enforcement, or sensitive actions. |
 | Desktop packaging | Planning only | No installer or desktop binary exists yet. |
-| Model calls | Not implemented | No model routing or provider runtime is active. |
-| Credential storage | Not implemented | No secrets are accepted, stored, or transmitted. |
+| Credential storage | Env only | Secrets stay server-side in local backend environment/config. |
 | Tool execution | Not implemented | No terminal, tool execution, connector calls, or external sends. |
 
 ## Release and checkpoint status
@@ -59,7 +59,36 @@ bash scripts/check-public-safety.sh
 
 This checks for blocked private references, unexpected publishing identity references, and non-BMP characters.
 
-### 3. Start the backend in terminal 1
+### 3. Configure a provider
+
+Copy `.env.example` to `.env` and configure one provider path. Keep `.env` local; it is gitignored.
+
+OpenAI:
+
+```bash
+SPARKBOT_PROVIDER=openai
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-4o-mini
+```
+
+OpenAI-compatible endpoint:
+
+```bash
+SPARKBOT_PROVIDER=openai_compatible
+OPENAI_COMPATIBLE_BASE_URL=http://127.0.0.1:1234/v1
+OPENAI_COMPATIBLE_MODEL=local-model-name
+OPENAI_COMPATIBLE_API_KEY=
+```
+
+Ollama:
+
+```bash
+SPARKBOT_PROVIDER=ollama
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=llama3.1
+```
+
+### 4. Start the backend in terminal 1
 
 ```bash
 python3 -m venv .venv-local
@@ -69,13 +98,15 @@ python -m pip install -e "backend[dev]"
 bash scripts/start-backend-dev.sh
 ```
 
-Expected backend health URL:
+Expected backend URLs:
 
 ```text
 http://127.0.0.1:8000/health
+http://127.0.0.1:8000/api/providers/status
+http://127.0.0.1:8000/api/chat
 ```
 
-### 4. Start the frontend in terminal 2
+### 5. Start the frontend in terminal 2
 
 ```bash
 cd frontend
@@ -92,7 +123,7 @@ http://127.0.0.1:5173
 
 Vite may print the exact local URL when the frontend server starts.
 
-### 5. Optional alternate-port smoke test
+### 6. Optional alternate-port smoke test
 
 When the default ports are already in use, run the shell on alternate localhost ports and verify both surfaces:
 
@@ -118,11 +149,10 @@ Open `http://127.0.0.1:15173` for the browser check. See `docs/LOCAL_SMOKE_TEST.
 ## What this repository does not do yet
 
 - No desktop installer or desktop binary.
-- No real chat runtime.
-- No model calls or model routing.
-- No provider credential setup.
-- No credential storage.
+- No browser-side provider credential setup.
+- No persisted provider settings UI.
 - No Round Table meeting engine.
+- No memory or meeting notes persistence.
 - No Guardian policy enforcement runtime.
 - No terminal, tool execution, connector calls, external sends, or file mutation controls.
 - No production deployment workflow.
@@ -146,7 +176,7 @@ Key docs:
 
 ## Security and privacy posture
 
-Current validation does not require secrets. The repository does not accept provider credentials, store credentials, call models, execute tools, run connectors, or send data to external services. Product surfaces beyond the backend health endpoint and frontend shell are previews until explicit public contracts and runtime gates are added.
+Current validation does not require secrets. Provider credentials are read only by the backend from local environment/config values and are never exposed to the browser. Chat requests call the configured provider selected by the local developer. Tool execution, connectors, and sensitive actions remain unavailable.
 
 ## Repository standards
 

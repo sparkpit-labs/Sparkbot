@@ -10,47 +10,45 @@ export type WorkstationStatusItem = {
 
 export const workstationStatusItems: WorkstationStatusItem[] = [
   {
-    name: "Server baseline",
+    name: "Server runtime",
     status: "worksToday",
-    summary: "FastAPI health endpoint and backend validation path are present."
+    summary: "FastAPI health, provider status, and chat endpoints are present."
   },
   {
     name: "Frontend shell",
     status: "worksToday",
-    summary: "Public React and TypeScript shell with build and test workflows is present."
+    summary: "Public React and TypeScript workstation builds and tests successfully."
   },
   {
-    name: "Workstation shell",
+    name: "Workstation",
     status: "worksToday",
-    summary: "Product shell layout, section selector, and status model exist as a read-only baseline."
+    summary: "Local workstation layout, section selector, health check, and runtime chat surface are active."
   },
   {
-    name: "Chat shell",
-    status: "preview",
-    summary: "Read-only Chat Shell preview is visible without message handling, storage, or model behavior."
+    name: "Chat runtime",
+    status: "worksToday",
+    summary: "Chat sends messages through the backend provider router and displays provider responses."
+  },
+  {
+    name: "Provider runtime",
+    status: "worksToday",
+    summary: "OpenAI, OpenAI-compatible, and Ollama paths are selected through backend configuration."
   },
   {
     name: "Round Table",
     status: "preview",
-    summary: "Read-only Round Table preview surface is present without meeting or model behavior."
-  },
-  {
-    name: "Provider setup",
-    status: "planned",
-    summary: "Read-only Provider Setup preview surface is present without credential handling or provider calls."
+    summary: "Round Table remains a future runtime slice without meeting or model behavior."
   },
   {
     name: "Guardian-gated controls",
     status: "planned",
-    summary: "Read-only Guardian Controls preview surface is present without approvals, enforcement, or sensitive actions."
+    summary: "Guardian controls remain inactive until the basic action confirmation slice."
   }
 ];
 
 export const workstationRoadmapItems: string[] = [
-  "Define workstation view structure with stable public contracts.",
-  "Document chat interaction contracts before enabling message handling or model behavior.",
-  "Expand Round Table preview surfaces only after public interaction contracts are documented.",
-  "Document provider setup contracts before enabling credential or network behavior.",
-  "Document Guardian control contracts before enabling approval or enforcement behavior.",
-  "Prepare provider and guardrail integration points without runtime activation."
+  "Persist provider settings in a safe local backend store.",
+  "Restore the Round Table runtime with sequential seats and Meeting Manager flow.",
+  "Add durable memory and meeting notes after the real chat loop is stable.",
+  "Add basic Guardian confirmations before any tool or connector action support."
 ];
