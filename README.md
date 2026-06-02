@@ -29,7 +29,7 @@ The current repository is a validated shell baseline. It is useful for review, l
 
 ## Release and checkpoint status
 
-The latest public checkpoint tag on `main` is `public-v1-workstation-navigation-polish-0`.
+The latest public checkpoint tag on `main` is `public-v1-local-smoke-ready-0`.
 
 The GitHub pre-release `public-v1-shell-baseline-0` remains the first published shell baseline release. Development continues on `main` through checkpoint tags, so `main` may include newer docs and planning checkpoints than the first pre-release page.
 

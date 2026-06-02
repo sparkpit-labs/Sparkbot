@@ -29,6 +29,7 @@ The clean baseline has been validated with:
 - `npm audit --audit-level=moderate` passing with zero vulnerabilities.
 - `bash scripts/validate-public-shell.sh` passing.
 - Strict public sanitation scans passing.
+- Manual local browser smoke passed through the alternate-port localhost flow after `public-v1-local-smoke-ready-0`.
 
 ## License
 

@@ -6,6 +6,7 @@ This changelog tracks public Sparkbot repository baselines and release-facing do
 
 ### Added
 
+- Local smoke readiness checkpoint with alternate localhost ports and confirmed manual browser smoke.
 - Chat Shell preview with disabled read-only planned composer and no send action.
 - Chat Shell documentation describing the public skeleton boundary.
 - Local development runner scripts for backend and frontend dev servers.
