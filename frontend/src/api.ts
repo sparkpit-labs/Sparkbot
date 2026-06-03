@@ -238,3 +238,133 @@ export function createAgent(payload: { name: string; description: string; system
     body: JSON.stringify(payload)
   });
 }
+
+export type WorkstationSeat = {
+  seat_index: number;
+  label: string;
+  agent: string;
+  provider: string;
+  model: string;
+  updated_at: string;
+};
+
+export type WorkstationRoom = {
+  id: string;
+  title: string;
+  status: string;
+  phase: string;
+  goal: string;
+  summary: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  participants?: unknown[];
+  notes?: WorkstationNote[];
+};
+
+export type WorkstationNote = {
+  id: string;
+  title: string;
+  body: string;
+  surface: string;
+  source_id: string;
+  actor: string;
+  tags: string[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type WorkstationMemory = {
+  id: string;
+  content: string;
+  memory_type: string;
+  source_surface: string;
+  source_id: string;
+  actor: string;
+  tags: string[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type WorkstationEvent = {
+  id: string;
+  event_type: string;
+  surface: string;
+  source_id: string;
+  actor: string;
+  summary: string;
+  payload: Record<string, unknown>;
+  created_at: string;
+};
+
+export type WorkstationState = {
+  controls: ControlsConfig;
+  seats: WorkstationSeat[];
+  rooms: WorkstationRoom[];
+  notes: WorkstationNote[];
+  memory: { items: WorkstationMemory[]; count: number };
+  events: WorkstationEvent[];
+  dashboard: {
+    rooms_count: number;
+    notes_count: number;
+    memory_count: number;
+    events_count: number;
+    seat_count: number;
+    pending_confirmations: number;
+  };
+  storage: { type: string; path: string };
+};
+
+export function fetchWorkstationState(): Promise<WorkstationState> {
+  return fetchJson<WorkstationState>("/api/workstation/state");
+}
+
+export function updateSeat(
+  seatIndex: number,
+  payload: { label?: string; agent?: string; provider?: string; model?: string }
+): Promise<WorkstationSeat> {
+  return fetchJson<WorkstationSeat>(`/api/seats/${seatIndex}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function createNote(payload: {
+  title: string;
+  body: string;
+  surface?: string;
+  source_id?: string;
+  tags?: string[];
+}): Promise<WorkstationNote> {
+  return fetchJson<WorkstationNote>("/api/notes", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function createMemory(payload: {
+  content: string;
+  memory_type?: string;
+  source_surface?: string;
+  source_id?: string;
+  tags?: string[];
+}): Promise<WorkstationMemory> {
+  return fetchJson<WorkstationMemory>("/api/memory", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function createRoom(payload: {
+  title: string;
+  status?: string;
+  phase?: string;
+  goal?: string;
+  summary?: string;
+  metadata?: Record<string, unknown>;
+}): Promise<WorkstationRoom> {
+  return fetchJson<WorkstationRoom>("/api/rooms", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}

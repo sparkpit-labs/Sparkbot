@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   API_BASE_URL,
   createAgent,
-  fetchControlsConfig,
+  fetchWorkstationState,
   fetchDashboardSummary,
   fetchGuardianStatus,
   fetchLocalModelStatus,
@@ -12,6 +12,7 @@ import {
   fetchSpineOverview,
   saveControlsConfig,
   saveOperatorPin,
+  updateSeat as persistSeat,
   type AgentInfo,
   type ControlsConfig,
   type DashboardSummary,
@@ -19,17 +20,14 @@ import {
   type LocalModelStatus,
   type OpenRouterModel,
   type SecurityStatus,
-  type SpineOverview
+  type SpineOverview,
+  type WorkstationState,
+  type WorkstationSeat
 } from "../api";
 
 type LoadState = "loading" | "ready" | "error";
 
-type SeatState = {
-  agent: string;
-  model: string;
-};
-
-const seatStorageKey = "sparkbot_workstation_command_center_seats";
+type SeatState = WorkstationSeat;
 
 const fallbackConfig: ControlsConfig = {
   active_model: "openrouter/openai/gpt-4o-mini",
@@ -106,20 +104,18 @@ const queueLabels: Array<[keyof SpineOverview, string]> = [
   ["executive_directives_queue", "Directives"]
 ];
 
-function getSavedSeats(agents: AgentInfo[]): SeatState[] {
-  const fallbackSeats = Array.from({ length: 8 }, (_, index) => ({
-    agent: agents[index % Math.max(agents.length, 1)]?.name || "",
-    model: ""
-  }));
-
-  try {
-    const raw = window.localStorage.getItem(seatStorageKey);
-    if (!raw) return fallbackSeats;
-    const parsed = JSON.parse(raw) as SeatState[];
-    return fallbackSeats.map((seat, index) => ({ ...seat, ...parsed[index] }));
-  } catch {
-    return fallbackSeats;
-  }
+function getFallbackSeats(agents: AgentInfo[]): SeatState[] {
+  return Array.from({ length: 8 }, (_, index) => {
+    const agent = agents[index % Math.max(agents.length, 1)]?.name || "";
+    return {
+      seat_index: index + 1,
+      label: `Seat ${index + 1}`,
+      agent,
+      provider: "default",
+      model: "",
+      updated_at: ""
+    };
+  });
 }
 
 function statusLabel(value: boolean): string {
@@ -180,7 +176,8 @@ export default function CommandCenter() {
   const [error, setError] = useState<string | null>(null);
   const [refreshingModels, setRefreshingModels] = useState(false);
   const [checkingLocal, setCheckingLocal] = useState(false);
-  const [seats, setSeats] = useState<SeatState[]>(() => getSavedSeats(fallbackConfig.available_agents));
+  const [seats, setSeats] = useState<SeatState[]>(() => getFallbackSeats(fallbackConfig.available_agents));
+  const [workstation, setWorkstation] = useState<WorkstationState | null>(null);
   const [newAgent, setNewAgent] = useState({ name: "", description: "", prompt: "" });
 
   const models = useMemo(() => allModelOptions(config, openRouterModels), [config, openRouterModels]);
@@ -191,18 +188,20 @@ export default function CommandCenter() {
     setLoadState("loading");
     setError(null);
     try {
-      const [configResult, guardianResult, securityResult, dashboardResult, spineResult] = await Promise.allSettled([
-        fetchControlsConfig(),
+      const [workstationResult, guardianResult, securityResult, dashboardResult, spineResult] = await Promise.allSettled([
+        fetchWorkstationState(),
         fetchGuardianStatus(),
         fetchSecurityStatus(),
         fetchDashboardSummary(),
         fetchSpineOverview()
       ]);
 
-      if (configResult.status === "fulfilled") {
-        applyConfig(configResult.value);
+      if (workstationResult.status === "fulfilled") {
+        setWorkstation(workstationResult.value);
+        applyConfig(workstationResult.value.controls);
+        setSeats(workstationResult.value.seats.length ? workstationResult.value.seats : getFallbackSeats(workstationResult.value.controls.available_agents));
       } else {
-        throw configResult.reason;
+        throw workstationResult.reason;
       }
       if (guardianResult.status === "fulfilled") setGuardian(guardianResult.value);
       if (securityResult.status === "fulfilled") setSecurity(securityResult.value);
@@ -228,11 +227,7 @@ export default function CommandCenter() {
     setAgentOverrides(nextConfig.agent_overrides || {});
     setCustomGuardrails(nextConfig.custom_guardrails || "");
     setTokenMode(nextConfig.token_guardian_mode);
-    setSeats((current) => {
-      const saved = current.length === 8 ? current : getSavedSeats(nextConfig.available_agents);
-      window.localStorage.setItem(seatStorageKey, JSON.stringify(saved));
-      return saved;
-    });
+    setSeats((current) => current.length ? current : getFallbackSeats(nextConfig.available_agents));
   }
 
   useEffect(() => {
@@ -402,24 +397,34 @@ export default function CommandCenter() {
     }
   }
 
-  function updateSeat(index: number, patch: Partial<SeatState>) {
-    setSeats((current) => {
-      const next = current.map((seat, seatIndex) => (seatIndex === index ? { ...seat, ...patch } : seat));
-      window.localStorage.setItem(seatStorageKey, JSON.stringify(next));
-      if (patch.model || patch.agent) {
-        const agent = next[index]?.agent;
-        if (agent) {
-          setAgentOverrides((overrides) => ({
-            ...overrides,
-            [agent]: {
-              route: patch.model ? providerForModel(patch.model) : overrides[agent]?.route || "default",
-              model: patch.model || overrides[agent]?.model || ""
-            }
-          }));
-        }
+  async function updateSeat(index: number, patch: Partial<SeatState>) {
+    setError(null);
+    const current = seats[index];
+    if (!current) return;
+    const nextModel = patch.model ?? current.model;
+    const nextAgent = patch.agent ?? current.agent;
+    const nextProvider = patch.provider ?? (patch.model !== undefined ? providerForModel(nextModel) : current.provider);
+    try {
+      const saved = await persistSeat(current.seat_index || index + 1, {
+        label: patch.label ?? current.label,
+        agent: nextAgent,
+        provider: nextProvider,
+        model: nextModel
+      });
+      setSeats((items) => items.map((seat, seatIndex) => (seatIndex === index ? saved : seat)));
+      if (nextAgent) {
+        setAgentOverrides((overrides) => ({
+          ...overrides,
+          [nextAgent]: {
+            route: nextModel ? providerForModel(nextModel) : nextProvider || overrides[nextAgent]?.route || "default",
+            model: nextModel || overrides[nextAgent]?.model || ""
+          }
+        }));
       }
-      return next;
-    });
+      setMessage((saved.label || "Seat") + " saved to Workstation state.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Seat assignment could not be saved.");
+    }
   }
 
   return (
@@ -711,7 +716,11 @@ export default function CommandCenter() {
             <div><dt>Backend</dt><dd>{loadState === "ready" ? "online" : "needs check"}</dd></div>
             <div><dt>Default provider</dt><dd>{defaultProvider?.label || config.default_selection.provider}</dd></div>
             <div><dt>Default model</dt><dd>{modelLabel(config, config.default_selection.model)}</dd></div>
-            <div><dt>Pending approvals</dt><dd>{dashboard?.summary.pending_approvals ?? 0}</dd></div>
+            <div><dt>Pending approvals</dt><dd>{dashboard?.summary.pending_approvals ?? workstation?.dashboard.pending_confirmations ?? 0}</dd></div>
+            <div><dt>Rooms</dt><dd>{workstation?.dashboard.rooms_count ?? 0}</dd></div>
+            <div><dt>Notes</dt><dd>{workstation?.dashboard.notes_count ?? 0}</dd></div>
+            <div><dt>Memory</dt><dd>{workstation?.dashboard.memory_count ?? 0}</dd></div>
+            <div><dt>Events</dt><dd>{workstation?.dashboard.events_count ?? 0}</dd></div>
           </dl>
         </article>
 

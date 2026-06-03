@@ -11,6 +11,8 @@ import httpx
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from app.services.workstation_store import get_store
+
 
 router = APIRouter()
 
@@ -479,6 +481,13 @@ async def update_models_config(body: ControlsConfigUpdate) -> dict[str, Any]:
     _write_config(config)
     if body.providers is not None:
         _write_secrets(secrets_payload)
+    if notices:
+        get_store().append_event({
+            "event_type": "command_center.config_updated",
+            "surface": "command_center",
+            "summary": "Command Center configuration updated.",
+            "payload": {"notices": notices},
+        })
     return await _build_controls_config(notices=notices)
 
 
@@ -498,6 +507,12 @@ async def set_model(body: ModelSelectionInput) -> dict[str, Any]:
     config["default_selection"] = {"provider": provider, "model": model}
     config["stack"]["primary"] = model
     _write_config(config)
+    get_store().append_event({
+        "event_type": "model.default_updated",
+        "surface": "command_center",
+        "summary": "Default model updated.",
+        "payload": {"model": model, "provider": provider},
+    })
     return {"model": model, "provider": provider, "label": MODEL_LABELS.get(model, model)}
 
 
@@ -563,6 +578,13 @@ async def create_agent(body: AgentCreateInput) -> dict[str, Any]:
     agents.append(agent)
     config["custom_agents"] = agents
     _write_config(config)
+    get_store().append_event({
+        "event_type": "agent.created",
+        "surface": "command_center",
+        "source_id": slug,
+        "summary": f"Agent created: {body.name.strip()}",
+        "payload": {"agent": slug},
+    })
     return agent
 
 
@@ -609,23 +631,34 @@ async def save_operator_pin(body: OperatorPinInput) -> dict[str, Any]:
     if not body.pin.isdigit() or len(body.pin) != 6:
         raise HTTPException(status_code=400, detail="PIN must be six digits.")
     _set_pin(body.pin)
+    get_store().append_event({
+        "event_type": "guardian.pin_updated",
+        "surface": "guardian",
+        "summary": "Operator PIN updated.",
+        "payload": {"pin_configured": True},
+    })
     return {"ok": True, "pin_configured": True}
 
 
 @router.get("/api/v1/chat/dashboard/summary")
 async def dashboard_summary() -> dict[str, Any]:
     config = _read_config()
+    store_summary = get_store().dashboard_summary()
     return {
         "summary": {
-            "rooms_count": 0,
+            "rooms_count": store_summary["rooms_count"],
             "open_tasks": 0,
             "pending_reminders": 0,
-            "pending_approvals": 0,
-            "guardian_jobs": 0,
+            "pending_approvals": store_summary["pending_confirmations"],
+            "guardian_jobs": store_summary["notes_count"],
             "guardian_jobs_enabled": 0,
             "task_guardian_enabled": False,
             "token_guardian_mode": config.get("token_guardian_mode", "shadow"),
             "security_guardrails_enabled": bool(config.get("security_guardrails_enabled")),
+            "notes_count": store_summary["notes_count"],
+            "memory_count": store_summary["memory_count"],
+            "events_count": store_summary["events_count"],
+            "seat_count": store_summary["seat_count"],
         },
         "today": {"meeting_artifacts": [], "inbox": {"summary_text": "Connectors are not configured in this public port."}},
     }
@@ -634,6 +667,7 @@ async def dashboard_summary() -> dict[str, Any]:
 @router.get("/api/v1/chat/spine/operator/overview")
 async def spine_overview() -> dict[str, Any]:
     empty: list[Any] = []
+    store_summary = get_store().dashboard_summary()
     return {
         "open_queue": empty,
         "blocked_queue": empty,
@@ -646,23 +680,40 @@ async def spine_overview() -> dict[str, Any]:
         "assignment_ready_queue": empty,
         "executive_directives_queue": empty,
         "status": "available",
-        "note": "Spine inspection route is present; task/project persistence is a follow-up port.",
+        "note": "Spine inspection route is backed by shared Workstation state; full task queues are a follow-up port.",
+        "workstation_counts": store_summary,
     }
 
 
 @router.get("/api/v1/chat/spine/operator/events")
 async def spine_events() -> dict[str, Any]:
-    return {"events": []}
+    events = get_store().list_events(limit=100)
+    return {"events": events, "count": len(events)}
 
 
 @router.get("/api/v1/chat/spine/operator/producers")
 async def spine_producers() -> dict[str, Any]:
-    return {"producers": []}
+    producers = [
+        {"subsystem": "workstation", "description": "Shared local Workstation state", "event_types": ["room.created", "note.saved", "memory.saved", "seat.updated"]},
+        {"subsystem": "command_center", "description": "Command Center configuration changes", "event_types": ["command_center.config_updated", "model.default_updated", "agent.created"]},
+    ]
+    return {"producers": producers, "count": len(producers)}
 
 
 @router.get("/api/v1/chat/spine/operator/projects")
 async def spine_projects() -> dict[str, Any]:
-    return {"projects": []}
+    rooms = get_store().list_rooms(limit=100)
+    projects = [
+        {
+            "project_id": room["id"],
+            "display_name": room["title"],
+            "status": room["status"],
+            "summary": room["summary"],
+            "updated_at": room["updated_at"],
+        }
+        for room in rooms
+    ]
+    return {"projects": projects, "count": len(projects)}
 
 
 @router.get("/api/v1/utils/health-check/")
