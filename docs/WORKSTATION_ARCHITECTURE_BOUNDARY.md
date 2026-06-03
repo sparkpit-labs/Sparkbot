@@ -16,6 +16,12 @@ The current shared store persists:
 
 Frontend state should stay transient: loading flags, form drafts, selected tabs, and currently loaded API responses. Persistent product state should not be introduced through browser storage or page-local-only stores.
 
+## Round Table persistence contract
+
+Round Table durable state is limited to backend-backed rooms, participants, sessions, turns, assignments, summaries, wrap-up note links, notes, memory recall, events, and Guardian block records. The frontend may hold only form drafts, loading state, the selected session response, and status messages.
+
+A blocked privileged Round Table request may update the session to `blocked` and write a Guardian block event. It must not create turns, assignments, summaries, or wrap-up notes.
+
 ## Surface roles
 
 - Chat: direct operator conversation surface. It can read shared context, save chat turns, save optional memory, and request Guardian confirmations.

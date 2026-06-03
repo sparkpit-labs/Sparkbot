@@ -1,4 +1,5 @@
 import { cleanup, render, screen } from "@testing-library/react";
+import { vi } from "vitest";
 
 import App from "./App";
 
@@ -34,6 +35,20 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: "Run provider-safe meeting" })).toBeDefined();
     expect(screen.queryByRole("heading", { name: "Workstation Floor" })).toBeNull();
     expect(screen.queryByRole("heading", { name: "Sparkbot Chat" })).toBeNull();
+  });
+
+  it("does not persist Round Table meeting state in browser storage", async () => {
+    window.history.pushState({}, "", "/roundtable");
+    const storageSpy = vi.spyOn(Storage.prototype, "setItem");
+
+    try {
+      render(<App />);
+      await Promise.resolve();
+
+      expect(storageSpy).not.toHaveBeenCalled();
+    } finally {
+      storageSpy.mockRestore();
+    }
   });
 
   it("keeps Chat as the operator conversation surface", () => {

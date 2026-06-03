@@ -44,7 +44,8 @@ def test_roundtable_provider_safe_flow_persists_shared_state_events_and_wrapup_n
     assert created["metadata"]["api_key"] == "[redacted]"
     assert created["participants"][0]["role"] == "meeting_manager"
 
-    run_response = client.post(f"/api/roundtable/sessions/{created["id"]}/run", json={})
+    session_id = created["id"]
+    run_response = client.post(f"/api/roundtable/sessions/{session_id}/run", json={})
     assert run_response.status_code == 200
     session = run_response.json()
     assert session["status"] == "complete"
@@ -57,15 +58,18 @@ def test_roundtable_provider_safe_flow_persists_shared_state_events_and_wrapup_n
     assert session["summaries"][0]["note_id"] == session["notes"][0]["id"]
 
     phases = [turn["phase"] for turn in session["turns"]]
-    assert phases.count("first_pass") == 7
-    assert phases.count("manager_assessment") == 1
-    assert phases.count("second_pass") == 7
-    assert phases.count("manager_summary") == 1
+    assert phases == ["first_pass"] * 7 + ["manager_assessment"] + ["second_pass"] * 7 + ["manager_summary"]
+    assert [turn["turn_index"] for turn in session["turns"]] == list(range(1, 17))
+    manager_turns = [turn for turn in session["turns"] if turn["role"] == "meeting_manager"]
+    assert [turn["phase"] for turn in manager_turns] == ["manager_assessment", "manager_summary"]
+    assert all(turn["seat_index"] == 1 for turn in manager_turns)
     assert all(turn["provider"] == "provider-safe" for turn in session["turns"])
     assert all(assignment["status"] == "answered" for assignment in session["assignments"])
     assert all(assignment["response_turn_id"] for assignment in session["assignments"])
+    second_pass_ids = {turn["id"] for turn in session["turns"] if turn["phase"] == "second_pass"}
+    assert {assignment["response_turn_id"] for assignment in session["assignments"]} == second_pass_ids
 
-    notes_response = client.get(f"/api/notes?surface=roundtable&source_id={created["id"]}")
+    notes_response = client.get(f"/api/notes?surface=roundtable&source_id={session_id}")
     assert notes_response.status_code == 200
     assert notes_response.json()["count"] == 1
 
@@ -90,7 +94,7 @@ def test_roundtable_provider_safe_flow_persists_shared_state_events_and_wrapup_n
     assert created_event["payload"]["metadata"]["nested"]["token"] == "[redacted]"
 
     second_client = TestClient(app)
-    persisted = second_client.get(f"/api/roundtable/sessions/{created["id"]}")
+    persisted = second_client.get(f"/api/roundtable/sessions/{session_id}")
     assert persisted.status_code == 200
     persisted_session = persisted.json()
     assert persisted_session["status"] == "complete"
@@ -98,6 +102,14 @@ def test_roundtable_provider_safe_flow_persists_shared_state_events_and_wrapup_n
     assert persisted_session["assignment_count"] == 7
     assert len(persisted_session["summaries"]) == 1
     assert len(persisted_session["notes"]) == 1
+
+    rerun_response = second_client.post(f"/api/roundtable/sessions/{session_id}/run", json={})
+    assert rerun_response.status_code == 200
+    rerun = rerun_response.json()
+    assert rerun["turn_count"] == 16
+    assert rerun["assignment_count"] == 7
+    assert len(rerun["summaries"]) == 1
+    assert len(rerun["notes"]) == 1
 
 
 def test_roundtable_privileged_request_fails_closed_and_logs_guardian_block(tmp_path, monkeypatch) -> None:
@@ -133,3 +145,51 @@ def test_roundtable_privileged_request_fails_closed_and_logs_guardian_block(tmp_
     assert blocked_events
     assert blocked_events[0]["payload"]["requires_confirmation"] is True
     assert blocked_events[0]["payload"]["action_type"] == "external_send"
+
+
+def test_roundtable_blocks_privileged_categories_without_turn_or_note_mutation(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
+    client = TestClient(app)
+
+    cases = [
+        ("external_send", "Publish the manager summary to a channel."),
+        ("connector_action", "Run connector sync after the room closes."),
+        ("file_mutation", "Write file output for the room."),
+        ("process_action", "Start process for the room output."),
+        ("scheduler_action", "Schedule job for later follow-up."),
+        ("device_action", "Control device from this meeting."),
+    ]
+
+    for expected_action, goal in cases:
+        create_response = client.post(
+            "/api/roundtable/sessions",
+            json={"title": f"Blocked {expected_action}", "goal": goal},
+        )
+        assert create_response.status_code == 201
+        session_id = create_response.json()["id"]
+
+        run_response = client.post(f"/api/roundtable/sessions/{session_id}/run", json={})
+        assert run_response.status_code == 200
+        session = run_response.json()
+        assert session["status"] == "blocked"
+        assert session["phase"] == "guardian_blocked"
+        assert session["blocked_action"] == expected_action
+        assert session["turns"] == []
+        assert session["assignments"] == []
+        assert session["summaries"] == []
+        assert session["notes"] == []
+
+    state = client.get("/api/workstation/state").json()
+    assert state["roundtable"]["sessions_count"] == len(cases)
+    assert state["roundtable"]["turns_count"] == 0
+    assert state["roundtable"]["assignments_count"] == 0
+    assert state["roundtable"]["summaries_count"] == 0
+    assert state["dashboard"]["notes_count"] == 0
+
+    events = client.get("/api/events").json()["events"]
+    blocked_actions = {
+        event["payload"]["action_type"]
+        for event in events
+        if event["event_type"] == "guardian.action_blocked" and event["surface"] == "roundtable"
+    }
+    assert blocked_actions == {action for action, _goal in cases}
