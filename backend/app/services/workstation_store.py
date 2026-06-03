@@ -5,7 +5,7 @@ import os
 import sqlite3
 import uuid
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterator
 
@@ -52,6 +52,19 @@ def _json_loads(value: str | None, fallback: Any) -> Any:
 
 
 SENSITIVE_KEY_PARTS = ("api_key", "access_key", "credential", "password", "secret", "token")
+CONFIRMATION_TTL_SECONDS = 15 * 60
+
+
+def _parse_utc(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
 
 
 def _sanitize_payload(value: Any) -> Any:
@@ -163,11 +176,21 @@ class WorkstationStore:
               surface TEXT NOT NULL,
               source_id TEXT NOT NULL,
               created_at TEXT NOT NULL,
-              resolved_at TEXT
+              expires_at TEXT NOT NULL DEFAULT '',
+              resolved_at TEXT,
+              used_at TEXT
             );
             """
         )
+        self._ensure_confirmation_columns(conn)
         self._seed_seats(conn)
+
+    def _ensure_confirmation_columns(self, conn: sqlite3.Connection) -> None:
+        columns = {row["name"] for row in conn.execute("PRAGMA table_info(action_confirmations)").fetchall()}
+        if "expires_at" not in columns:
+            conn.execute("ALTER TABLE action_confirmations ADD COLUMN expires_at TEXT NOT NULL DEFAULT ''")
+        if "used_at" not in columns:
+            conn.execute("ALTER TABLE action_confirmations ADD COLUMN used_at TEXT")
 
     def _seed_seats(self, conn: sqlite3.Connection) -> None:
         existing = conn.execute("SELECT COUNT(*) AS count FROM seats").fetchone()["count"]
@@ -525,36 +548,155 @@ class WorkstationStore:
 
     def create_confirmation(self, payload: dict[str, Any], actor: str = "operator") -> dict[str, Any]:
         confirmation_id = str(uuid.uuid4())
-        now = utc_now()
+        now_dt = datetime.now(timezone.utc)
+        now = now_dt.isoformat()
+        ttl_seconds = CONFIRMATION_TTL_SECONDS
+        expires_at = (now_dt + timedelta(seconds=ttl_seconds)).isoformat()
+        action_type = str(payload.get("action_type") or "workstation.action")
+        surface = str(payload.get("surface") or "workstation")
+        source_id = str(payload.get("source_id") or "")
         with self.connect() as conn:
             conn.execute(
                 """
-                INSERT INTO action_confirmations (id, action_type, status, risk_level, prompt, surface, source_id, created_at, resolved_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)
+                INSERT INTO action_confirmations
+                  (id, action_type, status, risk_level, prompt, surface, source_id, created_at, expires_at, resolved_at, used_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)
                 """,
                 (
                     confirmation_id,
-                    str(payload.get("action_type") or "workstation.action"),
+                    action_type,
                     "pending",
                     str(payload.get("risk_level") or "confirm"),
                     str(payload.get("prompt") or "Confirm this action before continuing."),
-                    str(payload.get("surface") or "workstation"),
-                    str(payload.get("source_id") or ""),
+                    surface,
+                    source_id,
                     now,
+                    expires_at,
                 ),
             )
             self._append_event_conn(
                 conn,
                 "guardian.confirmation_required",
-                str(payload.get("surface") or "workstation"),
-                str(payload.get("source_id") or confirmation_id),
+                surface,
+                source_id or confirmation_id,
                 actor,
                 "Action confirmation required.",
-                {"confirmation_id": confirmation_id, "action_type": str(payload.get("action_type") or "workstation.action")},
+                {"confirmation_id": confirmation_id, "action_type": action_type},
                 now,
             )
             row = conn.execute("SELECT * FROM action_confirmations WHERE id = ?", (confirmation_id,)).fetchone()
         return self._confirmation(row)
+
+    def list_confirmations(self, limit: int = 50, status: str | None = None) -> list[dict[str, Any]]:
+        sql = "SELECT * FROM action_confirmations"
+        params: list[Any] = []
+        if status:
+            sql += " WHERE status = ?"
+            params.append(status)
+        sql += " ORDER BY created_at DESC LIMIT ?"
+        params.append(max(1, min(limit, 200)))
+        with self.connect() as conn:
+            rows = conn.execute(sql, params).fetchall()
+        return [self._confirmation(row) for row in rows]
+
+    def decide_confirmation(self, confirmation_id: str, decision: str, actor: str = "operator") -> dict[str, Any] | None:
+        normalized = decision.strip().lower()
+        if normalized not in {"approved", "denied"}:
+            raise ValueError("Confirmation decision must be approved or denied.")
+        now = utc_now()
+        with self.connect() as conn:
+            row = conn.execute("SELECT * FROM action_confirmations WHERE id = ?", (confirmation_id,)).fetchone()
+            if not row:
+                return None
+            if row["status"] != "pending":
+                return self._confirmation(row)
+            conn.execute(
+                "UPDATE action_confirmations SET status = ?, resolved_at = ? WHERE id = ?",
+                (normalized, now, confirmation_id),
+            )
+            event_type = "guardian.confirmation_approved" if normalized == "approved" else "guardian.confirmation_denied"
+            self._append_event_conn(
+                conn,
+                event_type,
+                row["surface"],
+                row["source_id"] or confirmation_id,
+                actor,
+                f"Action confirmation {normalized}.",
+                {"confirmation_id": confirmation_id, "action_type": row["action_type"]},
+                now,
+            )
+            row = conn.execute("SELECT * FROM action_confirmations WHERE id = ?", (confirmation_id,)).fetchone()
+        return self._confirmation(row)
+
+    def authorize_action(
+        self,
+        confirmation_id: str | None,
+        action_type: str,
+        surface: str,
+        source_id: str,
+        actor: str = "operator",
+    ) -> tuple[bool, str]:
+        now_dt = datetime.now(timezone.utc)
+        now = now_dt.isoformat()
+        clean_confirmation_id = str(confirmation_id or "").strip()
+
+        def block(conn: sqlite3.Connection, reason: str, row: sqlite3.Row | None = None) -> tuple[bool, str]:
+            conn_surface = row["surface"] if row else surface
+            conn_source_id = row["source_id"] if row else source_id
+            self._append_event_conn(
+                conn,
+                "guardian.action_blocked",
+                conn_surface,
+                conn_source_id or clean_confirmation_id,
+                actor,
+                reason,
+                {
+                    "confirmation_id": clean_confirmation_id,
+                    "expected_action_type": action_type,
+                    "expected_surface": surface,
+                    "expected_source_id": source_id,
+                    "reason": reason,
+                },
+                now,
+            )
+            return False, reason
+
+        with self.connect() as conn:
+            if not clean_confirmation_id:
+                return block(conn, "Guardian confirmation required.")
+            row = conn.execute("SELECT * FROM action_confirmations WHERE id = ?", (clean_confirmation_id,)).fetchone()
+            if not row:
+                return block(conn, "Guardian confirmation was not found.")
+            if row["used_at"] or row["status"] == "used":
+                return block(conn, "Guardian confirmation was already used.", row)
+            if row["status"] == "denied":
+                return block(conn, "Guardian confirmation was denied.", row)
+            if row["status"] != "approved":
+                return block(conn, "Guardian confirmation is not approved.", row)
+            expires_at = _parse_utc(row["expires_at"])
+            if not expires_at or expires_at <= now_dt:
+                conn.execute(
+                    "UPDATE action_confirmations SET status = ?, resolved_at = COALESCE(resolved_at, ?) WHERE id = ?",
+                    ("expired", now, clean_confirmation_id),
+                )
+                return block(conn, "Guardian confirmation expired.", row)
+            if row["action_type"] != action_type or row["surface"] != surface or row["source_id"] != source_id:
+                return block(conn, "Guardian confirmation does not match this action.", row)
+            conn.execute(
+                "UPDATE action_confirmations SET status = ?, used_at = ? WHERE id = ?",
+                ("used", now, clean_confirmation_id),
+            )
+            self._append_event_conn(
+                conn,
+                "guardian.action_authorized",
+                surface,
+                source_id,
+                actor,
+                "Guardian confirmation authorized an action.",
+                {"confirmation_id": clean_confirmation_id, "action_type": action_type},
+                now,
+            )
+        return True, "Guardian confirmation accepted."
 
     def workstation_state(self) -> dict[str, Any]:
         seats = self.list_seats()
@@ -568,6 +710,10 @@ class WorkstationStore:
             "notes": notes,
             "memory": {"items": memories, "count": self.count("memory_entries")},
             "events": events,
+            "guardian": {
+                "pending_confirmations": self.list_confirmations(limit=20, status="pending"),
+                "recent_confirmations": self.list_confirmations(limit=20),
+            },
             "dashboard": self.dashboard_summary(),
             "storage": {"type": "sqlite", "path": "local-workstation-store"},
         }
@@ -731,7 +877,9 @@ class WorkstationStore:
             "surface": row["surface"],
             "source_id": row["source_id"],
             "created_at": row["created_at"],
+            "expires_at": row["expires_at"],
             "resolved_at": row["resolved_at"],
+            "used_at": row["used_at"],
         }
 
 

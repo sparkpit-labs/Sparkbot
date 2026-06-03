@@ -297,6 +297,20 @@ export type WorkstationEvent = {
   created_at: string;
 };
 
+export type GuardianConfirmation = {
+  id: string;
+  action_type: string;
+  status: string;
+  risk_level: string;
+  prompt: string;
+  surface: string;
+  source_id: string;
+  created_at: string;
+  expires_at: string;
+  resolved_at: string | null;
+  used_at: string | null;
+};
+
 export type WorkstationState = {
   controls: ControlsConfig;
   seats: WorkstationSeat[];
@@ -304,6 +318,10 @@ export type WorkstationState = {
   notes: WorkstationNote[];
   memory: { items: WorkstationMemory[]; count: number };
   events: WorkstationEvent[];
+  guardian: {
+    pending_confirmations: GuardianConfirmation[];
+    recent_confirmations: GuardianConfirmation[];
+  };
   dashboard: {
     rooms_count: number;
     notes_count: number;

@@ -94,7 +94,24 @@ def test_memory_create_list_recall_delete(tmp_path, monkeypatch) -> None:
     assert recall_response.status_code == 200
     assert recall_response.json()["count"] == 1
 
-    delete_response = client.delete(f"/api/memory/{memory['id']}")
+    confirmation_response = client.post(
+        "/api/guardian/actions/confirmations",
+        json={
+            "action_type": "memory.delete",
+            "surface": "memory",
+            "source_id": memory["id"],
+            "prompt": "Confirm memory delete",
+        },
+    )
+    assert confirmation_response.status_code == 201
+    confirmation = confirmation_response.json()
+    approval_response = client.post(
+        f"/api/guardian/actions/confirmations/{confirmation['id']}/decision",
+        json={"decision": "approved"},
+    )
+    assert approval_response.status_code == 200
+
+    delete_response = client.delete(f"/api/memory/{memory['id']}?confirmation_id={confirmation['id']}")
     assert delete_response.status_code == 200
 
     recall_after_delete = client.post("/api/memory/recall", json={"query": "concise meeting", "limit": 5})

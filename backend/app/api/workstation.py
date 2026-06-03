@@ -91,6 +91,11 @@ class ConfirmationCreate(BaseModel):
     actor: str = Field(default="operator", max_length=80)
 
 
+class ConfirmationDecision(BaseModel):
+    decision: str = Field(pattern="^(approved|denied)$")
+    actor: str = Field(default="operator", max_length=80)
+
+
 @router.get("/api/workstation/state")
 async def workstation_state() -> dict[str, Any]:
     state = get_store().workstation_state()
@@ -212,8 +217,22 @@ async def recall_memory(body: MemoryRecallRequest) -> dict[str, Any]:
 
 
 @router.delete("/api/memory/{memory_id}")
-async def delete_memory(memory_id: str, actor: str = "operator") -> dict[str, Any]:
-    deleted = get_store().delete_memory(memory_id, actor=actor)
+async def delete_memory(
+    memory_id: str,
+    confirmation_id: str | None = None,
+    actor: str = "operator",
+) -> dict[str, Any]:
+    store = get_store()
+    authorized, detail = store.authorize_action(
+        confirmation_id=confirmation_id,
+        action_type="memory.delete",
+        surface="memory",
+        source_id=memory_id,
+        actor=actor,
+    )
+    if not authorized:
+        raise HTTPException(status_code=403, detail=detail)
+    deleted = store.delete_memory(memory_id, actor=actor)
     if not deleted:
         raise HTTPException(status_code=404, detail="Memory not found.")
     return {"deleted": memory_id}
@@ -230,6 +249,26 @@ async def append_event(body: EventCreate) -> dict[str, Any]:
     return get_store().append_event(body.model_dump(exclude={"actor"}), actor=body.actor)
 
 
+@router.get("/api/guardian/actions/confirmations")
+async def list_confirmations(
+    limit: int = Query(default=50, ge=1, le=200),
+    status: str | None = None,
+) -> dict[str, Any]:
+    confirmations = get_store().list_confirmations(limit=limit, status=status)
+    return {"confirmations": confirmations, "count": len(confirmations)}
+
+
 @router.post("/api/guardian/actions/confirmations", status_code=201)
 async def create_confirmation(body: ConfirmationCreate) -> dict[str, Any]:
     return get_store().create_confirmation(body.model_dump(exclude={"actor"}), actor=body.actor)
+
+
+@router.post("/api/guardian/actions/confirmations/{confirmation_id}/decision")
+async def decide_confirmation(confirmation_id: str, body: ConfirmationDecision) -> dict[str, Any]:
+    try:
+        confirmation = get_store().decide_confirmation(confirmation_id, body.decision, actor=body.actor)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not confirmation:
+        raise HTTPException(status_code=404, detail="Confirmation not found.")
+    return confirmation
