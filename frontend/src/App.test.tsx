@@ -3,6 +3,10 @@ import { render, screen } from "@testing-library/react";
 import App from "./App";
 
 describe("App", () => {
+  beforeEach(() => {
+    window.history.pushState({}, "", "/");
+  });
+
   it("renders the restored Workstation Command Center instead of preview-only shell sections", () => {
     render(<App />);
 
@@ -37,5 +41,18 @@ describe("App", () => {
     expect(screen.queryByText(/Guardian Controls Preview/i)).toBeNull();
     expect(screen.queryByText(/no enabled send action/i)).toBeNull();
     expect(screen.getByRole("heading", { name: "Backend Health" })).toBeDefined();
+  });
+
+
+  it("routes workstation and chat to the backend-backed chat surface", () => {
+    window.history.pushState({}, "", "/workstation");
+
+    render(<App />);
+
+    expect(screen.getByRole("heading", { name: "Sparkbot Workstation" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Shared Chat" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Send" })).toBeDefined();
+    expect(screen.queryByText(/no enabled send action/i)).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Chat Shell Preview" })).toBeNull();
   });
 });

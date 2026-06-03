@@ -311,6 +311,44 @@ export type GuardianConfirmation = {
   used_at: string | null;
 };
 
+export type ChatMessage = {
+  id: string;
+  session_id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  actor: string;
+  provider: string;
+  model: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+};
+
+export type ChatSession = {
+  id: string;
+  title: string;
+  status: string;
+  active_room_id: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  messages?: ChatMessage[];
+  notes?: WorkstationNote[];
+  last_message?: ChatMessage | null;
+  message_count?: number;
+};
+
+export type ChatTurnResult = {
+  session: ChatSession;
+  user_message: ChatMessage;
+  assistant_message: ChatMessage;
+  route: { provider: string; model: string; label: string; seat_index: number; seat_label: string; agent: string };
+  context: { memories: WorkstationMemory[]; notes: WorkstationNote[] };
+  saved_memory: WorkstationMemory | null;
+  guardian_confirmation: GuardianConfirmation | null;
+  blocked_action: string | null;
+  workstation: WorkstationState;
+};
+
 export type WorkstationState = {
   controls: ControlsConfig;
   seats: WorkstationSeat[];
@@ -322,12 +360,19 @@ export type WorkstationState = {
     pending_confirmations: GuardianConfirmation[];
     recent_confirmations: GuardianConfirmation[];
   };
+  chat: {
+    sessions: ChatSession[];
+    sessions_count: number;
+    messages_count: number;
+  };
   dashboard: {
     rooms_count: number;
     notes_count: number;
     memory_count: number;
     events_count: number;
     seat_count: number;
+    chat_sessions_count: number;
+    chat_messages_count: number;
     pending_confirmations: number;
   };
   storage: { type: string; path: string };
@@ -382,6 +427,37 @@ export function createRoom(payload: {
   metadata?: Record<string, unknown>;
 }): Promise<WorkstationRoom> {
   return fetchJson<WorkstationRoom>("/api/rooms", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function fetchChatSessions(limit = 50): Promise<{ sessions: ChatSession[]; count: number }> {
+  return fetchJson<{ sessions: ChatSession[]; count: number }>(`/api/chat/sessions?limit=${limit}`);
+}
+
+export function createChatSession(payload: {
+  title?: string;
+  active_room_id?: string;
+  metadata?: Record<string, unknown>;
+} = {}): Promise<ChatSession> {
+  return fetchJson<ChatSession>("/api/chat/sessions", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function fetchChatSession(sessionId: string): Promise<ChatSession> {
+  return fetchJson<ChatSession>(`/api/chat/sessions/${sessionId}`);
+}
+
+export function sendChatMessage(payload: {
+  session_id?: string;
+  content: string;
+  save_to_memory?: boolean;
+  metadata?: Record<string, unknown>;
+}): Promise<ChatTurnResult> {
+  return fetchJson<ChatTurnResult>("/api/chat/messages", {
     method: "POST",
     body: JSON.stringify(payload)
   });

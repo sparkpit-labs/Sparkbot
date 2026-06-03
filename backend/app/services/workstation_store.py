@@ -135,6 +135,26 @@ class WorkstationStore:
               role TEXT NOT NULL,
               created_at TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS chat_sessions (
+              id TEXT PRIMARY KEY,
+              title TEXT NOT NULL,
+              status TEXT NOT NULL,
+              active_room_id TEXT NOT NULL,
+              metadata_json TEXT NOT NULL,
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS chat_messages (
+              id TEXT PRIMARY KEY,
+              session_id TEXT NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+              role TEXT NOT NULL,
+              content TEXT NOT NULL,
+              actor TEXT NOT NULL,
+              provider TEXT NOT NULL,
+              model TEXT NOT NULL,
+              metadata_json TEXT NOT NULL,
+              created_at TEXT NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS notes (
               id TEXT PRIMARY KEY,
               title TEXT NOT NULL,
@@ -367,6 +387,106 @@ class WorkstationStore:
                 now,
             )
         return self.get_room(room_id)
+
+    def list_chat_sessions(self, limit: int = 50) -> list[dict[str, Any]]:
+        with self.connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM chat_sessions ORDER BY updated_at DESC LIMIT ?",
+                (max(1, min(limit, 200)),),
+            ).fetchall()
+            sessions = [self._chat_session(row) for row in rows]
+            for session in sessions:
+                session["last_message"] = self._last_chat_message_conn(conn, session["id"])
+                session["message_count"] = int(
+                    conn.execute("SELECT COUNT(*) AS count FROM chat_messages WHERE session_id = ?", (session["id"],)).fetchone()["count"]
+                )
+        return sessions
+
+    def create_chat_session(self, payload: dict[str, Any] | None = None, actor: str = "operator") -> dict[str, Any]:
+        payload = payload or {}
+        session_id = str(uuid.uuid4())
+        now = utc_now()
+        title = str(payload.get("title") or "Sparkbot chat").strip()[:160] or "Sparkbot chat"
+        active_room_id = str(payload.get("active_room_id") or "").strip()
+        metadata = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
+        with self.connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO chat_sessions (id, title, status, active_room_id, metadata_json, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (session_id, title, str(payload.get("status") or "open"), active_room_id, _json_dumps(_sanitize_payload(metadata)), now, now),
+            )
+            self._append_event_conn(
+                conn,
+                "chat.session.created",
+                "chat",
+                session_id,
+                actor,
+                f"Chat session created: {title}",
+                {"session_id": session_id, "title": title},
+                now,
+            )
+            row = conn.execute("SELECT * FROM chat_sessions WHERE id = ?", (session_id,)).fetchone()
+        session = self._chat_session(row)
+        session["messages"] = []
+        session["notes"] = []
+        return session
+
+    def get_chat_session(self, session_id: str) -> dict[str, Any] | None:
+        with self.connect() as conn:
+            row = conn.execute("SELECT * FROM chat_sessions WHERE id = ?", (session_id,)).fetchone()
+            if not row:
+                return None
+            messages = self._list_chat_messages_conn(conn, session_id)
+            notes = self._list_notes_conn(conn, surface="chat", source_id=session_id, limit=50)
+        session = self._chat_session(row)
+        session["messages"] = messages
+        session["notes"] = notes
+        session["message_count"] = len(messages)
+        session["last_message"] = messages[-1] if messages else None
+        return session
+
+    def add_chat_message(self, session_id: str, payload: dict[str, Any], actor: str = "operator") -> dict[str, Any] | None:
+        role = str(payload.get("role") or "user").strip().lower()
+        if role not in {"user", "assistant", "system"}:
+            raise ValueError("Unsupported chat message role.")
+        content = str(payload.get("content") or "").strip()
+        if not content:
+            raise ValueError("Chat message content is required.")
+        message_id = str(uuid.uuid4())
+        now = utc_now()
+        provider = str(payload.get("provider") or "local").strip()
+        model = str(payload.get("model") or "local-workstation").strip()
+        metadata = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
+        with self.connect() as conn:
+            session = conn.execute("SELECT * FROM chat_sessions WHERE id = ?", (session_id,)).fetchone()
+            if not session:
+                return None
+            conn.execute(
+                """
+                INSERT INTO chat_messages (id, session_id, role, content, actor, provider, model, metadata_json, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (message_id, session_id, role, content, actor, provider, model, _json_dumps(_sanitize_payload(metadata)), now),
+            )
+            if role == "user" and session["title"] == "Sparkbot chat":
+                title = content[:80] + ("..." if len(content) > 80 else "")
+                conn.execute("UPDATE chat_sessions SET title = ?, updated_at = ? WHERE id = ?", (title, now, session_id))
+            else:
+                conn.execute("UPDATE chat_sessions SET updated_at = ? WHERE id = ?", (now, session_id))
+            self._append_event_conn(
+                conn,
+                f"chat.message.{role}",
+                "chat",
+                session_id,
+                actor,
+                f"Chat {role} message saved.",
+                {"session_id": session_id, "message_id": message_id, "role": role, "provider": provider, "model": model},
+                now,
+            )
+            row = conn.execute("SELECT * FROM chat_messages WHERE id = ?", (message_id,)).fetchone()
+        return self._chat_message(row)
 
     def create_note(self, payload: dict[str, Any], actor: str = "operator") -> dict[str, Any]:
         note_id = str(uuid.uuid4())
@@ -710,6 +830,11 @@ class WorkstationStore:
             "notes": notes,
             "memory": {"items": memories, "count": self.count("memory_entries")},
             "events": events,
+            "chat": {
+                "sessions": self.list_chat_sessions(limit=10),
+                "sessions_count": self.count("chat_sessions"),
+                "messages_count": self.count("chat_messages"),
+            },
             "guardian": {
                 "pending_confirmations": self.list_confirmations(limit=20, status="pending"),
                 "recent_confirmations": self.list_confirmations(limit=20),
@@ -725,11 +850,13 @@ class WorkstationStore:
             "memory_count": self.count("memory_entries"),
             "events_count": self.count("events"),
             "seat_count": self.count("seats"),
+            "chat_sessions_count": self.count("chat_sessions"),
+            "chat_messages_count": self.count("chat_messages"),
             "pending_confirmations": self.count("action_confirmations", "status = 'pending'"),
         }
 
     def count(self, table: str, where: str = "") -> int:
-        allowed = {"rooms", "notes", "memory_entries", "events", "seats", "action_confirmations"}
+        allowed = {"rooms", "notes", "memory_entries", "events", "seats", "action_confirmations", "chat_sessions", "chat_messages"}
         if table not in allowed:
             raise ValueError("Unsupported table.")
         sql = f"SELECT COUNT(*) AS count FROM {table}"
@@ -748,6 +875,20 @@ class WorkstationStore:
             (room_id,),
         ).fetchall()
         return [self._participant(row) for row in rows]
+
+    def _list_chat_messages_conn(self, conn: sqlite3.Connection, session_id: str) -> list[dict[str, Any]]:
+        rows = conn.execute(
+            "SELECT * FROM chat_messages WHERE session_id = ? ORDER BY created_at ASC",
+            (session_id,),
+        ).fetchall()
+        return [self._chat_message(row) for row in rows]
+
+    def _last_chat_message_conn(self, conn: sqlite3.Connection, session_id: str) -> dict[str, Any] | None:
+        row = conn.execute(
+            "SELECT * FROM chat_messages WHERE session_id = ? ORDER BY created_at DESC LIMIT 1",
+            (session_id,),
+        ).fetchone()
+        return self._chat_message(row) if row else None
 
     def _list_notes_conn(
         self,
@@ -826,6 +967,30 @@ class WorkstationStore:
             "provider": row["provider"],
             "model": row["model"],
             "role": row["role"],
+            "created_at": row["created_at"],
+        }
+
+    def _chat_session(self, row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "title": row["title"],
+            "status": row["status"],
+            "active_room_id": row["active_room_id"],
+            "metadata": _json_loads(row["metadata_json"], {}),
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        }
+
+    def _chat_message(self, row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "session_id": row["session_id"],
+            "role": row["role"],
+            "content": row["content"],
+            "actor": row["actor"],
+            "provider": row["provider"],
+            "model": row["model"],
+            "metadata": _json_loads(row["metadata_json"], {}),
             "created_at": row["created_at"],
         }
 

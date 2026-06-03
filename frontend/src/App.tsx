@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { API_BASE_URL, fetchBackendHealth, type HealthPayload } from "./api";
 import CommandCenter from "./components/CommandCenter";
+import ChatWorkstation from "./components/ChatWorkstation";
 
 type HealthState =
   | { phase: "idle"; message: string; payload: null }
@@ -79,10 +80,13 @@ export default function App() {
           <button type="button" aria-current={path === "/workstation" ? "page" : undefined} onClick={() => navigate("/workstation")}>
             Workstation
           </button>
+          <button type="button" aria-current={path === "/chat" ? "page" : undefined} onClick={() => navigate("/chat")}>
+            Chat
+          </button>
         </nav>
       </header>
 
-      {path === "/spine" || path === "/workstation" ? <CommandCenter /> : <CommandCenter />}
+      {path === "/workstation" || path === "/chat" ? <ChatWorkstation /> : <CommandCenter />}
 
       <section className="health-panel">
         <div className="health-header">
