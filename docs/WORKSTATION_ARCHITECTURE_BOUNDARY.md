@@ -1,0 +1,42 @@
+# Workstation Architecture Boundary
+
+Sparkbot public state must use the shared local backend store as the source of truth.
+
+## Shared state source
+
+The current shared store persists:
+
+- Chat sessions and messages
+- Workstation seats and rooms
+- Notes and memory entries
+- Spine/event log entries
+- Guardian action confirmations
+- Dashboard counters derived from the same records
+
+Frontend state should stay transient: loading flags, form drafts, selected tabs, and currently loaded API responses. Persistent product state should not be introduced through browser storage or page-local-only stores.
+
+## Surface roles
+
+- Chat: direct operator conversation surface. It can read shared context, save chat turns, save optional memory, and request Guardian confirmations.
+- Workstation: operating-floor surface for rooms, seats, shared context, activity, and pending confirmations.
+- Command Center: configuration, model routing, agent setup, server-side credential entry, and security/Guardian settings.
+- Spine: event history, dashboard counters, and task/project queue empty states.
+- Controls: local setup readiness, backend health, provider readiness, and explicit capability limits.
+
+## Guardian rule
+
+Any future feature that can destroy data, send externally, mutate files, execute commands, run scheduled work, invoke tools, control devices, or perform privileged behavior must use the shared Guardian confirmation boundary before execution.
+
+Confirmations are expected to be:
+
+- one-time use
+- action-bound
+- source-bound
+- expiration-bound
+- persisted in shared backend state
+- visible through Workstation/Spine/Guardian state
+- fail-closed when missing, pending, denied, expired, already used, or mismatched
+
+## Deferred execution rule
+
+Provider/model calls, Round Table turn sequencing, connector sends, schedulers, file/process execution, and device-control behavior remain deferred until they are added through explicit backend routes, tests, user-visible labels, event logging, redaction, and Guardian gates where applicable.

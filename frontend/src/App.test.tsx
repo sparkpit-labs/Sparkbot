@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 
 import App from "./App";
 
@@ -7,52 +7,65 @@ describe("App", () => {
     window.history.pushState({}, "", "/");
   });
 
-  it("renders the restored Workstation Command Center instead of preview-only shell sections", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("routes root to the Workstation floor", () => {
     render(<App />);
 
     expect(screen.getByRole("heading", { level: 1, name: "Sparkbot" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Workstation Command Center" })).toBeDefined();
-    expect(screen.getByRole("navigation", { name: "Primary navigation" })).toBeDefined();
-    expect(screen.getByRole("navigation", { name: "Command Center sections" })).toBeDefined();
-
-    expect(screen.getByRole("heading", { name: "AI Setup" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Ollama status" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Four-model stack" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Security" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Operator PIN" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Connectors" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Agent routing and Specialty Wing controls" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "System Health" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Token Guardian" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Scheduled work" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Spine and Guardian operations" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Model seats and Specialty Wing" })).toBeDefined();
-
-    expect(screen.getByRole("button", { name: "Refresh OpenRouter models" })).toBeDefined();
-    expect(screen.getByRole("button", { name: "Check local" })).toBeDefined();
-    expect(screen.getByRole("button", { name: "Save default model" })).toBeDefined();
-    expect(screen.getByRole("button", { name: "Save credential" })).toBeDefined();
-    expect(screen.getByRole("button", { name: "Save overrides" })).toBeDefined();
-    expect(screen.getByRole("button", { name: "Save seat routes" })).toBeDefined();
-
-    expect(screen.queryByRole("heading", { name: "Workstation Shell" })).toBeNull();
-    expect(screen.queryByText(/read-only map/i)).toBeNull();
-    expect(screen.queryByText(/Provider Setup Preview/i)).toBeNull();
-    expect(screen.queryByText(/Guardian Controls Preview/i)).toBeNull();
-    expect(screen.queryByText(/no enabled send action/i)).toBeNull();
-    expect(screen.getByRole("heading", { name: "Backend Health" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Workstation Floor" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Room foundation" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Model seats" })).toBeDefined();
+    expect(screen.queryByRole("heading", { name: "Sparkbot Chat" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Workstation Command Center" })).toBeNull();
   });
 
-
-  it("routes workstation and chat to the backend-backed chat surface", () => {
-    window.history.pushState({}, "", "/workstation");
+  it("keeps Chat as the operator conversation surface", () => {
+    window.history.pushState({}, "", "/chat");
 
     render(<App />);
 
-    expect(screen.getByRole("heading", { name: "Sparkbot Workstation" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Sparkbot Chat" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Shared Chat" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Memory, notes, and Spine" })).toBeDefined();
     expect(screen.getByRole("button", { name: "Send" })).toBeDefined();
-    expect(screen.queryByText(/no enabled send action/i)).toBeNull();
-    expect(screen.queryByRole("heading", { name: "Chat Shell Preview" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Workstation Floor" })).toBeNull();
+  });
+
+  it("keeps Command Center focused on configuration and security", () => {
+    window.history.pushState({}, "", "/command-center");
+
+    render(<App />);
+
+    expect(screen.getByRole("heading", { name: "Workstation Command Center" })).toBeDefined();
+    expect(screen.getByRole("navigation", { name: "Command Center sections" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "AI Setup" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Security" })).toBeDefined();
+    expect(screen.queryByRole("heading", { name: "Workstation Floor" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Spine Event Log" })).toBeNull();
+  });
+
+  it("keeps Spine focused on event history and counters", () => {
+    window.history.pushState({}, "", "/spine");
+
+    render(<App />);
+
+    expect(screen.getByRole("heading", { name: "Spine Event Log" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Shared event state" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Recent events" })).toBeDefined();
+    expect(screen.queryByRole("heading", { name: "Workstation Command Center" })).toBeNull();
+  });
+
+  it("keeps Controls focused on setup and capability limits", () => {
+    window.history.pushState({}, "", "/controls");
+
+    render(<App />);
+
+    expect(screen.getByRole("heading", { name: "Controls Setup" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Local readiness" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Deferred action paths" })).toBeDefined();
+    expect(screen.queryByRole("heading", { name: "Sparkbot Chat" })).toBeNull();
   });
 });

@@ -2,7 +2,7 @@
 
 This guide verifies that the public Sparkbot shell can run locally on alternate localhost ports without touching existing development or server processes.
 
-The smoke test starts only local development servers that you launch for the test. It does not configure provider credentials, call models, enable chat runtime behavior, run connectors, execute tools, or start deployment infrastructure.
+The smoke test starts only local development servers that you launch for the test. It does not configure provider credentials, call models, run connectors, execute tools, or start deployment infrastructure. Chat and Workstation state are local backend features when the backend is running.
 
 ## Default ports
 
@@ -78,7 +78,7 @@ Open:
 http://127.0.0.1:15173
 ```
 
-The page should show the Sparkbot shell with Workstation navigation, preview-only Chat, Round Table, Provider Setup, Guardian Controls, and the read-only backend health panel.
+The page should show Sparkbot navigation for Workstation, Chat, Command Center, Spine, and Controls, plus the backend health panel. Chat and Workstation should be labeled as backend-backed local surfaces; model execution and connector sends should remain deferred.
 
 ## Cleanup
 

@@ -12,10 +12,10 @@ This guide covers the local-only developer runner scripts for the current public
 
 ## What the scripts do not do
 
-- They do not configure provider credentials.
-- They do not store secrets.
+- They do not configure provider credentials automatically.
+- They do not print or expose saved secrets.
 - They do not run models.
-- They do not enable chat runtime behavior.
+- They do not enable provider/model execution.
 - They do not start deployment infrastructure.
 - They do not configure desktop packaging.
 

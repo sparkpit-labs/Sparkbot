@@ -1,32 +1,29 @@
-# Chat Shell
+# Chat Surface
 
-The current public shell baseline includes a static Chat Shell preview in the public Sparkbot Workstation shell.
+The current public Sparkbot app includes a backend-backed Chat surface at `/chat`.
 
-The preview is intentionally read-only. It does not implement chat runtime behavior, message sending, message persistence, model calls, model routing, provider credential handling, or backend chat endpoints.
+Chat is the operator conversation channel. It stores sessions and messages in the shared local Workstation store, reads shared memory and notes for context, writes Spine event-log entries, and shows Guardian confirmation state. Provider/model execution is still deferred: Chat returns a local Workstation acknowledgement instead of calling a model.
 
 ## Current behavior
 
-- The Chat Shell preview renders inside the existing Workstation shell.
-- Placeholder conversation cards show the intended future operator and Sparkbot surfaces.
-- The planned composer is disabled and read-only.
-- There is no send button.
-- Existing backend `GET /health` remains the only frontend network call.
+- Chat sessions and messages persist through the backend SQLite Workstation store.
+- Chat can create a new session, send a turn, reload previous sessions, and save a chat-scoped note.
+- User messages can optionally be saved to shared Workstation memory.
+- Chat reads shared memory and notes context and reports the selected Command Center/Seat 1 model route.
+- Chat writes event-log entries for session creation, user turns, assistant acknowledgements, context recall, and Guardian blocks.
+- Memory delete requests create a Guardian confirmation and do not delete memory directly.
+- Unsupported privileged requests are blocked and logged without execution.
 
-## Excluded from this baseline
+## Deferred from this branch
 
-- Real chat runtime
-- User-entered message handling
-- Message persistence
-- Local storage
-- Model calls or routing
-- Provider credentials or credential storage
-- Streaming
-- Guardian runtime controls
-- Approval tokens or policy enforcement
-- Terminal or tool execution
-- External sends or connector calls
-- File mutation
+- Provider/model execution
+- Streaming responses
+- Full Round Table meeting turns
+- Connector sends
+- File, process, terminal, or shell execution
+- Scheduler/background jobs
+- Physical device control
 
-## Follow-up direction
+## Boundary
 
-A later slice should define public chat interaction contracts before enabling active message handling, provider calls, persistence, or runtime safety gates.
+Chat can become Sparkbot's operator-facing middle person only by continuing to use the shared Workstation state and Guardian boundary. Any future action-capable Chat path must create or consume an action-bound Guardian confirmation before executing destructive, external, privileged, or scheduled work.

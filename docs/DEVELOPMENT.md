@@ -46,7 +46,7 @@ Start the backend development server:
 bash scripts/start-backend-dev.sh
 ```
 
-The backend development server binds to `127.0.0.1:8000` and currently exposes a local read-only health endpoint at `GET /health`.
+The backend development server binds to `127.0.0.1:8000` and exposes local health, Command Center, Chat, Workstation, memory, notes, events, rooms, seats, and Guardian confirmation routes.
 
 ## Frontend local workflow
 
@@ -74,13 +74,13 @@ Start the frontend development server:
 bash scripts/start-frontend-dev.sh
 ```
 
-The frontend development server binds to `127.0.0.1` through Vite. The frontend currently presents static shell previews for Workstation, Chat Shell, Round Table, Provider Setup, and Guardian Controls.
+The frontend development server binds to `127.0.0.1` through Vite. The frontend currently presents distinct `/workstation`, `/chat`, `/command-center`, `/spine`, and `/controls` routes backed by the local backend where state is implemented.
 
 ## Current limitations
 
-- No provider credentials are accepted, stored, or transmitted.
-- No model calls or model routing are active.
-- No chat runtime or message persistence is active.
-- No approval or policy enforcement runtime is active.
+- Provider credentials can be saved only server-side through Command Center and are not echoed to the browser.
+- Model/provider configuration is active, but real model calls are not active.
+- Chat sessions and messages persist in the shared backend store.
+- Guardian confirmation storage and fail-closed authorization are active for current protected memory deletes; full policy enforcement remains deferred.
 - No sensitive action execution path is active.
 - Desktop packaging and release artifacts are future work.

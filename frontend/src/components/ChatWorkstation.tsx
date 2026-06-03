@@ -104,7 +104,7 @@ export default function ChatWorkstation() {
         session_id: activeSession?.id,
         content,
         save_to_memory: saveToMemory,
-        metadata: { surface: "workstation" }
+        metadata: { surface: "chat" }
       });
       setDraft("");
       setActiveSession(result.session);
@@ -149,12 +149,12 @@ export default function ChatWorkstation() {
   }
 
   return (
-    <section className="chat-workstation" aria-label="Sparkbot Workstation chat">
+    <section className="chat-workstation" aria-label="Sparkbot Chat">
       <header className="command-header chat-workstation-header">
         <div>
-          <p className="eyebrow">Shared Workstation</p>
-          <h2>Sparkbot Workstation</h2>
-          <p>Chat sessions, memory, notes, rooms, events, model seats, and Guardian confirmations use the shared local backend store.</p>
+          <p className="eyebrow">Operator channel</p>
+          <h2>Sparkbot Chat</h2>
+          <p>Direct operator conversation surface for shared memory, notes, event activity, selected model route, and Guardian-blocked requests.</p>
         </div>
         <div className="command-header-actions">
           <span className={`status-badge ${loadState === "ready" ? "status-worksToday" : loadState === "loading" ? "status-preview" : "status-notImplemented"}`}>
@@ -198,7 +198,7 @@ export default function ChatWorkstation() {
           <div className="command-panel-heading">
             <p className="eyebrow">Conversation</p>
             <h3>{activeSession?.title || "No chat session selected"}</h3>
-            <p>Provider calls are deferred here; this branch proves shared persistence, context recall, notes, events, and Guardian boundaries.</p>
+            <p>Provider calls are deferred here; Chat saves turns, recalls shared context, writes events, and blocks privileged requests through Guardian.</p>
           </div>
 
           <div className="chat-thread" aria-live="polite">
@@ -254,6 +254,21 @@ export default function ChatWorkstation() {
             {(workstation?.notes || []).slice(0, 4).map((note) => (
               <p key={note.id}><strong>{note.title}</strong> {note.body}</p>
             ))}
+          </div>
+
+          <div className="context-list">
+            <h4>Recent events</h4>
+            {(workstation?.events || []).slice(0, 4).map((event) => (
+              <p key={event.id}><strong>{event.event_type}</strong> {event.summary}</p>
+            ))}
+          </div>
+
+          <div className="context-list">
+            <h4>Guardian confirmations</h4>
+            {(workstation?.guardian.pending_confirmations || []).slice(0, 3).map((confirmation) => (
+              <p key={confirmation.id}><strong>{confirmation.action_type}</strong> {confirmation.status}</p>
+            ))}
+            {workstation?.guardian.pending_confirmations.length ? null : <p>No pending confirmations.</p>}
           </div>
 
           <label>

@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 
 import { API_BASE_URL, fetchBackendHealth, type HealthPayload } from "./api";
-import CommandCenter from "./components/CommandCenter";
 import ChatWorkstation from "./components/ChatWorkstation";
+import CommandCenter from "./components/CommandCenter";
+import ControlsSurface from "./components/ControlsSurface";
+import SpineSurface from "./components/SpineSurface";
+import WorkstationFloor from "./components/WorkstationFloor";
 
 type HealthState =
   | { phase: "idle"; message: string; payload: null }
@@ -17,9 +20,17 @@ const initialHealthState: HealthState = {
 };
 
 function normalizeCommandPath(pathname: string): string {
-  if (pathname === "/controls" || pathname === "/command-center") return "/spine";
-  if (pathname === "/" || pathname === "") return "/spine";
-  return pathname;
+  const allowedPaths = new Set(["/workstation", "/chat", "/command-center", "/spine", "/controls"]);
+  if (pathname === "/" || pathname === "") return "/workstation";
+  return allowedPaths.has(pathname) ? pathname : "/workstation";
+}
+
+function surfaceForPath(path: string) {
+  if (path === "/chat") return <ChatWorkstation />;
+  if (path === "/command-center") return <CommandCenter />;
+  if (path === "/spine") return <SpineSurface />;
+  if (path === "/controls") return <ControlsSurface />;
+  return <WorkstationFloor />;
 }
 
 export default function App() {
@@ -71,22 +82,28 @@ export default function App() {
       <header className="shell-header app-topbar">
         <div>
           <h1>Sparkbot</h1>
-          <p className="intro">Local-first AI Workstation with a restored Command Center.</p>
+          <p className="intro">Local-first AI Workstation for operator chat, rooms, seats, shared memory, event history, and guarded setup.</p>
         </div>
         <nav className="top-nav" aria-label="Primary navigation">
-          <button type="button" aria-current={path === "/spine" ? "page" : undefined} onClick={() => navigate("/spine")}>
-            Command Center
-          </button>
           <button type="button" aria-current={path === "/workstation" ? "page" : undefined} onClick={() => navigate("/workstation")}>
             Workstation
           </button>
           <button type="button" aria-current={path === "/chat" ? "page" : undefined} onClick={() => navigate("/chat")}>
             Chat
           </button>
+          <button type="button" aria-current={path === "/command-center" ? "page" : undefined} onClick={() => navigate("/command-center")}>
+            Command Center
+          </button>
+          <button type="button" aria-current={path === "/spine" ? "page" : undefined} onClick={() => navigate("/spine")}>
+            Spine
+          </button>
+          <button type="button" aria-current={path === "/controls" ? "page" : undefined} onClick={() => navigate("/controls")}>
+            Controls
+          </button>
         </nav>
       </header>
 
-      {path === "/workstation" || path === "/chat" ? <ChatWorkstation /> : <CommandCenter />}
+      {surfaceForPath(path)}
 
       <section className="health-panel">
         <div className="health-header">

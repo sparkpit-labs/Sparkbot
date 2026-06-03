@@ -11,13 +11,13 @@ This index groups the public Sparkbot documentation for first-time visitors, loc
 - [Local Smoke Test](LOCAL_SMOKE_TEST.md): alternate-port local smoke testing without touching existing services.
 - [Validation](VALIDATION.md): full validation, safety scans, backend checks, and frontend checks.
 
-## Product shell previews
+## Product surfaces
 
-- [Workstation Shell](WORKSTATION_SHELL.md): current read-only workstation layout and status model.
-- [Chat Shell](CHAT_SHELL.md): static chat preview and excluded runtime behavior.
+- [Workstation Surface](WORKSTATION_SHELL.md): backend-backed rooms, seats, shared context, activity, and Guardian state.
+- [Chat Surface](CHAT_SHELL.md): backend-backed operator chat with shared context and deferred provider execution.
 - [Round Table Shell](ROUND_TABLE_SHELL.md): inert planned seats for future multi-agent collaboration.
-- [Provider Setup Shell](PROVIDER_SETUP_SHELL.md): provider setup preview with no credential handling.
-- [Guardian Controls Shell](GUARDIAN_CONTROLS_SHELL.md): planned control categories with no active enforcement.
+- [Provider Setup Shell](PROVIDER_SETUP_SHELL.md): provider setup preview and current server-side credential boundary.
+- [Guardian Controls Shell](GUARDIAN_CONTROLS_SHELL.md): planned control categories and current confirmation boundary notes.
 
 ## Release and readiness
 
@@ -34,4 +34,4 @@ This index groups the public Sparkbot documentation for first-time visitors, loc
 
 ## Current boundary
 
-The current public shell baseline is safe for review and local validation. It does not include model calls, provider credentials, credential storage, chat runtime, Round Table meeting runtime, Guardian policy enforcement, tool execution, connector calls, desktop packaging, or deployment workflows.
+The current public app is safe for review and local validation. It includes backend-backed Chat, Workstation state, Command Center configuration, Spine event logging, and a fail-closed Guardian confirmation boundary for the current protected memory-delete route. It does not include model calls, Round Table meeting runtime, tool execution, connector calls, desktop packaging, deployment workflows, or external/destructive actions without Guardian confirmation.

@@ -434,7 +434,7 @@ export default function CommandCenter() {
           <p className="eyebrow">Sparkbot operations</p>
           <h2>Workstation Command Center</h2>
           <p>
-            Restored from the R&D `/spine` control surface: AI setup, model routing, local models, agents, Security,
+            Configuration and security surface for AI setup, model routing, local models, agents, Guardian settings,
             dashboard status, and Spine inspection.
           </p>
         </div>
@@ -544,7 +544,7 @@ export default function CommandCenter() {
           <div className="command-panel-heading">
             <p className="eyebrow">Local AI</p>
             <h3>Ollama status</h3>
-            <p>Matches the R&D local model check path.</p>
+            <p>Checks the configured local model endpoint without calling chat models.</p>
           </div>
           <label>
             <span>Local endpoint</span>
@@ -573,7 +573,7 @@ export default function CommandCenter() {
           <div className="command-panel-heading">
             <p className="eyebrow">Routing stack</p>
             <h3>Four-model stack</h3>
-            <p>Primary, backups, and heavy hitter follow the R&D Controls model stack.</p>
+            <p>Primary, backups, and heavy hitter define the local routing stack used by Chat and seats.</p>
           </div>
           <div className="field-grid four-columns">
             {stackFields.map(([field, label]) => (
@@ -594,7 +594,7 @@ export default function CommandCenter() {
           <div className="command-panel-heading">
             <p className="eyebrow">Operator profile</p>
             <h3 id="security-heading">Security</h3>
-            <p>Owner-controlled Security profile from the R&D Command Center.</p>
+            <p>Owner-controlled security profile for local guardrails and operator setup.</p>
           </div>
           <div className="switch-row">
             <span>Security profile {config.security_guardrails_enabled ? "on" : "off"}</span>
@@ -617,7 +617,7 @@ export default function CommandCenter() {
           <div className="command-panel-heading">
             <p className="eyebrow">PIN</p>
             <h3>Operator PIN</h3>
-            <p>Used by public-safe action gates as they are restored.</p>
+            <p>Used by public-safe action gates as they are added.</p>
           </div>
           {config.pin_configured ? (
             <label>
@@ -642,7 +642,7 @@ export default function CommandCenter() {
           <div className="command-panel-heading">
             <p className="eyebrow">Comms setup</p>
             <h3 id="connectors-heading">Connectors</h3>
-            <p>R&D connector cards are preserved as a visible path, but write-capable bridges are disabled until their public gates are ported.</p>
+            <p>Connector cards remain visible as setup placeholders, but write-capable bridges are disabled until public backend gates exist.</p>
           </div>
           <div className="connector-grid">
             {["Source control", "Email", "Calendar", "Drive", "Team chat", "Webhook bridge"].map((item) => (
@@ -710,7 +710,7 @@ export default function CommandCenter() {
           <div className="command-panel-heading">
             <p className="eyebrow">Operations</p>
             <h3 id="operations-heading">System Health</h3>
-            <p>Command Center status routes restored for local backend checks.</p>
+            <p>Command Center status routes for local backend checks.</p>
           </div>
           <dl className="mini-metrics">
             <div><dt>Backend</dt><dd>{loadState === "ready" ? "online" : "needs check"}</dd></div>
@@ -728,12 +728,12 @@ export default function CommandCenter() {
           <div className="command-panel-heading">
             <p className="eyebrow">Model routing monitor</p>
             <h3>Token Guardian</h3>
-            <p>Public-safe routing mode control preserved from Command Center.</p>
+            <p>Routing monitor mode is stored locally; it does not enable external execution.</p>
           </div>
           <select value={tokenMode} onChange={(event) => setTokenMode(event.target.value as "off" | "shadow" | "live")}>
             <option value="off">Off</option>
             <option value="shadow">Shadow</option>
-            <option value="live">Live</option>
+            <option value="live">Live monitor label (no execution)</option>
           </select>
           <button type="button" onClick={saveTokenMode}>Save mode</button>
         </article>
@@ -742,14 +742,14 @@ export default function CommandCenter() {
           <div className="command-panel-heading">
             <p className="eyebrow">Task Guardian</p>
             <h3>Scheduled work</h3>
-            <p>Route status is visible; scheduler/job mutation is blocked until the R&D service is ported.</p>
+            <p>Route status is visible; scheduler and job mutation remain blocked until a public backend gate exists.</p>
           </div>
           <dl className="mini-metrics">
             <div><dt>Jobs</dt><dd>{dashboard?.summary.guardian_jobs ?? 0}</dd></div>
             <div><dt>Enabled</dt><dd>{dashboard?.summary.guardian_jobs_enabled ?? 0}</dd></div>
             <div><dt>Status</dt><dd>{guardian?.task_guardian_enabled ? "enabled" : "blocked in this branch"}</dd></div>
           </dl>
-          <button type="button" disabled title="Task scheduler backend is a follow-up port.">Run now</button>
+          <button type="button" disabled title="Task scheduler backend is deferred.">Run now</button>
         </article>
       </section>
 
@@ -784,7 +784,7 @@ export default function CommandCenter() {
           <div className="command-panel-heading">
             <p className="eyebrow">Round Table</p>
             <h3 id="seats-heading">Model seats and Specialty Wing</h3>
-            <p>Seat assignment and model routing controls are restored; meeting launch stays blocked until room/artifact routes are ported.</p>
+            <p>Seat assignment and model routing controls are active; meeting launch stays blocked until the Round Table turn engine and artifact routes exist.</p>
           </div>
           <div className="seat-grid">
             {seats.map((seat, index) => (
@@ -808,7 +808,7 @@ export default function CommandCenter() {
           </div>
           <div className="command-actions">
             <button type="button" onClick={saveAgentOverrides}>Save seat routes</button>
-            <button type="button" disabled title="Meeting room and artifact backend routes are a follow-up port.">Launch Round Table</button>
+            <button type="button" disabled title="Round Table turn engine and artifact routes are deferred.">Launch Round Table</button>
           </div>
         </article>
       </section>
