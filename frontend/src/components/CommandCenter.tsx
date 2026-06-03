@@ -784,7 +784,7 @@ export default function CommandCenter() {
           <div className="command-panel-heading">
             <p className="eyebrow">Round Table</p>
             <h3 id="seats-heading">Model seats and Specialty Wing</h3>
-            <p>Seat assignment and model routing controls are active; meeting launch stays blocked until the Round Table turn engine and artifact routes exist.</p>
+            <p>Seat assignment and model routing controls are active; provider-safe Round Table sessions start from Workstation while real provider execution remains deferred.</p>
           </div>
           <div className="seat-grid">
             {seats.map((seat, index) => (
@@ -808,7 +808,7 @@ export default function CommandCenter() {
           </div>
           <div className="command-actions">
             <button type="button" onClick={saveAgentOverrides}>Save seat routes</button>
-            <button type="button" disabled title="Round Table turn engine and artifact routes are deferred.">Launch Round Table</button>
+            <button type="button" disabled title="Start provider-safe Round Table sessions from Workstation. Real provider execution remains deferred.">Configured in Workstation</button>
           </div>
         </article>
       </section>

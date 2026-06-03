@@ -1,5 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 
+import RoundTableRoom from "./RoundTableRoom";
+
 import {
   createNote,
   createRoom,
@@ -122,17 +124,20 @@ export default function WorkstationFloor() {
             <div><dt>Memory</dt><dd>{workstation?.dashboard.memory_count ?? 0}</dd></div>
             <div><dt>Notes</dt><dd>{workstation?.dashboard.notes_count ?? 0}</dd></div>
             <div><dt>Events</dt><dd>{workstation?.dashboard.events_count ?? 0}</dd></div>
+            <div><dt>Round Table</dt><dd>{workstation?.dashboard.roundtable_sessions_count ?? 0}</dd></div>
             <div><dt>Pending confirmations</dt><dd>{workstation?.dashboard.pending_confirmations ?? 0}</dd></div>
           </dl>
         </article>
       </section>
+
+      <RoundTableRoom embedded />
 
       <section className="command-grid" aria-label="Rooms and seats">
         <article className="command-panel">
           <div className="command-panel-heading">
             <p className="eyebrow">Rooms</p>
             <h3>Room foundation</h3>
-            <p>Rooms persist with participants and setup metadata. Round Table turn execution remains deferred.</p>
+            <p>Rooms persist with participants and setup metadata. Provider-safe Round Table sessions now run from the shared Workstation store.</p>
           </div>
           <form className="field-grid" onSubmit={createRoomFoundation}>
             <label>
@@ -157,7 +162,7 @@ export default function WorkstationFloor() {
           <div className="command-panel-heading">
             <p className="eyebrow">Seats</p>
             <h3>Model seats</h3>
-            <p>Seat assignments are shared with Command Center and will be used by the provider-safe Round Table branch.</p>
+            <p>Seat assignments are shared with Command Center and used by the provider-safe Round Table flow.</p>
           </div>
           <div className="seat-grid">
             {(workstation?.seats || []).map((seat) => (

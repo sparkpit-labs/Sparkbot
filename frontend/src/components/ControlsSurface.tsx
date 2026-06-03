@@ -85,7 +85,7 @@ export default function ControlsSurface() {
           <div className="command-panel-heading">
             <p className="eyebrow">Provider setup</p>
             <h3>Routes and credentials</h3>
-            <p>Provider credentials stay server-side. Chat still returns a local acknowledgement instead of executing model calls.</p>
+            <p>Provider credentials stay server-side. Chat uses local acknowledgements and Round Table uses provider-safe local turns until real provider execution is added.</p>
           </div>
           <div className="context-list">
             {(controls?.providers || []).map((provider) => (
@@ -103,7 +103,7 @@ export default function ControlsSurface() {
             <p>Anything destructive, external, privileged, scheduled, or action-capable must use the shared Guardian confirmation boundary first.</p>
           </div>
           <div className="connector-grid">
-            {["Provider execution", "Round Table turn engine", "Connector sends", "File/process execution", "Scheduler jobs", "Physical device control"].map((item) => (
+            {["Real provider execution", "Connector sends", "File/process execution", "Scheduler jobs", "Physical device control"].map((item) => (
               <div className="connector-card" key={item}>
                 <strong>{item}</strong>
                 <span>Deferred. No public runtime action is active in this branch.</span>

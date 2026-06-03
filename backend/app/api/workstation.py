@@ -111,6 +111,19 @@ class ChatMessageCreate(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class RoundTableSessionCreate(BaseModel):
+    room_id: str = Field(default="", max_length=160)
+    title: str = Field(default="Round Table Room", max_length=160)
+    goal: str = Field(default="", max_length=4000)
+    context_query: str = Field(default="", max_length=2000)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    actor: str = Field(default="operator", max_length=80)
+
+
+class RoundTableRunRequest(BaseModel):
+    actor: str = Field(default="operator", max_length=80)
+
+
 async def _workstation_state_with_controls() -> dict[str, Any]:
     state = get_store().workstation_state()
     state["controls"] = await _build_controls_config()
@@ -351,6 +364,37 @@ async def add_chat_turn(body: ChatMessageCreate) -> dict[str, Any]:
         "blocked_action": blocked_action,
         "workstation": await _workstation_state_with_controls(),
     }
+
+
+@router.get("/api/roundtable/sessions")
+async def list_roundtable_sessions(limit: int = Query(default=50, ge=1, le=200)) -> dict[str, Any]:
+    sessions = get_store().list_roundtable_sessions(limit=limit)
+    return {"sessions": sessions, "count": len(sessions)}
+
+
+@router.post("/api/roundtable/sessions", status_code=201)
+async def create_roundtable_session(body: RoundTableSessionCreate) -> dict[str, Any]:
+    try:
+        return get_store().create_roundtable_session(body.model_dump(exclude={"actor"}), actor=body.actor)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/api/roundtable/sessions/{session_id}")
+async def get_roundtable_session(session_id: str) -> dict[str, Any]:
+    session = get_store().get_roundtable_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Round Table session not found.")
+    return session
+
+
+@router.post("/api/roundtable/sessions/{session_id}/run")
+async def run_roundtable_session(session_id: str, body: RoundTableRunRequest | None = None) -> dict[str, Any]:
+    actor = body.actor if body else "operator"
+    session = get_store().run_roundtable_session(session_id, actor=actor)
+    if not session:
+        raise HTTPException(status_code=404, detail="Round Table session not found.")
+    return session
 
 
 @router.get("/api/seats")

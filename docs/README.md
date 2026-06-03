@@ -15,7 +15,7 @@ This index groups the public Sparkbot documentation for first-time visitors, loc
 
 - [Workstation Surface](WORKSTATION_SHELL.md): backend-backed rooms, seats, shared context, activity, and Guardian state.
 - [Chat Surface](CHAT_SHELL.md): backend-backed operator chat with shared context and deferred provider execution.
-- [Round Table Shell](ROUND_TABLE_SHELL.md): inert planned seats for future multi-agent collaboration.
+- [Round Table Surface](ROUND_TABLE_SHELL.md): backend-backed provider-safe meeting room sessions, assignments, summaries, and wrap-up notes.
 - [Provider Setup Shell](PROVIDER_SETUP_SHELL.md): provider setup preview and current server-side credential boundary.
 - [Guardian Controls Shell](GUARDIAN_CONTROLS_SHELL.md): planned control categories and current confirmation boundary notes.
 
@@ -34,4 +34,4 @@ This index groups the public Sparkbot documentation for first-time visitors, loc
 
 ## Current boundary
 
-The current public app is safe for review and local validation. It includes backend-backed Chat, Workstation state, Command Center configuration, Spine event logging, and a fail-closed Guardian confirmation boundary for the current protected memory-delete route. It does not include model calls, Round Table meeting runtime, tool execution, connector calls, desktop packaging, deployment workflows, or external/destructive actions without Guardian confirmation.
+The current public app is safe for review and local validation. It includes backend-backed Chat, Workstation state, provider-safe Round Table sessions, Command Center configuration, Spine event logging, and a fail-closed Guardian confirmation boundary for protected actions. It does not include real model calls, tool execution, connector calls, desktop packaging, deployment workflows, or external/destructive actions without Guardian confirmation.

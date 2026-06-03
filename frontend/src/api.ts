@@ -349,6 +349,79 @@ export type ChatTurnResult = {
   workstation: WorkstationState;
 };
 
+export type RoundTableParticipant = {
+  seat_index: number;
+  label: string;
+  agent: string;
+  provider: string;
+  model: string;
+  role: string;
+};
+
+export type RoundTableTurn = {
+  id: string;
+  session_id: string;
+  room_id: string;
+  turn_index: number;
+  phase: string;
+  seat_index: number | null;
+  agent: string;
+  role: string;
+  content: string;
+  assignment_id: string;
+  provider: string;
+  model: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+};
+
+export type RoundTableAssignment = {
+  id: string;
+  session_id: string;
+  room_id: string;
+  seat_index: number | null;
+  agent: string;
+  title: string;
+  instruction: string;
+  status: string;
+  response_turn_id: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type RoundTableSummary = {
+  id: string;
+  session_id: string;
+  room_id: string;
+  phase: string;
+  content: string;
+  note_id: string;
+  created_at: string;
+};
+
+export type RoundTableSession = {
+  id: string;
+  room_id: string;
+  title: string;
+  status: string;
+  phase: string;
+  goal: string;
+  context_query: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
+  room?: WorkstationRoom | null;
+  participants?: RoundTableParticipant[];
+  turns?: RoundTableTurn[];
+  assignments?: RoundTableAssignment[];
+  summaries?: RoundTableSummary[];
+  notes?: WorkstationNote[];
+  turn_count?: number;
+  assignment_count?: number;
+  blocked_action?: string;
+};
+
 export type WorkstationState = {
   controls: ControlsConfig;
   seats: WorkstationSeat[];
@@ -365,6 +438,13 @@ export type WorkstationState = {
     sessions_count: number;
     messages_count: number;
   };
+  roundtable: {
+    sessions: RoundTableSession[];
+    sessions_count: number;
+    turns_count: number;
+    assignments_count: number;
+    summaries_count: number;
+  };
   dashboard: {
     rooms_count: number;
     notes_count: number;
@@ -373,6 +453,10 @@ export type WorkstationState = {
     seat_count: number;
     chat_sessions_count: number;
     chat_messages_count: number;
+    roundtable_sessions_count: number;
+    roundtable_turns_count: number;
+    roundtable_assignments_count: number;
+    roundtable_summaries_count: number;
     pending_confirmations: number;
   };
   storage: { type: string; path: string };
@@ -460,5 +544,33 @@ export function sendChatMessage(payload: {
   return fetchJson<ChatTurnResult>("/api/chat/messages", {
     method: "POST",
     body: JSON.stringify(payload)
+  });
+}
+
+export function fetchRoundTableSessions(limit = 50): Promise<{ sessions: RoundTableSession[]; count: number }> {
+  return fetchJson<{ sessions: RoundTableSession[]; count: number }>(`/api/roundtable/sessions?limit=${limit}`);
+}
+
+export function createRoundTableSession(payload: {
+  room_id?: string;
+  title?: string;
+  goal?: string;
+  context_query?: string;
+  metadata?: Record<string, unknown>;
+}): Promise<RoundTableSession> {
+  return fetchJson<RoundTableSession>("/api/roundtable/sessions", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function fetchRoundTableSession(sessionId: string): Promise<RoundTableSession> {
+  return fetchJson<RoundTableSession>(`/api/roundtable/sessions/${sessionId}`);
+}
+
+export function runRoundTableSession(sessionId: string): Promise<RoundTableSession> {
+  return fetchJson<RoundTableSession>(`/api/roundtable/sessions/${sessionId}/run`, {
+    method: "POST",
+    body: JSON.stringify({})
   });
 }

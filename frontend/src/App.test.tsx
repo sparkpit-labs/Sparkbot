@@ -18,8 +18,22 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Workstation Floor" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Room foundation" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Model seats" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Round Table Room" })).toBeDefined();
     expect(screen.queryByRole("heading", { name: "Sparkbot Chat" })).toBeNull();
     expect(screen.queryByRole("heading", { name: "Workstation Command Center" })).toBeNull();
+  });
+
+  it("routes Round Table to the backend-backed room surface", () => {
+    window.history.pushState({}, "", "/roundtable");
+
+    render(<App />);
+
+    expect(screen.getByRole("heading", { name: "Round Table Room" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Round Table counters" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Seat 1 Meeting Manager" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Run provider-safe meeting" })).toBeDefined();
+    expect(screen.queryByRole("heading", { name: "Workstation Floor" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Sparkbot Chat" })).toBeNull();
   });
 
   it("keeps Chat as the operator conversation surface", () => {

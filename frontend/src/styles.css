@@ -985,6 +985,33 @@ textarea {
   }
 }
 
+
+.roundtable-room {
+  display: grid;
+  gap: 18px;
+}
+
+.roundtable-room-embedded {
+  border-top: 1px solid #d7dce3;
+  padding-top: 18px;
+}
+
+.roundtable-flow-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+
+.roundtable-seat-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.roundtable-session-buttons > p,
+.helper-text {
+  color: #4b5b6c;
+  margin: 0;
+}
+
 .chat-workstation {
   display: grid;
   gap: 18px;

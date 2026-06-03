@@ -55,6 +55,24 @@ SENSITIVE_KEY_PARTS = ("api_key", "access_key", "credential", "password", "secre
 CONFIRMATION_TTL_SECONDS = 15 * 60
 
 
+ROUND_TABLE_PRIVILEGED_CHECKS = (
+    ("external_send", ("send email", "post message", "publish", "webhook", "send to channel")),
+    ("connector_action", ("run connector", "sync calendar", "push to repo", "external bridge")),
+    ("file_mutation", ("delete file", "write file", "modify file", "edit file")),
+    ("process_action", ("run command", "execute command", "start process", "terminal")),
+    ("scheduler_action", ("schedule job", "background worker", "run later", "cron")),
+    ("device_action", ("control device", "device control", "start device")),
+)
+
+
+def _roundtable_privileged_action(text: str) -> str | None:
+    normalized = text.lower()
+    for action_type, terms in ROUND_TABLE_PRIVILEGED_CHECKS:
+        if any(term in normalized for term in terms):
+            return action_type
+    return None
+
+
 def _parse_utc(value: str | None) -> datetime | None:
     if not value:
         return None
@@ -133,6 +151,57 @@ class WorkstationStore:
               provider TEXT NOT NULL,
               model TEXT NOT NULL,
               role TEXT NOT NULL,
+              created_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS roundtable_sessions (
+              id TEXT PRIMARY KEY,
+              room_id TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+              title TEXT NOT NULL,
+              status TEXT NOT NULL,
+              phase TEXT NOT NULL,
+              goal TEXT NOT NULL,
+              context_query TEXT NOT NULL,
+              metadata_json TEXT NOT NULL,
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL,
+              completed_at TEXT
+            );
+            CREATE TABLE IF NOT EXISTS roundtable_turns (
+              id TEXT PRIMARY KEY,
+              session_id TEXT NOT NULL REFERENCES roundtable_sessions(id) ON DELETE CASCADE,
+              room_id TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+              turn_index INTEGER NOT NULL,
+              phase TEXT NOT NULL,
+              seat_index INTEGER,
+              agent TEXT NOT NULL,
+              role TEXT NOT NULL,
+              content TEXT NOT NULL,
+              assignment_id TEXT NOT NULL,
+              provider TEXT NOT NULL,
+              model TEXT NOT NULL,
+              metadata_json TEXT NOT NULL,
+              created_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS roundtable_assignments (
+              id TEXT PRIMARY KEY,
+              session_id TEXT NOT NULL REFERENCES roundtable_sessions(id) ON DELETE CASCADE,
+              room_id TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+              seat_index INTEGER,
+              agent TEXT NOT NULL,
+              title TEXT NOT NULL,
+              instruction TEXT NOT NULL,
+              status TEXT NOT NULL,
+              response_turn_id TEXT NOT NULL,
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS roundtable_summaries (
+              id TEXT PRIMARY KEY,
+              session_id TEXT NOT NULL REFERENCES roundtable_sessions(id) ON DELETE CASCADE,
+              room_id TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+              phase TEXT NOT NULL,
+              content TEXT NOT NULL,
+              note_id TEXT NOT NULL,
               created_at TEXT NOT NULL
             );
             CREATE TABLE IF NOT EXISTS chat_sessions (
@@ -388,6 +457,278 @@ class WorkstationStore:
             )
         return self.get_room(room_id)
 
+    def list_roundtable_sessions(self, limit: int = 50) -> list[dict[str, Any]]:
+        with self.connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM roundtable_sessions ORDER BY updated_at DESC LIMIT ?",
+                (max(1, min(limit, 200)),),
+            ).fetchall()
+            sessions = [self._roundtable_session(row) for row in rows]
+            for session in sessions:
+                session["turn_count"] = int(
+                    conn.execute("SELECT COUNT(*) AS count FROM roundtable_turns WHERE session_id = ?", (session["id"],)).fetchone()["count"]
+                )
+                session["assignment_count"] = int(
+                    conn.execute("SELECT COUNT(*) AS count FROM roundtable_assignments WHERE session_id = ?", (session["id"],)).fetchone()["count"]
+                )
+        return sessions
+
+    def create_roundtable_session(self, payload: dict[str, Any], actor: str = "operator") -> dict[str, Any]:
+        room_id = str(payload.get("room_id") or "").strip()
+        title = str(payload.get("title") or "Round Table Room").strip()[:160] or "Round Table Room"
+        goal = str(payload.get("goal") or "").strip()
+        context_query = str(payload.get("context_query") or goal or title).strip()
+        metadata = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
+        if room_id:
+            room = self.get_room(room_id)
+            if not room:
+                raise ValueError("Round Table room not found.")
+        else:
+            room = self.create_room(
+                {
+                    "title": title,
+                    "status": "open",
+                    "phase": "roundtable_setup",
+                    "goal": goal,
+                    "metadata": {"source": "roundtable"},
+                },
+                actor=actor,
+            )
+            room_id = str(room["id"])
+
+        session_id = str(uuid.uuid4())
+        now = utc_now()
+        with self.connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO roundtable_sessions
+                  (id, room_id, title, status, phase, goal, context_query, metadata_json, created_at, updated_at, completed_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
+                """,
+                (session_id, room_id, title, "setup", "intake", goal, context_query, _json_dumps(_sanitize_payload(metadata)), now, now),
+            )
+            self._append_event_conn(
+                conn,
+                "roundtable.session.created",
+                "roundtable",
+                session_id,
+                actor,
+                f"Round Table session created: {title}",
+                {"session_id": session_id, "room_id": room_id, "metadata": metadata},
+                now,
+            )
+        session = self.get_roundtable_session(session_id)
+        if not session:
+            raise ValueError("Round Table session could not be created.")
+        return session
+
+    def get_roundtable_session(self, session_id: str) -> dict[str, Any] | None:
+        with self.connect() as conn:
+            row = conn.execute("SELECT * FROM roundtable_sessions WHERE id = ?", (session_id,)).fetchone()
+            if not row:
+                return None
+            session = self._roundtable_session(row)
+            room_row = conn.execute("SELECT * FROM rooms WHERE id = ?", (session["room_id"],)).fetchone()
+            turns = self._list_roundtable_turns_conn(conn, session_id)
+            assignments = self._list_roundtable_assignments_conn(conn, session_id)
+            summaries = self._list_roundtable_summaries_conn(conn, session_id)
+            participants = self._list_room_participants_conn(conn, session["room_id"])
+            notes = self._list_notes_conn(conn, surface="roundtable", source_id=session_id, limit=20)
+        session["room"] = self._room(room_row) if room_row else None
+        session["participants"] = [self._roundtable_participant(item) for item in participants]
+        session["turns"] = turns
+        session["assignments"] = assignments
+        session["summaries"] = summaries
+        session["notes"] = notes
+        session["turn_count"] = len(turns)
+        session["assignment_count"] = len(assignments)
+        return session
+
+    def run_roundtable_session(self, session_id: str, actor: str = "operator") -> dict[str, Any] | None:
+        session = self.get_roundtable_session(session_id)
+        if not session:
+            return None
+        if session["status"] in {"complete", "blocked"}:
+            return session
+        if session["turns"] or session["assignments"] or session["summaries"]:
+            return session
+
+        room_id = str(session["room_id"])
+        title = str(session["title"])
+        goal = str(session["goal"] or title)
+        context_query = str(session["context_query"] or goal)
+        blocked_action = _roundtable_privileged_action(" ".join([title, goal, context_query]))
+        now = utc_now()
+        if blocked_action:
+            with self.connect() as conn:
+                conn.execute(
+                    "UPDATE roundtable_sessions SET status = ?, phase = ?, updated_at = ? WHERE id = ?",
+                    ("blocked", "guardian_blocked", now, session_id),
+                )
+                self._append_event_conn(
+                    conn,
+                    "guardian.action_blocked",
+                    "roundtable",
+                    session_id,
+                    actor,
+                    "Privileged Round Table request was not executed.",
+                    {"action_type": blocked_action, "requires_confirmation": True, "session_id": session_id, "room_id": room_id},
+                    now,
+                )
+            blocked = self.get_roundtable_session(session_id)
+            if blocked is not None:
+                blocked["blocked_action"] = blocked_action
+            return blocked
+
+        memories = self.recall_memory(query=context_query, limit=5)
+        room_notes = self.list_notes(surface="room", source_id=room_id, limit=5)
+        shared_notes = self.list_notes(surface="workstation", limit=5)
+        context_notes = (room_notes + shared_notes)[:8]
+        with self.connect() as conn:
+            participants = [self._roundtable_participant(item) for item in self._list_room_participants_conn(conn, room_id)]
+            if not participants:
+                participants = [self._roundtable_participant(item) for item in self._list_seats_conn(conn)]
+            manager = next((item for item in participants if item.get("seat_index") == 1), participants[0])
+            workers = [item for item in participants if item.get("seat_index") != manager.get("seat_index")]
+            if not workers:
+                workers = participants
+
+            turn_index = 1
+            conn.execute(
+                "UPDATE roundtable_sessions SET status = ?, phase = ?, updated_at = ? WHERE id = ?",
+                ("running", "first_pass", now, session_id),
+            )
+            self._append_event_conn(
+                conn,
+                "roundtable.context.recalled",
+                "roundtable",
+                session_id,
+                actor,
+                "Round Table recalled shared Workstation context.",
+                {"memory_count": len(memories), "note_count": len(context_notes), "session_id": session_id, "room_id": room_id},
+                now,
+            )
+
+            for worker in workers:
+                content = (
+                    f"{worker['label']} ({worker['agent']}) first pass: for '{goal}', keep the response provider-safe, "
+                    f"identify useful assumptions, and contribute from the {worker['agent']} role. "
+                    f"Shared context available: {len(memories)} memory item(s), {len(context_notes)} note(s)."
+                )
+                self._insert_roundtable_turn_conn(conn, session_id, room_id, turn_index, "first_pass", worker, "participant", content, "", now, actor)
+                turn_index += 1
+
+            assessment = (
+                f"Seat 1 Meeting Manager assessment: the room has enough first-pass input to split '{goal}' into focused assignments. "
+                "No provider calls or external actions were executed."
+            )
+            self._insert_roundtable_turn_conn(conn, session_id, room_id, turn_index, "manager_assessment", manager, "meeting_manager", assessment, "", now, actor)
+            turn_index += 1
+
+            assignment_rows: list[dict[str, Any]] = []
+            for worker in workers:
+                assignment_id = str(uuid.uuid4())
+                instruction = (
+                    f"Review '{goal}' from the {worker['agent']} perspective. Return a concise second-pass recommendation, "
+                    "risks, and the next safe step. Do not execute tools or external actions."
+                )
+                conn.execute(
+                    """
+                    INSERT INTO roundtable_assignments
+                      (id, session_id, room_id, seat_index, agent, title, instruction, status, response_turn_id, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        assignment_id,
+                        session_id,
+                        room_id,
+                        worker.get("seat_index"),
+                        worker["agent"],
+                        f"Assignment for {worker['label']}",
+                        instruction,
+                        "assigned",
+                        "",
+                        now,
+                        now,
+                    ),
+                )
+                self._append_event_conn(
+                    conn,
+                    "roundtable.assignment.created",
+                    "roundtable",
+                    session_id,
+                    actor,
+                    f"Round Table assignment created for {worker['label']}.",
+                    {"assignment_id": assignment_id, "session_id": session_id, "room_id": room_id, "seat_index": worker.get("seat_index")},
+                    now,
+                )
+                assignment_rows.append({"id": assignment_id, "worker": worker, "instruction": instruction})
+
+            conn.execute(
+                "UPDATE roundtable_sessions SET phase = ?, updated_at = ? WHERE id = ?",
+                ("second_pass", now, session_id),
+            )
+            for assignment in assignment_rows:
+                worker = assignment["worker"]
+                content = (
+                    f"{worker['label']} ({worker['agent']}) second pass: complete assignment '{assignment['instruction']}'. "
+                    f"Recommendation for '{goal}': keep scope narrow, preserve Guardian boundaries, and record the decision in shared state."
+                )
+                turn_id = self._insert_roundtable_turn_conn(
+                    conn, session_id, room_id, turn_index, "second_pass", worker, "participant", content, assignment["id"], now, actor
+                )
+                conn.execute(
+                    "UPDATE roundtable_assignments SET status = ?, response_turn_id = ?, updated_at = ? WHERE id = ?",
+                    ("answered", turn_id, now, assignment["id"]),
+                )
+                turn_index += 1
+
+            summary = (
+                f"Meeting Manager wrap-up for '{goal}': first-pass ideas were collected, assignments were answered, "
+                "and the safe next step is to review the plan before adding real provider execution. "
+                f"Context used: {len(memories)} memory item(s) and {len(context_notes)} note(s)."
+            )
+            self._insert_roundtable_turn_conn(conn, session_id, room_id, turn_index, "manager_summary", manager, "meeting_manager", summary, "", now, actor)
+            note = self._create_note_conn(
+                conn,
+                {
+                    "title": f"Round Table summary: {title}",
+                    "body": summary,
+                    "surface": "roundtable",
+                    "source_id": session_id,
+                    "tags": ["roundtable", "summary"],
+                },
+                actor,
+                now,
+            )
+            summary_id = str(uuid.uuid4())
+            conn.execute(
+                """
+                INSERT INTO roundtable_summaries (id, session_id, room_id, phase, content, note_id, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (summary_id, session_id, room_id, "wrap_up", summary, note["id"], now),
+            )
+            conn.execute(
+                "UPDATE rooms SET phase = ?, summary = ?, updated_at = ? WHERE id = ?",
+                ("roundtable_complete", summary, now, room_id),
+            )
+            conn.execute(
+                "UPDATE roundtable_sessions SET status = ?, phase = ?, updated_at = ?, completed_at = ? WHERE id = ?",
+                ("complete", "wrap_up", now, now, session_id),
+            )
+            self._append_event_conn(
+                conn,
+                "roundtable.summary.created",
+                "roundtable",
+                session_id,
+                actor,
+                "Round Table manager summary created.",
+                {"summary_id": summary_id, "note_id": note["id"], "session_id": session_id, "room_id": room_id},
+                now,
+            )
+        return self.get_roundtable_session(session_id)
+
     def list_chat_sessions(self, limit: int = 50) -> list[dict[str, Any]]:
         with self.connect() as conn:
             rows = conn.execute(
@@ -489,7 +830,6 @@ class WorkstationStore:
         return self._chat_message(row)
 
     def create_note(self, payload: dict[str, Any], actor: str = "operator") -> dict[str, Any]:
-        note_id = str(uuid.uuid4())
         now = utc_now()
         title = str(payload.get("title") or "Workstation note").strip()
         body = str(payload.get("body") or "").strip()
@@ -497,25 +837,7 @@ class WorkstationStore:
         source_id = str(payload.get("source_id") or "").strip()
         tags = payload.get("tags") if isinstance(payload.get("tags"), list) else []
         with self.connect() as conn:
-            conn.execute(
-                """
-                INSERT INTO notes (id, title, body, surface, source_id, actor, tags_json, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (note_id, title, body, surface, source_id, actor, _json_dumps(tags), now, now),
-            )
-            self._append_event_conn(
-                conn,
-                "note.saved",
-                surface,
-                source_id or note_id,
-                actor,
-                f"Note saved: {title}",
-                {"note_id": note_id, "surface": surface, "source_id": source_id},
-                now,
-            )
-            row = conn.execute("SELECT * FROM notes WHERE id = ?", (note_id,)).fetchone()
-        return self._note(row)
+            return self._create_note_conn(conn, {"title": title, "body": body, "surface": surface, "source_id": source_id, "tags": tags}, actor, now)
 
     def update_note(self, note_id: str, payload: dict[str, Any], actor: str = "operator") -> dict[str, Any] | None:
         current = self.get_note(note_id)
@@ -835,6 +1157,13 @@ class WorkstationStore:
                 "sessions_count": self.count("chat_sessions"),
                 "messages_count": self.count("chat_messages"),
             },
+            "roundtable": {
+                "sessions": self.list_roundtable_sessions(limit=10),
+                "sessions_count": self.count("roundtable_sessions"),
+                "turns_count": self.count("roundtable_turns"),
+                "assignments_count": self.count("roundtable_assignments"),
+                "summaries_count": self.count("roundtable_summaries"),
+            },
             "guardian": {
                 "pending_confirmations": self.list_confirmations(limit=20, status="pending"),
                 "recent_confirmations": self.list_confirmations(limit=20),
@@ -852,11 +1181,28 @@ class WorkstationStore:
             "seat_count": self.count("seats"),
             "chat_sessions_count": self.count("chat_sessions"),
             "chat_messages_count": self.count("chat_messages"),
+            "roundtable_sessions_count": self.count("roundtable_sessions"),
+            "roundtable_turns_count": self.count("roundtable_turns"),
+            "roundtable_assignments_count": self.count("roundtable_assignments"),
+            "roundtable_summaries_count": self.count("roundtable_summaries"),
             "pending_confirmations": self.count("action_confirmations", "status = 'pending'"),
         }
 
     def count(self, table: str, where: str = "") -> int:
-        allowed = {"rooms", "notes", "memory_entries", "events", "seats", "action_confirmations", "chat_sessions", "chat_messages"}
+        allowed = {
+            "rooms",
+            "notes",
+            "memory_entries",
+            "events",
+            "seats",
+            "action_confirmations",
+            "chat_sessions",
+            "chat_messages",
+            "roundtable_sessions",
+            "roundtable_turns",
+            "roundtable_assignments",
+            "roundtable_summaries",
+        }
         if table not in allowed:
             raise ValueError("Unsupported table.")
         sql = f"SELECT COUNT(*) AS count FROM {table}"
@@ -882,6 +1228,27 @@ class WorkstationStore:
             (session_id,),
         ).fetchall()
         return [self._chat_message(row) for row in rows]
+
+    def _list_roundtable_turns_conn(self, conn: sqlite3.Connection, session_id: str) -> list[dict[str, Any]]:
+        rows = conn.execute(
+            "SELECT * FROM roundtable_turns WHERE session_id = ? ORDER BY turn_index ASC, created_at ASC",
+            (session_id,),
+        ).fetchall()
+        return [self._roundtable_turn(row) for row in rows]
+
+    def _list_roundtable_assignments_conn(self, conn: sqlite3.Connection, session_id: str) -> list[dict[str, Any]]:
+        rows = conn.execute(
+            "SELECT * FROM roundtable_assignments WHERE session_id = ? ORDER BY seat_index ASC, created_at ASC",
+            (session_id,),
+        ).fetchall()
+        return [self._roundtable_assignment(row) for row in rows]
+
+    def _list_roundtable_summaries_conn(self, conn: sqlite3.Connection, session_id: str) -> list[dict[str, Any]]:
+        rows = conn.execute(
+            "SELECT * FROM roundtable_summaries WHERE session_id = ? ORDER BY created_at ASC",
+            (session_id,),
+        ).fetchall()
+        return [self._roundtable_summary(row) for row in rows]
 
     def _last_chat_message_conn(self, conn: sqlite3.Connection, session_id: str) -> dict[str, Any] | None:
         row = conn.execute(
@@ -935,6 +1302,85 @@ class WorkstationStore:
         row = conn.execute("SELECT * FROM events WHERE id = ?", (event_id,)).fetchone()
         return self._event(row)
 
+    def _create_note_conn(self, conn: sqlite3.Connection, payload: dict[str, Any], actor: str, created_at: str) -> dict[str, Any]:
+        note_id = str(uuid.uuid4())
+        title = str(payload.get("title") or "Workstation note").strip()
+        body = str(payload.get("body") or "").strip()
+        surface = str(payload.get("surface") or "workstation").strip()
+        source_id = str(payload.get("source_id") or "").strip()
+        tags = payload.get("tags") if isinstance(payload.get("tags"), list) else []
+        conn.execute(
+            """
+            INSERT INTO notes (id, title, body, surface, source_id, actor, tags_json, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (note_id, title, body, surface, source_id, actor, _json_dumps(tags), created_at, created_at),
+        )
+        self._append_event_conn(
+            conn,
+            "note.saved",
+            surface,
+            source_id or note_id,
+            actor,
+            f"Note saved: {title}",
+            {"note_id": note_id, "surface": surface, "source_id": source_id},
+            created_at,
+        )
+        row = conn.execute("SELECT * FROM notes WHERE id = ?", (note_id,)).fetchone()
+        return self._note(row)
+
+    def _insert_roundtable_turn_conn(
+        self,
+        conn: sqlite3.Connection,
+        session_id: str,
+        room_id: str,
+        turn_index: int,
+        phase: str,
+        participant: dict[str, Any],
+        role: str,
+        content: str,
+        assignment_id: str,
+        created_at: str,
+        actor: str,
+    ) -> str:
+        turn_id = str(uuid.uuid4())
+        provider = "provider-safe"
+        model = "roundtable-local-skeleton"
+        conn.execute(
+            """
+            INSERT INTO roundtable_turns
+              (id, session_id, room_id, turn_index, phase, seat_index, agent, role, content, assignment_id, provider, model, metadata_json, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                turn_id,
+                session_id,
+                room_id,
+                turn_index,
+                phase,
+                participant.get("seat_index"),
+                participant.get("agent") or "participant",
+                role,
+                content,
+                assignment_id,
+                provider,
+                model,
+                _json_dumps({"mode": "provider_safe", "label": participant.get("label") or "Seat"}),
+                created_at,
+            ),
+        )
+        self._append_event_conn(
+            conn,
+            "roundtable.turn.created",
+            "roundtable",
+            session_id,
+            actor,
+            f"Round Table {phase} turn saved.",
+            {"turn_id": turn_id, "session_id": session_id, "room_id": room_id, "phase": phase, "seat_index": participant.get("seat_index")},
+            created_at,
+        )
+        return turn_id
+
     def _seat(self, row: sqlite3.Row) -> dict[str, Any]:
         return {
             "seat_index": int(row["seat_index"]),
@@ -967,6 +1413,77 @@ class WorkstationStore:
             "provider": row["provider"],
             "model": row["model"],
             "role": row["role"],
+            "created_at": row["created_at"],
+        }
+
+    def _roundtable_participant(self, item: dict[str, Any]) -> dict[str, Any]:
+        seat_index = int(item.get("seat_index") or 0)
+        label = item.get("label") or (f"Seat {seat_index}" if seat_index else "Seat")
+        return {
+            "seat_index": seat_index,
+            "label": label,
+            "agent": item.get("agent") or "participant",
+            "provider": item.get("provider") or "provider-safe",
+            "model": item.get("model") or "roundtable-local-skeleton",
+            "role": "meeting_manager" if seat_index == 1 else "participant",
+        }
+
+    def _roundtable_session(self, row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "room_id": row["room_id"],
+            "title": row["title"],
+            "status": row["status"],
+            "phase": row["phase"],
+            "goal": row["goal"],
+            "context_query": row["context_query"],
+            "metadata": _json_loads(row["metadata_json"], {}),
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+            "completed_at": row["completed_at"],
+        }
+
+    def _roundtable_turn(self, row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "session_id": row["session_id"],
+            "room_id": row["room_id"],
+            "turn_index": int(row["turn_index"]),
+            "phase": row["phase"],
+            "seat_index": row["seat_index"],
+            "agent": row["agent"],
+            "role": row["role"],
+            "content": row["content"],
+            "assignment_id": row["assignment_id"],
+            "provider": row["provider"],
+            "model": row["model"],
+            "metadata": _json_loads(row["metadata_json"], {}),
+            "created_at": row["created_at"],
+        }
+
+    def _roundtable_assignment(self, row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "session_id": row["session_id"],
+            "room_id": row["room_id"],
+            "seat_index": row["seat_index"],
+            "agent": row["agent"],
+            "title": row["title"],
+            "instruction": row["instruction"],
+            "status": row["status"],
+            "response_turn_id": row["response_turn_id"],
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        }
+
+    def _roundtable_summary(self, row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "session_id": row["session_id"],
+            "room_id": row["room_id"],
+            "phase": row["phase"],
+            "content": row["content"],
+            "note_id": row["note_id"],
             "created_at": row["created_at"],
         }
 

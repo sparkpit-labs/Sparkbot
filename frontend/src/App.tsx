@@ -4,6 +4,7 @@ import { API_BASE_URL, fetchBackendHealth, type HealthPayload } from "./api";
 import ChatWorkstation from "./components/ChatWorkstation";
 import CommandCenter from "./components/CommandCenter";
 import ControlsSurface from "./components/ControlsSurface";
+import RoundTableRoom from "./components/RoundTableRoom";
 import SpineSurface from "./components/SpineSurface";
 import WorkstationFloor from "./components/WorkstationFloor";
 
@@ -20,13 +21,14 @@ const initialHealthState: HealthState = {
 };
 
 function normalizeCommandPath(pathname: string): string {
-  const allowedPaths = new Set(["/workstation", "/chat", "/command-center", "/spine", "/controls"]);
+  const allowedPaths = new Set(["/workstation", "/chat", "/roundtable", "/command-center", "/spine", "/controls"]);
   if (pathname === "/" || pathname === "") return "/workstation";
   return allowedPaths.has(pathname) ? pathname : "/workstation";
 }
 
 function surfaceForPath(path: string) {
   if (path === "/chat") return <ChatWorkstation />;
+  if (path === "/roundtable") return <RoundTableRoom />;
   if (path === "/command-center") return <CommandCenter />;
   if (path === "/spine") return <SpineSurface />;
   if (path === "/controls") return <ControlsSurface />;
@@ -82,7 +84,7 @@ export default function App() {
       <header className="shell-header app-topbar">
         <div>
           <h1>Sparkbot</h1>
-          <p className="intro">Local-first AI Workstation for operator chat, rooms, seats, shared memory, event history, and guarded setup.</p>
+          <p className="intro">Local-first AI Workstation for operator chat, rooms, seats, Round Table sessions, shared memory, event history, and guarded setup.</p>
         </div>
         <nav className="top-nav" aria-label="Primary navigation">
           <button type="button" aria-current={path === "/workstation" ? "page" : undefined} onClick={() => navigate("/workstation")}>
@@ -90,6 +92,9 @@ export default function App() {
           </button>
           <button type="button" aria-current={path === "/chat" ? "page" : undefined} onClick={() => navigate("/chat")}>
             Chat
+          </button>
+          <button type="button" aria-current={path === "/roundtable" ? "page" : undefined} onClick={() => navigate("/roundtable")}>
+            Round Table
           </button>
           <button type="button" aria-current={path === "/command-center" ? "page" : undefined} onClick={() => navigate("/command-center")}>
             Command Center

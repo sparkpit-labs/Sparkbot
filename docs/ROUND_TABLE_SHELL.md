@@ -1,37 +1,32 @@
-# Round Table Shell
+# Round Table Surface
 
-The Round Table shell is a static public preview for future multi-agent collaboration inside Sparkbot.
-
-The current public shell baseline includes a read-only surface in the Workstation shell. It shows the intended seat model without enabling meeting behavior, chat, model calls, turn-taking, orchestration, tool execution, provider setup, or guarded runtime controls.
-
-## Preview seats
-
-- Operator: human direction for a future session.
-- Assistant seat: planned general support participant.
-- Research seat: planned information review participant.
-- Builder seat: planned implementation planning participant.
-- Reviewer seat: planned quality review participant.
+The Round Table surface is now a provider-safe public room workflow inside Sparkbot. It is backend-backed by the shared Workstation store and is available from `/workstation` and `/roundtable`.
 
 ## Current behavior
 
-- The preview renders inside the Workstation shell.
-- Seat cards are inert and read-only.
-- Labels use preview or planned status.
-- The existing backend health check remains the only frontend action.
+- Operators can create a Round Table session with a title and problem statement.
+- Session creation also creates or uses a persisted Workstation room with persisted seat participants.
+- Seat 1 is identified as the Meeting Manager.
+- Other persisted seats participate as provider-safe contributors.
+- Running the session saves a deterministic local flow: first-pass ideas, manager assessment, assignments, second-pass answers, and manager wrap-up.
+- The manager wrap-up creates one Round Table summary and one wrap-up note. Turn-by-turn notes are not generated.
+- Round Table recalls shared memory and Workstation or room notes before saving turns.
+- Round Table events write to the shared Spine/event log.
 
-## Excluded from this baseline
+## Provider-safe limits
 
-- Meeting creation or joining.
-- Chat input or message sending.
-- Model provider calls.
-- Meeting manager logic.
-- Turn-taking engine.
-- Agent orchestration.
-- Tool execution.
-- Terminal or file mutation features.
-- Provider setup forms.
-- Guardian runtime controls.
+- No real provider/model calls are made.
+- No connector sends or external delivery are made.
+- No files, processes, shell commands, or terminal commands are executed.
+- No scheduled jobs or background work are started.
+- No device actions are executed.
+
+## Guardian boundary
+
+Requests that look destructive, external, privileged, scheduled, connector-based, file/process-related, terminal-related, or device-related fail closed. Round Table logs Guardian block events for those requests and does not execute them.
+
+Future action-capable Round Table behavior must use the shared Guardian confirmation boundary before execution.
 
 ## Next public slice
 
-The next slice should document the public interaction contract before adding any active behavior. Implementation should stay local-first, guarded by clear validation, and honest about what is available in the current release.
+The next slice should audit this integration, then decide between a narrow provider/model execution path or model-seat/provider configuration polish. Real provider execution must keep secrets server-side, preserve event redaction, and keep Guardian as the mandatory boundary for protected actions.
