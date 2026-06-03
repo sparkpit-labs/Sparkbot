@@ -4,6 +4,134 @@ export type HealthPayload = {
   mode: string;
 };
 
+export type ProviderStatus = {
+  id: string;
+  label: string;
+  configured: boolean;
+  auth_modes: string[];
+  models: string[];
+  models_available: boolean;
+  available_models: string[];
+  reachable?: boolean;
+  base_url?: string;
+};
+
+export type AgentInfo = {
+  name: string;
+  label: string;
+  description: string;
+};
+
+export type LocalModelStatus = {
+  base_url: string;
+  reachable: boolean;
+  models_available: boolean;
+  models: string[];
+  model_ids: string[];
+  error: string | null;
+};
+
+export type ControlsConfig = {
+  active_model: string;
+  default_selection: {
+    provider: string;
+    model: string;
+    label?: string;
+  };
+  stack: {
+    primary: string;
+    backup_1: string;
+    backup_2: string;
+    heavy_hitter: string;
+  };
+  local_runtime: {
+    base_url: string;
+    default_local_model: string;
+  };
+  routing_policy: {
+    cross_provider_fallback: boolean;
+  };
+  agent_overrides: Record<string, { route: string; model: string }>;
+  available_agents: AgentInfo[];
+  model_labels: Record<string, string>;
+  providers: ProviderStatus[];
+  ollama_status: LocalModelStatus;
+  token_guardian_mode: "off" | "shadow" | "live";
+  security_guardrails_enabled: boolean;
+  custom_guardrails: string;
+  pin_configured: boolean;
+  notices: string[];
+};
+
+export type OpenRouterModel = {
+  id: string;
+  raw_id: string;
+  label: string;
+  context_length?: number;
+  is_free: boolean;
+};
+
+export type GuardianStatus = {
+  available: boolean;
+  security_guardrails_enabled: boolean;
+  pin_configured: boolean;
+  task_guardian_enabled: boolean;
+  memory_guardian_enabled: boolean;
+  token_guardian_mode: string;
+  breakglass: { active: boolean };
+  vault: { configured: boolean; mode: string };
+};
+
+export type SecurityStatus = {
+  operator: {
+    mode: string;
+    pin_configured: boolean;
+    breakglass_active: boolean;
+    usernames: string[];
+  };
+  passphrase: {
+    label: string;
+    configured: boolean;
+  };
+  security_guardrails_enabled: boolean;
+  custom_guardrails: string;
+  provider_storage: string;
+  operator_guidance: Array<{ area: string; operator_action: string }>;
+};
+
+export type DashboardSummary = {
+  summary: {
+    rooms_count: number;
+    open_tasks: number;
+    pending_reminders: number;
+    pending_approvals: number;
+    guardian_jobs: number;
+    guardian_jobs_enabled: number;
+    task_guardian_enabled: boolean;
+    token_guardian_mode: string;
+    security_guardrails_enabled: boolean;
+  };
+  today: {
+    meeting_artifacts: unknown[];
+    inbox: { summary_text: string };
+  };
+};
+
+export type SpineOverview = {
+  open_queue: unknown[];
+  blocked_queue: unknown[];
+  approval_waiting_queue: unknown[];
+  stale_queue: unknown[];
+  orphan_queue: unknown[];
+  missing_source_queue: unknown[];
+  missing_project_queue: unknown[];
+  recently_resurfaced_queue: unknown[];
+  assignment_ready_queue: unknown[];
+  executive_directives_queue: unknown[];
+  status: string;
+  note: string;
+};
+
 const DEFAULT_API_BASE_URL = "http://127.0.0.1:8000";
 
 export const API_BASE_URL =
@@ -34,4 +162,79 @@ export async function fetchBackendHealth(signal?: AbortSignal): Promise<HealthPa
     service: payload.service,
     mode: payload.mode
   };
+}
+
+async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const endpoint = new URL(path, API_BASE_URL).toString();
+  const response = await fetch(endpoint, {
+    ...init,
+    headers: {
+      Accept: "application/json",
+      ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      ...init?.headers
+    },
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    let detail = `Request failed with status ${response.status}`;
+    try {
+      const payload = (await response.json()) as { detail?: string };
+      if (payload.detail) detail = payload.detail;
+    } catch {
+      // Keep the generic status message.
+    }
+    throw new Error(detail);
+  }
+
+  return (await response.json()) as T;
+}
+
+export function fetchControlsConfig(): Promise<ControlsConfig> {
+  return fetchJson<ControlsConfig>("/api/v1/chat/models/config");
+}
+
+export function saveControlsConfig(payload: unknown): Promise<ControlsConfig> {
+  return fetchJson<ControlsConfig>("/api/v1/chat/models/config", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function fetchOpenRouterModels(): Promise<{ models: OpenRouterModel[] }> {
+  return fetchJson<{ models: OpenRouterModel[] }>("/api/v1/chat/openrouter/models");
+}
+
+export function fetchLocalModelStatus(): Promise<LocalModelStatus> {
+  return fetchJson<LocalModelStatus>("/api/v1/chat/ollama/status");
+}
+
+export function fetchGuardianStatus(): Promise<GuardianStatus> {
+  return fetchJson<GuardianStatus>("/api/v1/chat/guardian/status");
+}
+
+export function fetchSecurityStatus(): Promise<SecurityStatus> {
+  return fetchJson<SecurityStatus>("/api/v1/chat/security/status");
+}
+
+export function fetchDashboardSummary(): Promise<DashboardSummary> {
+  return fetchJson<DashboardSummary>("/api/v1/chat/dashboard/summary");
+}
+
+export function fetchSpineOverview(): Promise<SpineOverview> {
+  return fetchJson<SpineOverview>("/api/v1/chat/spine/operator/overview");
+}
+
+export function saveOperatorPin(payload: { current_pin?: string; pin: string }): Promise<{ ok: boolean }> {
+  return fetchJson<{ ok: boolean }>("/api/v1/chat/security/operator-pin", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function createAgent(payload: { name: string; description: string; system_prompt: string }): Promise<AgentInfo> {
+  return fetchJson<AgentInfo>("/api/v1/chat/agents", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
 }

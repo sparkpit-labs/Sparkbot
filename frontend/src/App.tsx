@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { API_BASE_URL, fetchBackendHealth, type HealthPayload } from "./api";
-import WorkstationShell from "./components/WorkstationShell";
+import CommandCenter from "./components/CommandCenter";
 
 type HealthState =
   | { phase: "idle"; message: string; payload: null }
@@ -15,8 +15,32 @@ const initialHealthState: HealthState = {
   payload: null
 };
 
+function normalizeCommandPath(pathname: string): string {
+  if (pathname === "/controls" || pathname === "/command-center") return "/spine";
+  if (pathname === "/" || pathname === "") return "/spine";
+  return pathname;
+}
+
 export default function App() {
   const [healthState, setHealthState] = useState<HealthState>(initialHealthState);
+  const [path, setPath] = useState(() => normalizeCommandPath(window.location.pathname));
+
+  useEffect(() => {
+    const normalized = normalizeCommandPath(window.location.pathname);
+    if (normalized !== window.location.pathname) {
+      window.history.replaceState({}, "", normalized);
+      setPath(normalized);
+    }
+
+    const onPopState = () => setPath(normalizeCommandPath(window.location.pathname));
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  const navigate = (nextPath: string) => {
+    window.history.pushState({}, "", nextPath);
+    setPath(nextPath);
+  };
 
   const runHealthCheck = async () => {
     setHealthState({
@@ -43,12 +67,22 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      <header className="shell-header">
-        <h1>Sparkbot</h1>
-        <p className="intro">Sparkbot is an early local-first AI workstation shell from SparkPit Labs.</p>
+      <header className="shell-header app-topbar">
+        <div>
+          <h1>Sparkbot</h1>
+          <p className="intro">Local-first AI Workstation with a restored Command Center.</p>
+        </div>
+        <nav className="top-nav" aria-label="Primary navigation">
+          <button type="button" aria-current={path === "/spine" ? "page" : undefined} onClick={() => navigate("/spine")}>
+            Command Center
+          </button>
+          <button type="button" aria-current={path === "/workstation" ? "page" : undefined} onClick={() => navigate("/workstation")}>
+            Workstation
+          </button>
+        </nav>
       </header>
 
-      <WorkstationShell />
+      {path === "/spine" || path === "/workstation" ? <CommandCenter /> : <CommandCenter />}
 
       <section className="health-panel">
         <div className="health-header">
