@@ -422,10 +422,12 @@ export default function CommandCenter() {
     setError(null);
     const draft = agentInviteDrafts[agent.name] || { model: agent.invite_route?.model || "", api_key: "", auth_mode: agent.invite_route?.auth_mode || "api_key" };
     try {
+      const inviteProvider = providerForModel(draft.model);
+      const authMode = inviteProvider === "anthropic" && draft.auth_mode === "oauth" ? "oauth" : "api_key";
       await saveAgentInviteRoute(agent.name, {
         model: draft.model,
         api_key: draft.api_key || undefined,
-        auth_mode: draft.auth_mode
+        auth_mode: authMode
       });
       setAgentInviteDrafts((items) => ({ ...items, [agent.name]: { ...draft, api_key: "" } }));
       setMessage(`${agent.label} invite route saved server-side.`);
@@ -728,6 +730,7 @@ export default function CommandCenter() {
               const draft = agentDrafts[agent.name] || { description: agent.description || "", system_prompt: agent.system_prompt || "" };
               const inviteDraft = agentInviteDrafts[agent.name] || { model: agent.invite_route?.model || "", api_key: "", auth_mode: agent.invite_route?.auth_mode || "api_key" };
               const inviteSeat = inviteSeatDrafts[agent.name] || "2";
+              const inviteProvider = providerForModel(inviteDraft.model);
               return (
                 <div className="agent-row" key={agent.name}>
                   <div>
@@ -775,7 +778,12 @@ export default function CommandCenter() {
                       <span>Invite model</span>
                       <select
                         value={inviteDraft.model}
-                        onChange={(event) => setAgentInviteDrafts((items) => ({ ...items, [agent.name]: { ...inviteDraft, model: event.target.value } }))}
+                        onChange={(event) => {
+                          const nextModel = event.target.value;
+                          const nextProvider = providerForModel(nextModel);
+                          const nextAuthMode = nextProvider === "anthropic" && inviteDraft.auth_mode === "oauth" ? "oauth" : "api_key";
+                          setAgentInviteDrafts((items) => ({ ...items, [agent.name]: { ...inviteDraft, model: nextModel, auth_mode: nextAuthMode } }));
+                        }}
                       >
                         <option value="">Use default model</option>
                         {models.map((model) => <option key={`invite-${agent.name}-${model}`} value={model}>{modelLabel(config, model)}</option>)}
@@ -784,13 +792,13 @@ export default function CommandCenter() {
                     <label>
                       <span>Auth mode</span>
                       <select
-                        value={inviteDraft.auth_mode}
+                        value={inviteProvider === "anthropic" ? inviteDraft.auth_mode : "api_key"}
                         onChange={(event) => setAgentInviteDrafts((items) => ({ ...items, [agent.name]: { ...inviteDraft, auth_mode: event.target.value } }))}
                       >
                         <option value="api_key">API key</option>
-                        <option value="oauth">Subscription token</option>
-                        <option value="codex_sub">Provider subscription</option>
+                        {inviteProvider === "anthropic" ? <option value="oauth">Anthropic subscription token</option> : null}
                       </select>
+                      {inviteProvider === "openai_codex" || inviteProvider === "claude_sub" ? <span>Subscription-only provider execution is unavailable in this public slice.</span> : null}
                     </label>
                     <label>
                       <span>Invite credential</span>

@@ -238,7 +238,7 @@ def _write_secrets(payload: dict[str, str]) -> None:
 
 
 SENSITIVE_TEXT_KEYS = ("api_key", "access_key", "credential", "password", "secret", "token")
-INVITE_ROUTE_AUTH_MODES = {"api_key", "oauth", "codex_sub"}
+INVITE_ROUTE_AUTH_MODES = {"api_key", "oauth"}
 
 
 def _slug_agent_name(value: str) -> str:
@@ -751,6 +751,9 @@ async def set_agent_invite_route(agent_name: str, body: AgentInviteRouteInput) -
 
     model = (body.model or "").strip()
     api_key = (body.api_key or "").strip()
+    requested_auth_mode = (body.auth_mode or "").strip().lower()
+    if requested_auth_mode and requested_auth_mode not in INVITE_ROUTE_AUTH_MODES:
+        raise HTTPException(status_code=400, detail="Unsupported invite route auth mode in this public slice.")
     auth_mode = _normalize_auth_mode(body.auth_mode)
     invite_routes = dict(config.get("invite_routes") or {})
     secret_key = _invite_secret_key(slug)
@@ -775,6 +778,10 @@ async def set_agent_invite_route(agent_name: str, body: AgentInviteRouteInput) -
     route = _provider_for_model(model) if model else "default"
     if route == "local":
         route = "ollama"
+    if route in {"openai_codex", "claude_sub"}:
+        raise HTTPException(status_code=400, detail="Subscription-only invite routes are not available for server-side execution in this public slice.")
+    if auth_mode == "oauth" and route != "anthropic":
+        raise HTTPException(status_code=400, detail="OAuth invite auth mode is only supported for Anthropic provider routes.")
     if api_key:
         secrets_payload[secret_key] = api_key
     credential_configured = bool(api_key or secrets_payload.get(secret_key))

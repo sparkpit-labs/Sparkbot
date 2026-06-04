@@ -89,6 +89,35 @@ def test_chat_model_route_tracks_updated_default_selection(tmp_path, monkeypatch
     assert calls[0]["payload"]["model"] == "gpt-4o-mini"
 
 
+def test_subscription_only_provider_route_fails_closed_without_dispatch(tmp_path, monkeypatch) -> None:
+    _clear_provider_env(monkeypatch)
+    monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
+    calls: list[dict[str, object]] = []
+
+    async def fake_post_json(url: str, headers: dict[str, str], payload: dict[str, object], timeout_seconds: float) -> dict[str, object]:
+        calls.append({"url": url, "headers": headers, "payload": payload})
+        return {"choices": [{"message": {"content": "Should not dispatch."}}]}
+
+    monkeypatch.setattr(model_execution, "_post_json", fake_post_json)
+    client = TestClient(app)
+    config_response = client.post(
+        "/api/v1/chat/models/config",
+        json={"default_selection": {"provider": "openai_codex", "model": "openai-codex/gpt-5.3-codex"}},
+    )
+    assert config_response.status_code == 200
+
+    response = client.post("/api/chat/messages", json={"content": "Use the selected route."})
+
+    assert response.status_code == 201
+    payload = response.json()
+    assert payload["route"]["provider"] == "openai_codex"
+    assert payload["model_execution"]["status"] == "unsupported"
+    assert "not available for server-side model execution" in payload["assistant_message"]["content"]
+    assert calls == []
+    events = client.get("/api/events").json()["events"]
+    assert any(event["payload"].get("provider") == "openai_codex" and event["payload"].get("status") == "unsupported" for event in events if event["event_type"] == "model.call.failed")
+
+
 def test_chat_provider_error_is_user_safe_and_does_not_expose_secret(tmp_path, monkeypatch) -> None:
     _clear_provider_env(monkeypatch)
     monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))

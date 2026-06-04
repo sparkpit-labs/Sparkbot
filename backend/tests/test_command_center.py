@@ -129,6 +129,67 @@ def test_custom_agent_profile_persists_server_side_and_redacts_sensitive_text(tm
     assert "EDITED-RISK-LENS" not in str(events)
 
 
+def test_agent_invite_route_rejects_unsupported_subscription_auth_modes(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
+    client = TestClient(app)
+
+    create_response = client.post(
+        "/api/v1/chat/agents",
+        json={"name": "Invite Guard", "description": "Guard invite auth", "system_prompt": "Stay safe."},
+    )
+    assert create_response.status_code == 201
+
+    metadata_only_auth = client.post(
+        "/api/v1/chat/agents/invite_guard/invite-route",
+        json={
+            "model": "openrouter/meta-llama/llama-3.1-70b-instruct:free",
+            "api_key": "invite-route-secret",
+            "auth_mode": "codex_sub",
+        },
+    )
+    assert metadata_only_auth.status_code == 400
+    assert "Unsupported invite route auth mode" in metadata_only_auth.json()["detail"]
+
+    unsupported_model = client.post(
+        "/api/v1/chat/agents/invite_guard/invite-route",
+        json={
+            "model": "openai-codex/gpt-5.3-codex",
+            "api_key": "invite-route-secret",
+            "auth_mode": "api_key",
+        },
+    )
+    assert unsupported_model.status_code == 400
+    assert "Subscription-only invite routes" in unsupported_model.json()["detail"]
+
+    wrong_oauth_provider = client.post(
+        "/api/v1/chat/agents/invite_guard/invite-route",
+        json={
+            "model": "openrouter/meta-llama/llama-3.1-70b-instruct:free",
+            "api_key": "invite-route-secret",
+            "auth_mode": "oauth",
+        },
+    )
+    assert wrong_oauth_provider.status_code == 400
+    assert "OAuth invite auth mode" in wrong_oauth_provider.json()["detail"]
+
+    anthropic_oauth = client.post(
+        "/api/v1/chat/agents/invite_guard/invite-route",
+        json={
+            "model": "claude-3-5-sonnet-latest",
+            "api_key": "invite-route-secret",
+            "auth_mode": "oauth",
+        },
+    )
+    assert anthropic_oauth.status_code == 200
+    assert anthropic_oauth.json()["invite_route"] == {
+        "route": "anthropic",
+        "model": "claude-3-5-sonnet-latest",
+        "auth_mode": "oauth",
+        "credential_configured": True,
+    }
+    assert "invite-route-secret" not in str(client.get("/api/events").json())
+
+
 def test_agent_invite_route_persists_server_side_without_secret_echo(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
     client = TestClient(app)
