@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import {
   API_BASE_URL,
+  clearAgentInviteRoute,
   createAgent,
   fetchWorkstationState,
   fetchDashboardSummary,
@@ -10,6 +11,7 @@ import {
   fetchOpenRouterModels,
   fetchSecurityStatus,
   fetchSpineOverview,
+  saveAgentInviteRoute,
   saveControlsConfig,
   saveOperatorPin,
   updateAgent,
@@ -181,6 +183,8 @@ export default function CommandCenter() {
   const [workstation, setWorkstation] = useState<WorkstationState | null>(null);
   const [newAgent, setNewAgent] = useState({ name: "", description: "", prompt: "" });
   const [agentDrafts, setAgentDrafts] = useState<Record<string, { description: string; system_prompt: string }>>({});
+  const [agentInviteDrafts, setAgentInviteDrafts] = useState<Record<string, { model: string; api_key: string; auth_mode: string }>>({});
+  const [inviteSeatDrafts, setInviteSeatDrafts] = useState<Record<string, string>>({});
 
   const models = useMemo(() => allModelOptions(config, openRouterModels), [config, openRouterModels]);
   const provider = config.providers.find((item) => item.id === selectedProvider);
@@ -228,6 +232,8 @@ export default function CommandCenter() {
     setLocalStatus(nextConfig.ollama_status);
     setAgentOverrides(nextConfig.agent_overrides || {});
     setAgentDrafts(Object.fromEntries(nextConfig.available_agents.map((agent) => [agent.name, { description: agent.description || "", system_prompt: agent.system_prompt || "" }])));
+    setAgentInviteDrafts(Object.fromEntries(nextConfig.available_agents.map((agent) => [agent.name, { model: agent.invite_route?.model || "", api_key: "", auth_mode: agent.invite_route?.auth_mode || "api_key" }])));
+    setInviteSeatDrafts(Object.fromEntries(nextConfig.available_agents.map((agent) => [agent.name, "2"])));
     setCustomGuardrails(nextConfig.custom_guardrails || "");
     setTokenMode(nextConfig.token_guardian_mode);
     setSeats((current) => current.length ? current : getFallbackSeats(nextConfig.available_agents));
@@ -410,6 +416,44 @@ export default function CommandCenter() {
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Agent profile could not be saved.");
     }
+  }
+
+  async function saveInviteRoute(agent: AgentInfo) {
+    setError(null);
+    const draft = agentInviteDrafts[agent.name] || { model: agent.invite_route?.model || "", api_key: "", auth_mode: agent.invite_route?.auth_mode || "api_key" };
+    try {
+      await saveAgentInviteRoute(agent.name, {
+        model: draft.model,
+        api_key: draft.api_key || undefined,
+        auth_mode: draft.auth_mode
+      });
+      setAgentInviteDrafts((items) => ({ ...items, [agent.name]: { ...draft, api_key: "" } }));
+      setMessage(`${agent.label} invite route saved server-side.`);
+      void refreshAll();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Invite route could not be saved.");
+    }
+  }
+
+  async function clearInviteRoute(agent: AgentInfo) {
+    setError(null);
+    try {
+      await clearAgentInviteRoute(agent.name);
+      setAgentInviteDrafts((items) => ({ ...items, [agent.name]: { model: "", api_key: "", auth_mode: "api_key" } }));
+      setMessage(`${agent.label} invite route cleared.`);
+      void refreshAll();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Invite route could not be cleared.");
+    }
+  }
+
+  async function inviteAgentToSeat(agent: AgentInfo) {
+    const seatIndex = Number(inviteSeatDrafts[agent.name] || "2") - 1;
+    if (Number.isNaN(seatIndex) || seatIndex < 0 || seatIndex >= seats.length) {
+      setError("Choose a valid Round Table seat for this invite.");
+      return;
+    }
+    await updateSeat(seatIndex, { agent: agent.name, provider: "default", model: "" });
   }
 
   async function updateSeat(index: number, patch: Partial<SeatState>) {
@@ -682,12 +726,15 @@ export default function CommandCenter() {
               const override = agentOverrides[agent.name] || { route: "default", model: "" };
               const customAgent = Object.prototype.hasOwnProperty.call(agent, "system_prompt");
               const draft = agentDrafts[agent.name] || { description: agent.description || "", system_prompt: agent.system_prompt || "" };
+              const inviteDraft = agentInviteDrafts[agent.name] || { model: agent.invite_route?.model || "", api_key: "", auth_mode: agent.invite_route?.auth_mode || "api_key" };
+              const inviteSeat = inviteSeatDrafts[agent.name] || "2";
               return (
                 <div className="agent-row" key={agent.name}>
                   <div>
                     <strong>{agent.label}</strong>
                     <span>{agent.description}</span>
                     {customAgent ? <span>Custom agent</span> : <span>Packaged agent</span>}
+                    {agent.invite_route ? <span>Invite route: {agent.invite_route.model ? modelLabel(config, agent.invite_route.model) : "default model"}{agent.invite_route.credential_configured ? " / credential ready" : ""}</span> : <span>No invite route</span>}
                   </div>
                   <select
                     value={override.route}
@@ -722,7 +769,53 @@ export default function CommandCenter() {
                       </label>
                       <button type="button" onClick={() => saveAgentProfile(agent)}>Save agent</button>
                     </div>
-                  ) : null}
+                  ) : <div />}
+                  <div className="agent-invite-fields">
+                    <label>
+                      <span>Invite model</span>
+                      <select
+                        value={inviteDraft.model}
+                        onChange={(event) => setAgentInviteDrafts((items) => ({ ...items, [agent.name]: { ...inviteDraft, model: event.target.value } }))}
+                      >
+                        <option value="">Use default model</option>
+                        {models.map((model) => <option key={`invite-${agent.name}-${model}`} value={model}>{modelLabel(config, model)}</option>)}
+                      </select>
+                    </label>
+                    <label>
+                      <span>Auth mode</span>
+                      <select
+                        value={inviteDraft.auth_mode}
+                        onChange={(event) => setAgentInviteDrafts((items) => ({ ...items, [agent.name]: { ...inviteDraft, auth_mode: event.target.value } }))}
+                      >
+                        <option value="api_key">API key</option>
+                        <option value="oauth">Subscription token</option>
+                        <option value="codex_sub">Provider subscription</option>
+                      </select>
+                    </label>
+                    <label>
+                      <span>Invite credential</span>
+                      <input
+                        type="password"
+                        value={inviteDraft.api_key}
+                        placeholder={agent.invite_route?.credential_configured ? "Credential saved server-side" : "Optional server-side key"}
+                        onChange={(event) => setAgentInviteDrafts((items) => ({ ...items, [agent.name]: { ...inviteDraft, api_key: event.target.value } }))}
+                      />
+                    </label>
+                    <div className="agent-invite-actions">
+                      <button type="button" onClick={() => saveInviteRoute(agent)}>Save invite</button>
+                      <button type="button" onClick={() => clearInviteRoute(agent)}>Clear</button>
+                    </div>
+                    <label>
+                      <span>Invite to seat</span>
+                      <select
+                        value={inviteSeat}
+                        onChange={(event) => setInviteSeatDrafts((items) => ({ ...items, [agent.name]: event.target.value }))}
+                      >
+                        {seats.map((seat) => <option key={`${agent.name}-seat-${seat.seat_index}`} value={String(seat.seat_index)}>{seat.label || `Seat ${seat.seat_index}`}</option>)}
+                      </select>
+                    </label>
+                    <button type="button" onClick={() => inviteAgentToSeat(agent)}>Assign invited agent</button>
+                  </div>
                 </div>
               );
             })}

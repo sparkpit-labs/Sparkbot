@@ -150,6 +150,12 @@ class AgentUpdateInput(BaseModel):
     system_prompt: str | None = Field(default=None, max_length=4000)
 
 
+class AgentInviteRouteInput(BaseModel):
+    model: str | None = Field(default=None, max_length=200)
+    api_key: str | None = Field(default=None, max_length=4096)
+    auth_mode: str | None = Field(default=None, max_length=40)
+
+
 def _data_dir() -> Path:
     configured = os.getenv(DATA_DIR_ENV)
     base = Path(configured) if configured else Path("data") / "command-center"
@@ -199,6 +205,7 @@ def _default_config() -> dict[str, Any]:
         "local_runtime": {"base_url": "http://127.0.0.1:11434", "default_local_model": LOCAL_DEFAULT_MODEL},
         "routing_policy": {"cross_provider_fallback": False},
         "agent_overrides": {},
+        "invite_routes": {},
         "custom_agents": [],
         "token_guardian_mode": "shadow",
         "security_guardrails_enabled": False,
@@ -231,6 +238,15 @@ def _write_secrets(payload: dict[str, str]) -> None:
 
 
 SENSITIVE_TEXT_KEYS = ("api_key", "access_key", "credential", "password", "secret", "token")
+INVITE_ROUTE_AUTH_MODES = {"api_key", "oauth", "codex_sub"}
+
+
+def _slug_agent_name(value: str) -> str:
+    return "".join(ch for ch in value.lower().replace(" ", "_") if ch.isalnum() or ch == "_").strip("_")
+
+
+def _invite_secret_key(agent_name: str) -> str:
+    return f"invite_route:{agent_name}"
 
 
 def _redact_sensitive_text(value: str) -> str:
@@ -256,7 +272,7 @@ def _redact_sensitive_text(value: str) -> str:
 
 def _agent_record(name: str, description: str = "", system_prompt: str = "") -> dict[str, str]:
     label = name.strip()
-    slug = "".join(ch for ch in label.lower().replace(" ", "_") if ch.isalnum() or ch == "_").strip("_")
+    slug = _slug_agent_name(label)
     return {
         "name": slug,
         "label": label,
@@ -282,6 +298,53 @@ def _custom_agent_records(config: dict[str, Any]) -> list[dict[str, str]]:
             }
         )
     return records
+
+
+def _agent_exists(config: dict[str, Any], slug: str) -> bool:
+    return any(agent.get("name") == slug for agent in DEFAULT_AGENTS + _custom_agent_records(config))
+
+
+def _normalize_auth_mode(value: str | None) -> str:
+    normalized = (value or "").strip().lower()
+    return normalized if normalized in INVITE_ROUTE_AUTH_MODES else "api_key"
+
+
+def _invite_route_records(config: dict[str, Any], secrets_payload: dict[str, str], *, include_secret: bool = False) -> dict[str, dict[str, Any]]:
+    raw_routes = config.get("invite_routes") if isinstance(config.get("invite_routes"), dict) else {}
+    records: dict[str, dict[str, Any]] = {}
+    for agent_name, route in raw_routes.items():
+        if not isinstance(route, dict):
+            continue
+        slug = _slug_agent_name(str(agent_name or ""))
+        if not slug:
+            continue
+        model = str(route.get("model") or "").strip()
+        provider = str(route.get("route") or _provider_for_model(model) or "default").strip()
+        if provider == "local":
+            provider = "ollama"
+        auth_mode = _normalize_auth_mode(str(route.get("auth_mode") or ""))
+        secret_value = secrets_payload.get(_invite_secret_key(slug), "")
+        record: dict[str, Any] = {
+            "route": provider,
+            "model": model,
+            "auth_mode": auth_mode,
+            "credential_configured": bool(secret_value),
+        }
+        if include_secret and secret_value:
+            record["api_key"] = secret_value
+        records[slug] = record
+    return records
+
+
+def _attach_invite_routes_to_agents(agents: list[dict[str, Any]], invite_routes: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for agent in agents:
+        row = dict(agent)
+        route = invite_routes.get(str(agent.get("name") or ""))
+        if route:
+            row["invite_route"] = {key: value for key, value in route.items() if key != "api_key"}
+        rows.append(row)
+    return rows
 
 
 def _provider_for_model(model: str) -> str:
@@ -411,7 +474,8 @@ async def _build_controls_config(notices: list[str] | None = None) -> dict[str, 
     config = _read_config()
     secrets_payload = _read_secrets()
     ollama = await _ollama_status(config["local_runtime"].get("base_url"))
-    agents = DEFAULT_AGENTS + _custom_agent_records(config)
+    invite_routes = _invite_route_records(config, secrets_payload)
+    agents = _attach_invite_routes_to_agents(DEFAULT_AGENTS + _custom_agent_records(config), invite_routes)
     default_model = str(config["default_selection"].get("model") or DEFAULT_MODEL)
     return {
         "active_model": default_model,
@@ -621,7 +685,8 @@ async def openrouter_models() -> dict[str, Any]:
 @router.get("/api/v1/chat/agents")
 async def list_agents() -> dict[str, Any]:
     config = _read_config()
-    return {"agents": DEFAULT_AGENTS + _custom_agent_records(config)}
+    invite_routes = _invite_route_records(config, _read_secrets())
+    return {"agents": _attach_invite_routes_to_agents(DEFAULT_AGENTS + _custom_agent_records(config), invite_routes)}
 
 
 @router.post("/api/v1/chat/agents", status_code=201)
@@ -650,7 +715,7 @@ async def create_agent(body: AgentCreateInput) -> dict[str, Any]:
 @router.patch("/api/v1/chat/agents/{agent_name}")
 async def update_agent(agent_name: str, body: AgentUpdateInput) -> dict[str, Any]:
     config = _read_config()
-    slug = "".join(ch for ch in agent_name.lower().replace(" ", "_") if ch.isalnum() or ch == "_").strip("_")
+    slug = _slug_agent_name(agent_name)
     if any(agent["name"] == slug for agent in DEFAULT_AGENTS):
         raise HTTPException(status_code=400, detail="Packaged agents cannot be edited in this public slice.")
     agents = list(config.get("custom_agents") or [])
@@ -674,6 +739,69 @@ async def update_agent(agent_name: str, body: AgentUpdateInput) -> dict[str, Any
         })
         return updated
     raise HTTPException(status_code=404, detail="Custom agent not found.")
+
+
+@router.post("/api/v1/chat/agents/{agent_name}/invite-route")
+async def set_agent_invite_route(agent_name: str, body: AgentInviteRouteInput) -> dict[str, Any]:
+    config = _read_config()
+    secrets_payload = _read_secrets()
+    slug = _slug_agent_name(agent_name)
+    if not slug or not _agent_exists(config, slug):
+        raise HTTPException(status_code=404, detail="Agent not found.")
+
+    model = (body.model or "").strip()
+    api_key = (body.api_key or "").strip()
+    auth_mode = _normalize_auth_mode(body.auth_mode)
+    invite_routes = dict(config.get("invite_routes") or {})
+    secret_key = _invite_secret_key(slug)
+
+    if not model and not api_key:
+        invite_routes.pop(slug, None)
+        secrets_payload.pop(secret_key, None)
+        config["invite_routes"] = invite_routes
+        _write_config(config)
+        _write_secrets(secrets_payload)
+        get_store().append_event({
+            "event_type": "agent.invite_route.cleared",
+            "surface": "command_center",
+            "source_id": slug,
+            "summary": "Agent invite route cleared.",
+            "payload": {"agent": slug},
+        })
+        return {"name": slug, "configured": False, "invite_route": None}
+
+    if model and not _valid_model(model):
+        raise HTTPException(status_code=400, detail="Unknown invite route model.")
+    route = _provider_for_model(model) if model else "default"
+    if route == "local":
+        route = "ollama"
+    if api_key:
+        secrets_payload[secret_key] = api_key
+    credential_configured = bool(api_key or secrets_payload.get(secret_key))
+    invite_routes[slug] = {
+        "route": route or "default",
+        "model": model,
+        "auth_mode": auth_mode,
+        "credential_configured": credential_configured,
+    }
+    config["invite_routes"] = invite_routes
+    _write_config(config)
+    if api_key:
+        _write_secrets(secrets_payload)
+    safe_route = _invite_route_records(config, secrets_payload).get(slug)
+    get_store().append_event({
+        "event_type": "agent.invite_route.updated",
+        "surface": "command_center",
+        "source_id": slug,
+        "summary": "Agent invite route updated.",
+        "payload": {"agent": slug, "route": safe_route.get("route") if safe_route else "default", "model": safe_route.get("model") if safe_route else ""},
+    })
+    return {"name": slug, "configured": True, "invite_route": safe_route}
+
+
+@router.delete("/api/v1/chat/agents/{agent_name}/invite-route")
+async def clear_agent_invite_route(agent_name: str) -> dict[str, Any]:
+    return await set_agent_invite_route(agent_name, AgentInviteRouteInput())
 
 
 @router.get("/api/v1/chat/guardian/status")

@@ -88,6 +88,8 @@ describe("App", () => {
     expect(screen.getByRole("navigation", { name: "Command Center sections" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "AI Setup" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Security" })).toBeDefined();
+    expect(screen.getAllByRole("button", { name: "Save invite" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: "Assign invited agent" }).length).toBeGreaterThan(0);
     expect(screen.queryByRole("heading", { name: "Workstation Floor" })).toBeNull();
     expect(screen.queryByRole("heading", { name: "Spine Event Log" })).toBeNull();
   });

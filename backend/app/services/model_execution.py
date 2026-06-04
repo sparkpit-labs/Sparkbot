@@ -38,6 +38,8 @@ class ModelRoute:
     label: str
     configured: bool
     base_url: str
+    api_key: str = ""
+    auth_mode: str = "api_key"
 
 
 @dataclass(frozen=True)
@@ -65,6 +67,8 @@ def resolve_model_route(route: dict[str, Any] | None = None) -> ModelRoute:
 
     model = str(requested.get("model") or default.get("model") or "").strip()
     provider = str(requested.get("provider") or default.get("provider") or "").strip()
+    api_key = str(requested.get("api_key") or "").strip()
+    auth_mode = str(requested.get("auth_mode") or "api_key").strip().lower() or "api_key"
     if not model or model == "local-workstation":
         model = str(default.get("model") or "").strip()
     if provider in {"", "default"}:
@@ -76,13 +80,15 @@ def resolve_model_route(route: dict[str, Any] | None = None) -> ModelRoute:
     if model_provider and provider != model_provider:
         provider = model_provider
 
-    configured = _configured_provider(provider, secrets_payload)
+    configured = bool(api_key) or _configured_provider(provider, secrets_payload)
     return ModelRoute(
         provider=provider or "local",
         model=model or "local-workstation",
         label=MODEL_LABELS.get(model, model or "Local Workstation"),
         configured=configured,
         base_url=str(local_runtime.get("base_url") or "http://127.0.0.1:11434").rstrip("/"),
+        api_key=api_key,
+        auth_mode=auth_mode,
     )
 
 
@@ -165,7 +171,7 @@ async def _dispatch_provider_request(route: ModelRoute, messages: list[dict[str,
     if route.provider in OPENAI_COMPATIBLE_ENDPOINTS:
         return await _post_json(
             OPENAI_COMPATIBLE_ENDPOINTS[route.provider],
-            _bearer_headers(route.provider),
+            _bearer_headers(route.provider, route.api_key),
             {
                 "model": _provider_model_id(route.provider, route.model),
                 "messages": messages,
@@ -193,7 +199,7 @@ async def _dispatch_provider_request(route: ModelRoute, messages: list[dict[str,
             {
                 "Accept": "application/json",
                 "Content-Type": "application/json",
-                "x-api-key": _provider_api_key(route.provider),
+                **_anthropic_auth_headers(route.api_key, route.auth_mode),
                 "anthropic-version": "2023-06-01",
             },
             payload,
@@ -206,8 +212,9 @@ async def _dispatch_provider_request(route: ModelRoute, messages: list[dict[str,
         if system_prompt:
             payload["systemInstruction"] = {"parts": [{"text": system_prompt}]}
         model = _provider_model_id(route.provider, route.model)
+        provider_key = route.api_key or _provider_api_key(route.provider)
         return await _post_json(
-            f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={_provider_api_key(route.provider)}",
+            f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={provider_key}",
             {"Accept": "application/json", "Content-Type": "application/json"},
             payload,
             timeout_seconds,
@@ -238,12 +245,19 @@ def _provider_api_key(provider: str) -> str:
     return (os.getenv(env_key, "").strip() if env_key else "") or secrets_payload.get(provider, "")
 
 
-def _bearer_headers(provider: str) -> dict[str, str]:
+def _bearer_headers(provider: str, api_key: str = "") -> dict[str, str]:
     return {
         "Accept": "application/json",
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {_provider_api_key(provider)}",
+        "Authorization": f"Bearer {api_key or _provider_api_key(provider)}",
     }
+
+
+def _anthropic_auth_headers(api_key: str = "", auth_mode: str = "api_key") -> dict[str, str]:
+    credential = api_key or _provider_api_key("anthropic")
+    if api_key and auth_mode == "oauth":
+        return {"Authorization": f"Bearer {credential}", "anthropic-beta": "oauth-2025-04-20"}
+    return {"x-api-key": credential}
 
 
 def _provider_model_id(provider: str, model: str) -> str:

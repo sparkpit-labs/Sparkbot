@@ -16,11 +16,19 @@ export type ProviderStatus = {
   base_url?: string;
 };
 
+export type AgentInviteRoute = {
+  route: string;
+  model: string;
+  auth_mode: string;
+  credential_configured: boolean;
+};
+
 export type AgentInfo = {
   name: string;
   label: string;
   description: string;
   system_prompt?: string;
+  invite_route?: AgentInviteRoute;
 };
 
 export type LocalModelStatus = {
@@ -244,6 +252,25 @@ export function updateAgent(agentName: string, payload: { description?: string; 
   return fetchJson<AgentInfo>(`/api/v1/chat/agents/${encodeURIComponent(agentName)}`, {
     method: "PATCH",
     body: JSON.stringify(payload)
+  });
+}
+
+export function saveAgentInviteRoute(
+  agentName: string,
+  payload: { model?: string; api_key?: string; auth_mode?: string }
+): Promise<{ name: string; configured: boolean; invite_route: AgentInviteRoute | null }> {
+  return fetchJson<{ name: string; configured: boolean; invite_route: AgentInviteRoute | null }>(
+    `/api/v1/chat/agents/${encodeURIComponent(agentName)}/invite-route`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }
+  );
+}
+
+export function clearAgentInviteRoute(agentName: string): Promise<{ name: string; configured: boolean; invite_route: null }> {
+  return fetchJson<{ name: string; configured: boolean; invite_route: null }>(`/api/v1/chat/agents/${encodeURIComponent(agentName)}/invite-route`, {
+    method: "DELETE"
   });
 }
 

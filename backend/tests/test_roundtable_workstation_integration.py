@@ -2,6 +2,7 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.api.workstation import _roundtable_route
 from app.services import model_execution
 
 
@@ -350,6 +351,155 @@ def test_roundtable_provider_flow_uses_assigned_agent_context_and_persists_links
     assert len(rerun["summaries"]) == 1
     assert len(rerun["notes"]) == 1
     assert len(calls) == 16
+
+
+def test_roundtable_provider_flow_uses_invite_route_for_assigned_agent(tmp_path, monkeypatch) -> None:
+    _clear_provider_env(monkeypatch)
+    monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
+    calls: list[dict[str, object]] = []
+
+    async def fake_post_json(url: str, headers: dict[str, str], payload: dict[str, object], timeout_seconds: float) -> dict[str, object]:
+        calls.append({"url": url, "headers": headers, "payload": payload, "timeout": timeout_seconds})
+        return {"choices": [{"message": {"content": f"Invite route provider output {len(calls)}."}}]}
+
+    def call_text(index: int) -> str:
+        payload = calls[index]["payload"]
+        messages = payload["messages"]  # type: ignore[index]
+        return "\n".join(str(message.get("content") or "") for message in messages)
+
+    monkeypatch.setattr(model_execution, "_post_json", fake_post_json)
+    client = TestClient(app)
+
+    create_agent = client.post(
+        "/api/v1/chat/agents",
+        json={
+            "name": "Invite Lens",
+            "description": "Public invite route participant.",
+            "system_prompt": "Use INVITE-LENS instructions for invited seat review.",
+        },
+    )
+    assert create_agent.status_code == 201
+
+    invite_route = client.post(
+        "/api/v1/chat/agents/invite_lens/invite-route",
+        json={
+            "model": "openrouter/meta-llama/llama-3.1-70b-instruct:free",
+            "api_key": "invite-route-secret",
+            "auth_mode": "api_key",
+        },
+    )
+    assert invite_route.status_code == 200
+    assert "invite-route-secret" not in str(invite_route.json())
+
+    seat_response = client.patch("/api/seats/2", json={"agent": "invite_lens", "provider": "default", "model": ""})
+    assert seat_response.status_code == 200
+    assert seat_response.json()["agent"] == "invite_lens"
+    assert seat_response.json()["provider"] == "default"
+
+    create_session = client.post(
+        "/api/roundtable/sessions",
+        json={"title": "Invite route room", "goal": "Review invited agent routing."},
+    )
+    assert create_session.status_code == 201
+    session_id = create_session.json()["id"]
+
+    run_response = client.post(f"/api/roundtable/sessions/{session_id}/run", json={})
+
+    assert run_response.status_code == 200
+    session = run_response.json()
+    assert session["status"] == "complete"
+    assert session["turn_count"] == 16
+    assert session["assignment_count"] == 7
+    assert len(calls) == 2
+    assert all(call["url"] == "https://openrouter.ai/api/v1/chat/completions" for call in calls)
+    assert all(call["headers"]["Authorization"] == "Bearer invite-route-secret" for call in calls)  # type: ignore[index]
+    assert all(call["payload"]["model"] == "meta-llama/llama-3.1-70b-instruct:free" for call in calls)  # type: ignore[index]
+
+    first_invited_prompt = call_text(0)
+    assert "Assigned agent identity: Invite Lens (invite_lens)" in first_invited_prompt
+    assert "Agent description: Public invite route participant." in first_invited_prompt
+    assert "Agent instructions: Use INVITE-LENS instructions for invited seat review." in first_invited_prompt
+    assert "Seat: Seat 2" in first_invited_prompt
+    assert "Seat role: participant" in first_invited_prompt
+
+    second_invited_prompt = call_text(1)
+    assert "Assigned agent identity: Invite Lens (invite_lens)" in second_invited_prompt
+    assert "Seat: Seat 2" in second_invited_prompt
+    assert "Seat role: participant" in second_invited_prompt
+
+    seat_two_first = next(turn for turn in session["turns"] if turn["seat_index"] == 2 and turn["phase"] == "first_pass")
+    assert seat_two_first["agent"] == "invite_lens"
+    assert seat_two_first["provider"] == "openrouter"
+    assert seat_two_first["model"] == "openrouter/meta-llama/llama-3.1-70b-instruct:free"
+    assert seat_two_first["metadata"]["agent_name"] == "invite_lens"
+    assert seat_two_first["metadata"]["agent_label"] == "Invite Lens"
+    assert seat_two_first["metadata"]["agent_instructions_present"] is True
+    assert seat_two_first["metadata"]["invite_route_configured"] is True
+    assert "INVITE-LENS" not in str(seat_two_first["metadata"])
+
+    manager_turns = [turn for turn in session["turns"] if turn["role"] == "meeting_manager"]
+    assert [turn["phase"] for turn in manager_turns] == ["manager_assessment", "manager_summary"]
+    assert all(turn["seat_index"] == 1 for turn in manager_turns)
+    assert all(turn["agent"] == "meetings_manager" for turn in manager_turns)
+    assert all(turn["metadata"].get("invite_route_configured") is False for turn in manager_turns)
+
+    seat_two_assignment = next(assignment for assignment in session["assignments"] if assignment["seat_index"] == 2)
+    assert seat_two_assignment["agent"] == "invite_lens"
+    seat_two_second = next(turn for turn in session["turns"] if turn["id"] == seat_two_assignment["response_turn_id"])
+    assert seat_two_second["phase"] == "second_pass"
+    assert seat_two_second["agent"] == "invite_lens"
+    assert seat_two_second["metadata"]["invite_route_configured"] is True
+
+    events = client.get("/api/events").json()["events"]
+    model_events = [event for event in events if event["event_type"] in {"model.call.completed", "model.call.failed"} and event["surface"] == "roundtable"]
+    assert len(model_events) == 16
+    assert "invite-route-secret" not in str(events)
+    assert "INVITE-LENS" not in str([event["payload"] for event in model_events])
+    assert "Invite route provider output" not in str([event["payload"] for event in model_events])
+
+    second_client = TestClient(app)
+    persisted_agent = next(
+        agent
+        for agent in second_client.get("/api/v1/chat/models/config").json()["available_agents"]
+        if agent["name"] == "invite_lens"
+    )
+    assert persisted_agent["invite_route"]["route"] == "openrouter"
+    assert persisted_agent["invite_route"]["credential_configured"] is True
+    assert "invite-route-secret" not in str(persisted_agent)
+
+    persisted_seat = second_client.get("/api/seats").json()["seats"][1]
+    assert persisted_seat["agent"] == "invite_lens"
+    persisted_session = second_client.get(f"/api/roundtable/sessions/{session_id}").json()
+    assert next(turn for turn in persisted_session["turns"] if turn["seat_index"] == 2 and turn["phase"] == "first_pass")["agent"] == "invite_lens"
+
+    rerun_response = second_client.post(f"/api/roundtable/sessions/{session_id}/run", json={})
+    assert rerun_response.status_code == 200
+    rerun = rerun_response.json()
+    assert rerun["turn_count"] == 16
+    assert rerun["assignment_count"] == 7
+    assert len(rerun["summaries"]) == 1
+    assert len(rerun["notes"]) == 1
+    assert len(calls) == 2
+
+
+def test_roundtable_invite_route_secret_only_applies_to_default_seat_route() -> None:
+    agent_contexts = {
+        "invite_lens": {
+            "route": "openrouter",
+            "model": "openrouter/meta-llama/llama-3.1-70b-instruct:free",
+            "invite_route_configured": True,
+            "invite_auth_mode": "api_key",
+            "invite_api_key": "invite-route-secret",
+        }
+    }
+
+    invite_route = _roundtable_route({"agent": "invite_lens", "provider": "default", "model": ""}, agent_contexts)
+    assert invite_route["provider"] == "openrouter"
+    assert invite_route["model"] == "openrouter/meta-llama/llama-3.1-70b-instruct:free"
+    assert invite_route["api_key"] == "invite-route-secret"
+
+    explicit_route = _roundtable_route({"agent": "invite_lens", "provider": "openai", "model": "openai/gpt-4o-mini"}, agent_contexts)
+    assert explicit_route == {"provider": "openai", "model": "openai/gpt-4o-mini"}
 
 
 def test_roundtable_model_output_blocked_before_persisting_turns(tmp_path, monkeypatch) -> None:

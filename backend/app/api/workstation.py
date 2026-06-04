@@ -6,7 +6,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from app.api.command_center import DEFAULT_AGENTS, _build_controls_config, _custom_agent_records, _read_config
+from app.api.command_center import DEFAULT_AGENTS, _build_controls_config, _custom_agent_records, _invite_route_records, _read_config, _read_secrets
 from app.services.model_execution import ModelExecutionResult, execute_model_request, resolve_model_route
 from app.services.workstation_store import _roundtable_privileged_action, get_store
 
@@ -270,19 +270,26 @@ def _roundtable_agent_contexts() -> dict[str, dict[str, Any]]:
     config = _read_config()
     agents = DEFAULT_AGENTS + _custom_agent_records(config)
     overrides = config.get("agent_overrides") if isinstance(config.get("agent_overrides"), dict) else {}
+    invite_routes = _invite_route_records(config, _read_secrets(), include_secret=True)
     contexts: dict[str, dict[str, Any]] = {}
     for agent in agents:
         name = str(agent.get("name") or "").strip()
         if not name:
             continue
         override = overrides.get(name) if isinstance(overrides.get(name), dict) else {}
+        invite_route = invite_routes.get(name, {})
+        selected_route = str(invite_route.get("route") or override.get("route") or "default")
+        selected_model = str(invite_route.get("model") or override.get("model") or "")
         contexts[name] = {
             "name": name,
             "label": str(agent.get("label") or name),
             "description": str(agent.get("description") or ""),
             "system_prompt": str(agent.get("system_prompt") or ""),
-            "route": str(override.get("route") or "default"),
-            "model": str(override.get("model") or ""),
+            "route": selected_route,
+            "model": selected_model,
+            "invite_route_configured": bool(invite_route),
+            "invite_auth_mode": str(invite_route.get("auth_mode") or "api_key"),
+            "invite_api_key": str(invite_route.get("api_key") or ""),
         }
     return contexts
 
@@ -291,17 +298,18 @@ def _roundtable_agent_context(participant: dict[str, Any], agent_contexts: dict[
     agent_name = str(participant.get("agent") or "participant").strip()
     return agent_contexts.get(
         agent_name,
-        {"name": agent_name, "label": agent_name, "description": "", "system_prompt": "", "route": "default", "model": ""},
+        {"name": agent_name, "label": agent_name, "description": "", "system_prompt": "", "route": "default", "model": "", "invite_route_configured": False, "invite_auth_mode": "api_key", "invite_api_key": ""},
     )
 
 
-def _roundtable_route(participant: dict[str, Any], agent_contexts: dict[str, dict[str, Any]] | None = None) -> dict[str, str]:
+def _roundtable_route(participant: dict[str, Any], agent_contexts: dict[str, dict[str, Any]] | None = None) -> dict[str, Any]:
     provider = str(participant.get("provider") or "default").strip()
     model = str(participant.get("model") or "").strip()
     if provider in {"", "provider-safe"}:
         provider = "default"
     agent_context = _roundtable_agent_context(participant, agent_contexts or {})
-    if provider == "default":
+    uses_agent_route = provider == "default"
+    if uses_agent_route:
         override_route = str(agent_context.get("route") or "default")
         override_model = str(agent_context.get("model") or "")
         if override_route != "default":
@@ -310,7 +318,12 @@ def _roundtable_route(participant: dict[str, Any], agent_contexts: dict[str, dic
             model = override_model
     if model in {"roundtable-local-skeleton", "local-workstation"} and provider == "default":
         model = ""
-    return {"provider": provider, "model": model}
+    route: dict[str, Any] = {"provider": provider, "model": model}
+    invite_api_key = str(agent_context.get("invite_api_key") or "")
+    if uses_agent_route and invite_api_key:
+        route["api_key"] = invite_api_key
+        route["auth_mode"] = str(agent_context.get("invite_auth_mode") or "api_key")
+    return route
 
 
 def _roundtable_provider_enabled(participants: list[dict[str, Any]], agent_contexts: dict[str, dict[str, Any]]) -> bool:
@@ -395,6 +408,7 @@ def _provider_turn_metadata(result: ModelExecutionResult, mode: str, agent_conte
         "agent_name": agent_context.get("name") or "participant",
         "agent_label": agent_context.get("label") or agent_context.get("name") or "Participant",
         "agent_instructions_present": bool(agent_context.get("system_prompt")),
+        "invite_route_configured": bool(agent_context.get("invite_route_configured")),
     }
     if result.error:
         metadata["model_execution_error"] = result.error
@@ -437,6 +451,7 @@ async def _roundtable_model_turn(
             "seat_index": participant.get("seat_index"),
             "agent": agent_context.get("name") or participant.get("agent") or "participant",
             "agent_label": agent_context.get("label") or agent_context.get("name") or "Participant",
+            "invite_route_configured": bool(agent_context.get("invite_route_configured")),
         },
     )
     if result.ok:
