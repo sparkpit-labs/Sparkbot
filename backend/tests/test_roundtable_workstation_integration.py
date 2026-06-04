@@ -183,6 +183,175 @@ def test_roundtable_provider_model_flow_persists_provider_turns_and_redacted_eve
     assert "unit-test-credential-value" not in str(events)
 
 
+def test_roundtable_provider_flow_uses_assigned_agent_context_and_persists_links(tmp_path, monkeypatch) -> None:
+    _clear_provider_env(monkeypatch)
+    monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
+    calls: list[dict[str, object]] = []
+
+    async def fake_post_json(url: str, headers: dict[str, str], payload: dict[str, object], timeout_seconds: float) -> dict[str, object]:
+        calls.append({"url": url, "headers": headers, "payload": payload, "timeout": timeout_seconds})
+        return {"choices": [{"message": {"content": f"Risk provider output {len(calls)}."}}]}
+
+    def call_text(index: int) -> str:
+        payload = calls[index]["payload"]
+        messages = payload["messages"]  # type: ignore[index]
+        return "\n".join(str(message.get("content") or "") for message in messages)
+
+    monkeypatch.setattr(model_execution, "_post_json", fake_post_json)
+    client = TestClient(app)
+    _save_openrouter_credential(client)
+
+    create_agent = client.post(
+        "/api/v1/chat/agents",
+        json={
+            "name": "Risk Lens",
+            "description": "Initial privacy reviewer.",
+            "system_prompt": "Initial prompt.",
+        },
+    )
+    assert create_agent.status_code == 201
+
+    update_agent = client.patch(
+        "/api/v1/chat/agents/risk_lens",
+        json={
+            "description": "Edited server-side profile.",
+            "system_prompt": "Use EDITED-RISK-LENS instructions. api_key=raw-seat-secret",
+        },
+    )
+    assert update_agent.status_code == 200
+    assert update_agent.json()["system_prompt"] == "Use EDITED-RISK-LENS instructions. api_key=[redacted]"
+
+    route_response = client.post(
+        "/api/v1/chat/models/config",
+        json={
+            "agent_overrides": {
+                "risk_lens": {
+                    "route": "openrouter",
+                    "model": "openrouter/meta-llama/llama-3.1-70b-instruct:free",
+                }
+            }
+        },
+    )
+    assert route_response.status_code == 200
+
+    seat_response = client.patch("/api/seats/2", json={"agent": "risk_lens", "provider": "default", "model": ""})
+    assert seat_response.status_code == 200
+    assert seat_response.json()["agent"] == "risk_lens"
+    assert seat_response.json()["provider"] == "default"
+
+    create_session = client.post(
+        "/api/roundtable/sessions",
+        json={"title": "Agent context room", "goal": "Review the agent-seat provider path."},
+    )
+    assert create_session.status_code == 201
+    session_id = create_session.json()["id"]
+
+    run_response = client.post(f"/api/roundtable/sessions/{session_id}/run", json={})
+
+    assert run_response.status_code == 200
+    session = run_response.json()
+    assert session["status"] == "complete"
+    assert session["turn_count"] == 16
+    assert session["assignment_count"] == 7
+    assert len(calls) == 16
+
+    first_risk_prompt = call_text(0)
+    assert calls[0]["payload"]["model"] == "meta-llama/llama-3.1-70b-instruct:free"  # type: ignore[index]
+    assert "Assigned agent identity: Risk Lens (risk_lens)" in first_risk_prompt
+    assert "Agent description: Edited server-side profile." in first_risk_prompt
+    assert "Agent instructions: Use EDITED-RISK-LENS instructions. api_key=[redacted]" in first_risk_prompt
+    assert "Seat: Seat 2" in first_risk_prompt
+    assert "Seat role: participant" in first_risk_prompt
+    assert "raw-seat-secret" not in first_risk_prompt
+
+    manager_assessment_prompt = call_text(7)
+    assert "Assigned agent identity: Meetings Manager (meetings_manager)" in manager_assessment_prompt
+    assert "Seat: Seat 1" in manager_assessment_prompt
+    assert "Seat role: meeting_manager" in manager_assessment_prompt
+    assert "EDITED-RISK-LENS" not in manager_assessment_prompt
+
+    second_risk_prompt = call_text(8)
+    assert calls[8]["payload"]["model"] == "meta-llama/llama-3.1-70b-instruct:free"  # type: ignore[index]
+    assert "Assigned agent identity: Risk Lens (risk_lens)" in second_risk_prompt
+    assert "Seat: Seat 2" in second_risk_prompt
+    assert "Seat role: participant" in second_risk_prompt
+    assert "Use EDITED-RISK-LENS instructions. api_key=[redacted]" in second_risk_prompt
+
+    manager_summary_prompt = call_text(15)
+    assert "Assigned agent identity: Meetings Manager (meetings_manager)" in manager_summary_prompt
+    assert "Seat role: meeting_manager" in manager_summary_prompt
+    assert "EDITED-RISK-LENS" not in manager_summary_prompt
+
+    seat_two_first = next(turn for turn in session["turns"] if turn["seat_index"] == 2 and turn["phase"] == "first_pass")
+    assert seat_two_first["agent"] == "risk_lens"
+    assert seat_two_first["provider"] == "openrouter"
+    assert seat_two_first["model"] == "openrouter/meta-llama/llama-3.1-70b-instruct:free"
+    assert seat_two_first["metadata"]["agent_name"] == "risk_lens"
+    assert seat_two_first["metadata"]["agent_label"] == "Risk Lens"
+    assert seat_two_first["metadata"]["agent_instructions_present"] is True
+    assert "EDITED-RISK-LENS" not in str(seat_two_first["metadata"])
+
+    manager_turns = [turn for turn in session["turns"] if turn["role"] == "meeting_manager"]
+    assert [turn["phase"] for turn in manager_turns] == ["manager_assessment", "manager_summary"]
+    assert all(turn["seat_index"] == 1 for turn in manager_turns)
+    assert all(turn["agent"] == "meetings_manager" for turn in manager_turns)
+    assert all(turn["metadata"]["agent_name"] == "meetings_manager" for turn in manager_turns)
+
+    seat_two_assignment = next(assignment for assignment in session["assignments"] if assignment["seat_index"] == 2)
+    assert seat_two_assignment["agent"] == "risk_lens"
+    assert "Risk Lens" in seat_two_assignment["instruction"]
+    seat_two_second = next(turn for turn in session["turns"] if turn["id"] == seat_two_assignment["response_turn_id"])
+    assert seat_two_second["phase"] == "second_pass"
+    assert seat_two_second["seat_index"] == 2
+    assert seat_two_second["agent"] == "risk_lens"
+    assert seat_two_second["assignment_id"] == seat_two_assignment["id"]
+
+    assert len(session["notes"]) == 1
+    assert session["summaries"][0]["note_id"] == session["notes"][0]["id"]
+
+    events = client.get("/api/events").json()["events"]
+    model_events = [event for event in events if event["event_type"] == "model.call.completed" and event["surface"] == "roundtable"]
+    assert len(model_events) == 16
+    event_payloads = [event["payload"] for event in model_events]
+    assert all("roundtable_phase" in payload for payload in event_payloads)
+    assert all("agent" in payload for payload in event_payloads)
+    assert all("messages" not in payload for payload in event_payloads)
+    assert all("prompt" not in payload for payload in event_payloads)
+    assert all("response" not in payload for payload in event_payloads)
+    assert "Risk provider output" not in str(event_payloads)
+    assert "EDITED-RISK-LENS" not in str(event_payloads)
+    assert "raw-seat-secret" not in str(events)
+    assert "unit-test-credential-value" not in str(events)
+
+    second_client = TestClient(app)
+    persisted_agent = next(
+        agent
+        for agent in second_client.get("/api/v1/chat/models/config").json()["available_agents"]
+        if agent["name"] == "risk_lens"
+    )
+    assert persisted_agent["description"] == "Edited server-side profile."
+    assert persisted_agent["system_prompt"] == "Use EDITED-RISK-LENS instructions. api_key=[redacted]"
+
+    persisted_seat = second_client.get("/api/seats").json()["seats"][1]
+    assert persisted_seat["seat_index"] == 2
+    assert persisted_seat["agent"] == "risk_lens"
+    assert persisted_seat["provider"] == "default"
+
+    persisted_session = second_client.get(f"/api/roundtable/sessions/{session_id}").json()
+    assert persisted_session["turn_count"] == 16
+    assert persisted_session["assignment_count"] == 7
+    assert next(turn for turn in persisted_session["turns"] if turn["seat_index"] == 2 and turn["phase"] == "first_pass")["agent"] == "risk_lens"
+
+    rerun_response = second_client.post(f"/api/roundtable/sessions/{session_id}/run", json={})
+    assert rerun_response.status_code == 200
+    rerun = rerun_response.json()
+    assert rerun["turn_count"] == 16
+    assert rerun["assignment_count"] == 7
+    assert len(rerun["summaries"]) == 1
+    assert len(rerun["notes"]) == 1
+    assert len(calls) == 16
+
+
 def test_roundtable_model_output_blocked_before_persisting_turns(tmp_path, monkeypatch) -> None:
     _clear_provider_env(monkeypatch)
     monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))

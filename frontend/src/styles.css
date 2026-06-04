@@ -913,13 +913,22 @@ textarea {
   border-radius: 8px;
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(180px, 1fr) minmax(150px, 0.55fr) minmax(200px, 0.75fr);
+  grid-template-columns: minmax(180px, 1fr) minmax(150px, 0.55fr) minmax(200px, 0.75fr) minmax(220px, 1fr);
   padding: 10px;
 }
 
 .agent-row div {
   display: grid;
   gap: 4px;
+}
+
+.agent-edit-fields {
+  display: grid;
+  gap: 8px;
+}
+
+.agent-edit-fields textarea {
+  min-height: 76px;
 }
 
 .mini-metrics {

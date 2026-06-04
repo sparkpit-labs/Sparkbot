@@ -145,6 +145,11 @@ class AgentCreateInput(BaseModel):
     system_prompt: str = Field(default="", max_length=4000)
 
 
+class AgentUpdateInput(BaseModel):
+    description: str | None = Field(default=None, max_length=300)
+    system_prompt: str | None = Field(default=None, max_length=4000)
+
+
 def _data_dir() -> Path:
     configured = os.getenv(DATA_DIR_ENV)
     base = Path(configured) if configured else Path("data") / "command-center"
@@ -223,6 +228,60 @@ def _read_secrets() -> dict[str, str]:
 
 def _write_secrets(payload: dict[str, str]) -> None:
     _write_json(_secrets_path(), payload)
+
+
+SENSITIVE_TEXT_KEYS = ("api_key", "access_key", "credential", "password", "secret", "token")
+
+
+def _redact_sensitive_text(value: str) -> str:
+    words = value.split()
+    redacted: list[str] = []
+    redact_next = False
+    for word in words:
+        lowered = word.lower()
+        key_like = any(key in lowered for key in SENSITIVE_TEXT_KEYS)
+        if redact_next:
+            redacted.append("[redacted]")
+            redact_next = False
+            continue
+        if key_like and ("=" in word or ":" in word):
+            separator = "=" if "=" in word else ":"
+            key, _sep, maybe_value = word.partition(separator)
+            redacted.append(f"{key}{separator}[redacted]" if maybe_value else word)
+        else:
+            redacted.append(word)
+            redact_next = key_like
+    return " ".join(redacted)
+
+
+def _agent_record(name: str, description: str = "", system_prompt: str = "") -> dict[str, str]:
+    label = name.strip()
+    slug = "".join(ch for ch in label.lower().replace(" ", "_") if ch.isalnum() or ch == "_").strip("_")
+    return {
+        "name": slug,
+        "label": label,
+        "description": _redact_sensitive_text(description.strip()),
+        "system_prompt": _redact_sensitive_text(system_prompt.strip()),
+    }
+
+
+def _custom_agent_records(config: dict[str, Any]) -> list[dict[str, str]]:
+    records: list[dict[str, str]] = []
+    for agent in config.get("custom_agents") or []:
+        if not isinstance(agent, dict):
+            continue
+        name = str(agent.get("name") or "").strip()
+        if not name:
+            continue
+        records.append(
+            {
+                "name": name,
+                "label": str(agent.get("label") or name),
+                "description": str(agent.get("description") or ""),
+                "system_prompt": str(agent.get("system_prompt") or ""),
+            }
+        )
+    return records
 
 
 def _provider_for_model(model: str) -> str:
@@ -352,7 +411,7 @@ async def _build_controls_config(notices: list[str] | None = None) -> dict[str, 
     config = _read_config()
     secrets_payload = _read_secrets()
     ollama = await _ollama_status(config["local_runtime"].get("base_url"))
-    agents = DEFAULT_AGENTS + list(config.get("custom_agents") or [])
+    agents = DEFAULT_AGENTS + _custom_agent_records(config)
     default_model = str(config["default_selection"].get("model") or DEFAULT_MODEL)
     return {
         "active_model": default_model,
@@ -562,19 +621,19 @@ async def openrouter_models() -> dict[str, Any]:
 @router.get("/api/v1/chat/agents")
 async def list_agents() -> dict[str, Any]:
     config = _read_config()
-    return {"agents": DEFAULT_AGENTS + list(config.get("custom_agents") or [])}
+    return {"agents": DEFAULT_AGENTS + _custom_agent_records(config)}
 
 
 @router.post("/api/v1/chat/agents", status_code=201)
 async def create_agent(body: AgentCreateInput) -> dict[str, Any]:
     config = _read_config()
-    slug = "".join(ch for ch in body.name.lower().replace(" ", "_") if ch.isalnum() or ch == "_").strip("_")
+    agent = _agent_record(body.name, body.description, body.system_prompt)
+    slug = agent["name"]
     if not slug:
         raise HTTPException(status_code=400, detail="Agent name must contain letters or numbers.")
     agents = list(config.get("custom_agents") or [])
-    if any(agent["name"] == slug for agent in DEFAULT_AGENTS + agents):
+    if any(item["name"] == slug for item in DEFAULT_AGENTS + agents):
         raise HTTPException(status_code=409, detail="Agent already exists.")
-    agent = {"name": slug, "label": body.name.strip(), "description": body.description.strip()}
     agents.append(agent)
     config["custom_agents"] = agents
     _write_config(config)
@@ -582,10 +641,39 @@ async def create_agent(body: AgentCreateInput) -> dict[str, Any]:
         "event_type": "agent.created",
         "surface": "command_center",
         "source_id": slug,
-        "summary": f"Agent created: {body.name.strip()}",
+        "summary": f"Agent created: {agent['label']}",
         "payload": {"agent": slug},
     })
     return agent
+
+
+@router.patch("/api/v1/chat/agents/{agent_name}")
+async def update_agent(agent_name: str, body: AgentUpdateInput) -> dict[str, Any]:
+    config = _read_config()
+    slug = "".join(ch for ch in agent_name.lower().replace(" ", "_") if ch.isalnum() or ch == "_").strip("_")
+    if any(agent["name"] == slug for agent in DEFAULT_AGENTS):
+        raise HTTPException(status_code=400, detail="Packaged agents cannot be edited in this public slice.")
+    agents = list(config.get("custom_agents") or [])
+    for index, agent in enumerate(agents):
+        if agent.get("name") != slug:
+            continue
+        updated = dict(agent)
+        if body.description is not None:
+            updated["description"] = _redact_sensitive_text(body.description.strip())
+        if body.system_prompt is not None:
+            updated["system_prompt"] = _redact_sensitive_text(body.system_prompt.strip())
+        agents[index] = updated
+        config["custom_agents"] = agents
+        _write_config(config)
+        get_store().append_event({
+            "event_type": "agent.updated",
+            "surface": "command_center",
+            "source_id": slug,
+            "summary": f"Agent updated: {updated.get('label') or slug}",
+            "payload": {"agent": slug},
+        })
+        return updated
+    raise HTTPException(status_code=404, detail="Custom agent not found.")
 
 
 @router.get("/api/v1/chat/guardian/status")

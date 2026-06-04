@@ -51,6 +51,20 @@ describe("App", () => {
     }
   });
 
+  it("does not persist Agents Wing or seat state in browser storage", async () => {
+    window.history.pushState({}, "", "/command-center");
+    const storageSpy = vi.spyOn(Storage.prototype, "setItem");
+
+    try {
+      render(<App />);
+      await Promise.resolve();
+
+      expect(storageSpy).not.toHaveBeenCalled();
+    } finally {
+      storageSpy.mockRestore();
+    }
+  });
+
   it("keeps Chat as the operator conversation surface", () => {
     window.history.pushState({}, "", "/chat");
 

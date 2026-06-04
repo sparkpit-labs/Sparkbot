@@ -12,6 +12,7 @@ import {
   fetchSpineOverview,
   saveControlsConfig,
   saveOperatorPin,
+  updateAgent,
   updateSeat as persistSeat,
   type AgentInfo,
   type ControlsConfig,
@@ -179,6 +180,7 @@ export default function CommandCenter() {
   const [seats, setSeats] = useState<SeatState[]>(() => getFallbackSeats(fallbackConfig.available_agents));
   const [workstation, setWorkstation] = useState<WorkstationState | null>(null);
   const [newAgent, setNewAgent] = useState({ name: "", description: "", prompt: "" });
+  const [agentDrafts, setAgentDrafts] = useState<Record<string, { description: string; system_prompt: string }>>({});
 
   const models = useMemo(() => allModelOptions(config, openRouterModels), [config, openRouterModels]);
   const provider = config.providers.find((item) => item.id === selectedProvider);
@@ -225,6 +227,7 @@ export default function CommandCenter() {
     setLocalModel(nextConfig.local_runtime.default_local_model);
     setLocalStatus(nextConfig.ollama_status);
     setAgentOverrides(nextConfig.agent_overrides || {});
+    setAgentDrafts(Object.fromEntries(nextConfig.available_agents.map((agent) => [agent.name, { description: agent.description || "", system_prompt: agent.system_prompt || "" }])));
     setCustomGuardrails(nextConfig.custom_guardrails || "");
     setTokenMode(nextConfig.token_guardian_mode);
     setSeats((current) => current.length ? current : getFallbackSeats(nextConfig.available_agents));
@@ -394,6 +397,18 @@ export default function CommandCenter() {
       void refreshAll();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Agent could not be created.");
+    }
+  }
+
+  async function saveAgentProfile(agent: AgentInfo) {
+    setError(null);
+    const draft = agentDrafts[agent.name] || { description: agent.description || "", system_prompt: agent.system_prompt || "" };
+    try {
+      await updateAgent(agent.name, draft);
+      setMessage(`${agent.label} profile saved.`);
+      void refreshAll();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Agent profile could not be saved.");
     }
   }
 
@@ -665,26 +680,49 @@ export default function CommandCenter() {
           <div className="agent-list">
             {config.available_agents.map((agent) => {
               const override = agentOverrides[agent.name] || { route: "default", model: "" };
+              const customAgent = Object.prototype.hasOwnProperty.call(agent, "system_prompt");
+              const draft = agentDrafts[agent.name] || { description: agent.description || "", system_prompt: agent.system_prompt || "" };
               return (
                 <div className="agent-row" key={agent.name}>
                   <div>
                     <strong>{agent.label}</strong>
                     <span>{agent.description}</span>
+                    {customAgent ? <span>Custom agent</span> : <span>Packaged agent</span>}
                   </div>
                   <select
                     value={override.route}
-                    onChange={(event) => setAgentOverrides((draft) => ({ ...draft, [agent.name]: { ...override, route: event.target.value } }))}
+                    onChange={(event) => setAgentOverrides((draftOverrides) => ({ ...draftOverrides, [agent.name]: { ...override, route: event.target.value } }))}
                   >
                     <option value="default">Default stack</option>
                     {config.providers.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
                   </select>
                   <select
                     value={override.model}
-                    onChange={(event) => setAgentOverrides((draft) => ({ ...draft, [agent.name]: { ...override, model: event.target.value } }))}
+                    onChange={(event) => setAgentOverrides((draftOverrides) => ({ ...draftOverrides, [agent.name]: { ...override, model: event.target.value } }))}
                   >
                     <option value="">Use route default</option>
                     {models.map((model) => <option key={`${agent.name}-${model}`} value={model}>{modelLabel(config, model)}</option>)}
                   </select>
+                  {customAgent ? (
+                    <div className="agent-edit-fields">
+                      <label>
+                        <span>Description</span>
+                        <input
+                          value={draft.description}
+                          onChange={(event) => setAgentDrafts((items) => ({ ...items, [agent.name]: { ...draft, description: event.target.value } }))}
+                        />
+                      </label>
+                      <label>
+                        <span>System prompt</span>
+                        <textarea
+                          rows={3}
+                          value={draft.system_prompt}
+                          onChange={(event) => setAgentDrafts((items) => ({ ...items, [agent.name]: { ...draft, system_prompt: event.target.value } }))}
+                        />
+                      </label>
+                      <button type="button" onClick={() => saveAgentProfile(agent)}>Save agent</button>
+                    </div>
+                  ) : null}
                 </div>
               );
             })}

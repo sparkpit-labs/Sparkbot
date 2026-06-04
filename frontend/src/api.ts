@@ -20,6 +20,7 @@ export type AgentInfo = {
   name: string;
   label: string;
   description: string;
+  system_prompt?: string;
 };
 
 export type LocalModelStatus = {
@@ -235,6 +236,13 @@ export function saveOperatorPin(payload: { current_pin?: string; pin: string }):
 export function createAgent(payload: { name: string; description: string; system_prompt: string }): Promise<AgentInfo> {
   return fetchJson<AgentInfo>("/api/v1/chat/agents", {
     method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function updateAgent(agentName: string, payload: { description?: string; system_prompt?: string }): Promise<AgentInfo> {
+  return fetchJson<AgentInfo>(`/api/v1/chat/agents/${encodeURIComponent(agentName)}`, {
+    method: "PATCH",
     body: JSON.stringify(payload)
   });
 }

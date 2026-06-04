@@ -6,7 +6,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from app.api.command_center import _build_controls_config
+from app.api.command_center import DEFAULT_AGENTS, _build_controls_config, _custom_agent_records, _read_config
 from app.services.model_execution import ModelExecutionResult, execute_model_request, resolve_model_route
 from app.services.workstation_store import _roundtable_privileged_action, get_store
 
@@ -266,19 +266,56 @@ def _roundtable_participants(store: Any, session: dict[str, Any]) -> list[dict[s
     return fallback
 
 
-def _roundtable_route(participant: dict[str, Any]) -> dict[str, str]:
+def _roundtable_agent_contexts() -> dict[str, dict[str, Any]]:
+    config = _read_config()
+    agents = DEFAULT_AGENTS + _custom_agent_records(config)
+    overrides = config.get("agent_overrides") if isinstance(config.get("agent_overrides"), dict) else {}
+    contexts: dict[str, dict[str, Any]] = {}
+    for agent in agents:
+        name = str(agent.get("name") or "").strip()
+        if not name:
+            continue
+        override = overrides.get(name) if isinstance(overrides.get(name), dict) else {}
+        contexts[name] = {
+            "name": name,
+            "label": str(agent.get("label") or name),
+            "description": str(agent.get("description") or ""),
+            "system_prompt": str(agent.get("system_prompt") or ""),
+            "route": str(override.get("route") or "default"),
+            "model": str(override.get("model") or ""),
+        }
+    return contexts
+
+
+def _roundtable_agent_context(participant: dict[str, Any], agent_contexts: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    agent_name = str(participant.get("agent") or "participant").strip()
+    return agent_contexts.get(
+        agent_name,
+        {"name": agent_name, "label": agent_name, "description": "", "system_prompt": "", "route": "default", "model": ""},
+    )
+
+
+def _roundtable_route(participant: dict[str, Any], agent_contexts: dict[str, dict[str, Any]] | None = None) -> dict[str, str]:
     provider = str(participant.get("provider") or "default").strip()
     model = str(participant.get("model") or "").strip()
     if provider in {"", "provider-safe"}:
         provider = "default"
+    agent_context = _roundtable_agent_context(participant, agent_contexts or {})
+    if provider == "default":
+        override_route = str(agent_context.get("route") or "default")
+        override_model = str(agent_context.get("model") or "")
+        if override_route != "default":
+            provider = override_route
+        if override_model:
+            model = override_model
     if model in {"roundtable-local-skeleton", "local-workstation"} and provider == "default":
         model = ""
     return {"provider": provider, "model": model}
 
 
-def _roundtable_provider_enabled(participants: list[dict[str, Any]]) -> bool:
+def _roundtable_provider_enabled(participants: list[dict[str, Any]], agent_contexts: dict[str, dict[str, Any]]) -> bool:
     for participant in participants:
-        if resolve_model_route(_roundtable_route(participant)).configured:
+        if resolve_model_route(_roundtable_route(participant, agent_contexts)).configured:
             return True
     return False
 
@@ -311,6 +348,7 @@ def _roundtable_model_messages(
     *,
     session: dict[str, Any],
     participant: dict[str, Any],
+    agent_context: dict[str, Any],
     phase: str,
     role: str,
     instruction: str,
@@ -321,6 +359,10 @@ def _roundtable_model_messages(
             "role": "system",
             "content": (
                 "You are one Sparkbot Round Table seat in a local-first public Workstation. "
+                f"Assigned agent identity: {agent_context.get('label') or agent_context.get('name') or 'Participant'} "
+                f"({agent_context.get('name') or 'participant'}). "
+                f"Agent description: {agent_context.get('description') or 'No additional description.'} "
+                f"Agent instructions: {agent_context.get('system_prompt') or 'Use the assigned role and meeting phase.'} "
                 "Return concise text only. Do not claim to perform protected work, external delivery, "
                 "connector operations, file/process operations, scheduler work, terminal work, or device control. "
                 "If protected work is needed, state that a Guardian-confirmed backend route is required."
@@ -332,8 +374,10 @@ def _roundtable_model_messages(
                 f"Round Table title: {session.get('title') or 'Round Table Room'}\n"
                 f"Goal: {session.get('goal') or session.get('title') or 'Review the room goal.'}\n"
                 f"Phase: {phase}\n"
-                f"Seat: {participant.get('label') or 'Seat'} ({participant.get('agent') or 'participant'})\n"
-                f"Role: {role}\n\n"
+                f"Seat: {participant.get('label') or 'Seat'}\n"
+                f"Seat role: {role}\n"
+                f"Assigned agent: {agent_context.get('label') or participant.get('agent') or 'participant'} "
+                f"({agent_context.get('name') or participant.get('agent') or 'participant'})\n\n"
                 f"Shared context:\n{context_text}\n\n"
                 f"Instruction:\n{instruction}\n\n"
                 "Return 2 to 4 sentences."
@@ -342,12 +386,15 @@ def _roundtable_model_messages(
     ]
 
 
-def _provider_turn_metadata(result: ModelExecutionResult, mode: str) -> dict[str, Any]:
+def _provider_turn_metadata(result: ModelExecutionResult, mode: str, agent_context: dict[str, Any]) -> dict[str, Any]:
     metadata: dict[str, Any] = {
         "mode": mode,
         "model_execution_status": result.status,
         "model_event_id": result.event_id,
         "duration_ms": result.duration_ms,
+        "agent_name": agent_context.get("name") or "participant",
+        "agent_label": agent_context.get("label") or agent_context.get("name") or "Participant",
+        "agent_instructions_present": bool(agent_context.get("system_prompt")),
     }
     if result.error:
         metadata["model_execution_error"] = result.error
@@ -364,12 +411,15 @@ async def _roundtable_model_turn(
     instruction: str,
     context_text: str,
     fallback_content: str,
+    agent_contexts: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
+    agent_context = _roundtable_agent_context(participant, agent_contexts)
     result = await execute_model_request(
-        route=_roundtable_route(participant),
+        route=_roundtable_route(participant, agent_contexts),
         messages=_roundtable_model_messages(
             session=session,
             participant=participant,
+            agent_context=agent_context,
             phase=phase,
             role=role,
             instruction=instruction,
@@ -385,7 +435,8 @@ async def _roundtable_model_turn(
             "roundtable_phase": phase,
             "roundtable_role": role,
             "seat_index": participant.get("seat_index"),
-            "agent": participant.get("agent") or "participant",
+            "agent": agent_context.get("name") or participant.get("agent") or "participant",
+            "agent_label": agent_context.get("label") or agent_context.get("name") or "Participant",
         },
     )
     if result.ok:
@@ -397,14 +448,14 @@ async def _roundtable_model_turn(
             "content": result.text,
             "provider": result.provider,
             "model": result.model,
-            "metadata": _provider_turn_metadata(result, "provider_backed"),
+            "metadata": _provider_turn_metadata(result, "provider_backed", agent_context),
         }
     return {
         "participant": participant,
         "content": fallback_content,
         "provider": "provider-safe",
         "model": "roundtable-local-skeleton",
-        "metadata": _provider_turn_metadata(result, "provider_safe_fallback"),
+        "metadata": _provider_turn_metadata(result, "provider_safe_fallback", agent_context),
     }
 
 
@@ -422,6 +473,7 @@ async def _build_roundtable_model_run(
     memories = store.recall_memory(query=context_query, limit=5)
     context_notes = _roundtable_context_notes(store, room_id)
     context_text = _roundtable_context_text(memories, context_notes)
+    agent_contexts = _roundtable_agent_contexts()
 
     manager = next((item for item in participants if item.get("seat_index") == 1), participants[0])
     workers = [item for item in participants if item.get("seat_index") != manager.get("seat_index")]
@@ -431,9 +483,9 @@ async def _build_roundtable_model_run(
     first_turns: list[dict[str, Any]] = []
     for worker in workers:
         fallback = (
-            f"{worker.get('label') or 'Seat'} ({worker.get('agent') or 'participant'}) first pass: for '{goal}', "
-            f"keep the response provider-safe, identify useful assumptions, and contribute from the "
-            f"{worker.get('agent') or 'participant'} role. Shared context available: {len(memories)} memory item(s), "
+            f"{worker.get('label') or 'Seat'} ({_roundtable_agent_context(worker, agent_contexts).get('label') or worker.get('agent') or 'participant'}) first pass: for '{goal}', "
+            f"keep the response provider-safe, identify useful assumptions, and contribute from the assigned agent role. "
+            f"Shared context available: {len(memories)} memory item(s), "
             f"{len(context_notes)} note(s)."
         )
         turn = await _roundtable_model_turn(
@@ -443,11 +495,12 @@ async def _build_roundtable_model_run(
             phase="first_pass",
             role="participant",
             instruction=(
-                f"Give a first-pass contribution for '{goal}' from the {worker.get('agent') or 'participant'} role. "
+                f"Give a first-pass contribution for '{goal}' from the assigned {_roundtable_agent_context(worker, agent_contexts).get('label') or worker.get('agent') or 'participant'} agent role. "
                 "Keep it scoped to planning and review."
             ),
             context_text=context_text,
             fallback_content=fallback,
+            agent_contexts=agent_contexts,
         )
         if turn.get("blocked_action"):
             return turn
@@ -467,6 +520,7 @@ async def _build_roundtable_model_run(
         instruction=f"Assess the first-pass contributions and identify the assignment strategy.\n{first_pass_brief}",
         context_text=context_text,
         fallback_content=manager_fallback,
+        agent_contexts=agent_contexts,
     )
     if manager_assessment.get("blocked_action"):
         return manager_assessment
@@ -474,7 +528,7 @@ async def _build_roundtable_model_run(
     assignments: list[dict[str, Any]] = []
     for worker in workers:
         instruction = (
-            f"Review '{goal}' from the {worker.get('agent') or 'participant'} perspective. Return a concise second-pass "
+            f"Review '{goal}' from the {_roundtable_agent_context(worker, agent_contexts).get('label') or worker.get('agent') or 'participant'} perspective. Return a concise second-pass "
             "recommendation, risks, and the next safe step. Do not perform protected work."
         )
         assignments.append(
@@ -490,7 +544,7 @@ async def _build_roundtable_model_run(
     for assignment in assignments:
         worker = dict(assignment["worker"])
         fallback = (
-            f"{worker.get('label') or 'Seat'} ({worker.get('agent') or 'participant'}) second pass: complete assignment "
+            f"{worker.get('label') or 'Seat'} ({_roundtable_agent_context(worker, agent_contexts).get('label') or worker.get('agent') or 'participant'}) second pass: complete assignment "
             f"'{assignment['instruction']}'. Recommendation for '{goal}': keep scope narrow, preserve Guardian boundaries, "
             "and record the decision in shared state."
         )
@@ -503,6 +557,7 @@ async def _build_roundtable_model_run(
             instruction=str(assignment["instruction"]),
             context_text=context_text,
             fallback_content=fallback,
+            agent_contexts=agent_contexts,
         )
         if turn.get("blocked_action"):
             return turn
@@ -524,6 +579,7 @@ async def _build_roundtable_model_run(
         instruction=f"Create the manager wrap-up and next-step plan from the second-pass responses.\n{second_pass_brief}",
         context_text=context_text,
         fallback_content=summary_fallback,
+        agent_contexts=agent_contexts,
     )
     if manager_summary.get("blocked_action"):
         return manager_summary
@@ -775,7 +831,8 @@ async def run_roundtable_session(session_id: str, body: RoundTableRunRequest | N
         return blocked
 
     participants = _roundtable_participants(store, session)
-    if not _roundtable_provider_enabled(participants):
+    agent_contexts = _roundtable_agent_contexts()
+    if not _roundtable_provider_enabled(participants, agent_contexts):
         fallback_session = store.run_roundtable_session(session_id, actor=actor)
         if not fallback_session:
             raise HTTPException(status_code=404, detail="Round Table session not found.")
