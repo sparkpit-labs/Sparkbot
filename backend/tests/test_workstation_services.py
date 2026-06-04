@@ -3,6 +3,22 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 
+PROVIDER_ENVS = [
+    "OPENROUTER_API_KEY",
+    "OPENAI_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "GOOGLE_API_KEY",
+    "GROQ_API_KEY",
+    "MINIMAX_API_KEY",
+    "XAI_API_KEY",
+]
+
+
+def _clear_provider_env(monkeypatch) -> None:
+    for name in PROVIDER_ENVS:
+        monkeypatch.delenv(name, raising=False)
+
+
 def test_workstation_state_and_seat_persistence(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
     client = TestClient(app)
@@ -96,12 +112,12 @@ def test_memory_create_list_recall_delete(tmp_path, monkeypatch) -> None:
 
     update_response = client.patch(
         f"/api/memory/{memory['id']}",
-        json={"content": "The user prefers concise meeting plans. secret:raw-memory-secret", "tags": ["meetings", "updated"]},
+        json={"content": "The user prefers concise meeting plans. credential raw-memory-marker", "tags": ["meetings", "updated"]},
     )
     assert update_response.status_code == 200
-    assert update_response.json()["content"] == "The user prefers concise meeting plans. secret:[redacted]"
+    assert update_response.json()["content"] == "The user prefers concise meeting plans. credential [redacted]"
     assert update_response.json()["tags"] == ["meetings", "updated"]
-    assert "raw-memory-secret" not in str(update_response.json())
+    assert "raw-memory-marker" not in str(update_response.json())
 
     confirmation_response = client.post(
         "/api/guardian/actions/confirmations",
@@ -157,3 +173,126 @@ def test_event_append_list_and_confirmation(tmp_path, monkeypatch) -> None:
     dashboard_response = client.get("/api/v1/chat/dashboard/summary")
     assert dashboard_response.status_code == 200
     assert dashboard_response.json()["summary"]["pending_approvals"] == 1
+
+
+def test_workstation_history_links_notes_sessions_and_safe_events(tmp_path, monkeypatch) -> None:
+    _clear_provider_env(monkeypatch)
+    monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
+    client = TestClient(app)
+
+    chat_response = client.post(
+        "/api/chat/messages",
+        json={"content": "Capture this history note. api_key=raw-chat-secret"},
+    )
+    assert chat_response.status_code == 201
+    chat_payload = chat_response.json()
+    chat_session_id = chat_payload["session"]["id"]
+    assert "raw-chat-secret" not in str(chat_payload)
+
+    note_response = client.post(
+        "/api/notes",
+        json={
+            "title": "History note",
+            "body": "Original note body.",
+            "surface": "chat",
+            "source_id": chat_session_id,
+            "tags": ["history"],
+        },
+    )
+    assert note_response.status_code == 201
+    note = note_response.json()
+
+    read_note = client.get(f"/api/notes/{note['id']}")
+    assert read_note.status_code == 200
+    assert read_note.json()["source_id"] == chat_session_id
+
+    update_note = client.patch(
+        f"/api/notes/{note['id']}",
+        json={"body": "Updated note body. token raw-note-secret"},
+    )
+    assert update_note.status_code == 200
+    assert update_note.json()["body"] == "Updated note body. token [redacted]"
+    assert "raw-note-secret" not in str(update_note.json())
+
+    roundtable_create = client.post(
+        "/api/roundtable/sessions",
+        json={"title": "History Round Table", "goal": "Review persistent notes and Spine history."},
+    )
+    assert roundtable_create.status_code == 201
+    roundtable_id = roundtable_create.json()["id"]
+    run_response = client.post(f"/api/roundtable/sessions/{roundtable_id}/run", json={})
+    assert run_response.status_code == 200
+    roundtable = run_response.json()
+    assert roundtable["status"] == "complete"
+    assert len(roundtable["notes"]) == 1
+    assert roundtable["summaries"][0]["note_id"] == roundtable["notes"][0]["id"]
+
+    roundtable_notes = client.get(f"/api/notes?surface=roundtable&source_id={roundtable_id}")
+    assert roundtable_notes.status_code == 200
+    assert roundtable_notes.json()["count"] == 1
+
+    client.post(
+        "/api/events",
+        json={
+            "event_type": "model.call.completed",
+            "surface": "chat",
+            "source_id": chat_session_id,
+            "summary": "Model call completed with safe metadata.",
+            "payload": {
+                "provider": "unit-test",
+                "model": "safe-model",
+                "prompt": "raw prompt should not appear",
+                "messages": [{"role": "user", "content": "raw message"}],
+                "output": "raw model output",
+                "headers": {"Authorization": "Bearer raw-token"},
+                "api_key": "raw-event-secret",
+            },
+        },
+    )
+
+    filtered_events = client.get("/api/events?surface=chat&event_type=model.call.completed")
+    assert filtered_events.status_code == 200
+    filtered = filtered_events.json()["events"]
+    assert len(filtered) == 1
+    assert filtered[0]["payload"]["prompt"] == "[redacted]"
+    assert filtered[0]["payload"]["messages"] == "[redacted]"
+    assert filtered[0]["payload"]["output"] == "[redacted]"
+    assert filtered[0]["payload"]["headers"] == "[redacted]"
+    assert filtered[0]["payload"]["api_key"] == "[redacted]"
+
+    history_response = client.get("/api/workstation/history?limit=25")
+    assert history_response.status_code == 200
+    history = history_response.json()
+    assert history["storage"]["type"] == "sqlite"
+    assert history["dashboard"]["chat_sessions_count"] == 1
+    assert history["dashboard"]["roundtable_sessions_count"] == 1
+    assert history["dashboard"]["notes_count"] == 2
+
+    chat_history = history["chat"]["sessions"][0]
+    assert chat_history["id"] == chat_session_id
+    assert chat_history["message_count"] == 2
+    assert chat_history["last_message"]
+
+    roundtable_history = history["roundtable"]["sessions"][0]
+    assert roundtable_history["id"] == roundtable_id
+    assert roundtable_history["turn_count"] == 16
+    assert roundtable_history["assignment_count"] == 7
+    assert len(roundtable_history["turns"]) == 16
+    assert len(roundtable_history["assignments"]) == 7
+    assert len(roundtable_history["summaries"]) == 1
+    assert len(roundtable_history["notes"]) == 1
+    assert roundtable_history["summaries"][0]["note_id"] == roundtable_history["notes"][0]["id"]
+
+    history_text = str(history)
+    assert "raw-chat-secret" not in history_text
+    assert "raw-note-secret" not in history_text
+    assert "raw prompt should not appear" not in history_text
+    assert "raw model output" not in history_text
+    assert "raw-event-secret" not in history_text
+
+    second_client = TestClient(app)
+    persisted_history = second_client.get("/api/workstation/history?limit=25")
+    assert persisted_history.status_code == 200
+    persisted_roundtable = persisted_history.json()["roundtable"]["sessions"][0]
+    assert persisted_roundtable["turn_count"] == 16
+    assert len(persisted_roundtable["notes"]) == 1

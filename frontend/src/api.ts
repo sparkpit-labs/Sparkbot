@@ -504,8 +504,14 @@ export type WorkstationState = {
   storage: { type: string; path: string };
 };
 
+export type WorkstationHistory = WorkstationState;
+
 export function fetchWorkstationState(): Promise<WorkstationState> {
   return fetchJson<WorkstationState>("/api/workstation/state");
+}
+
+export function fetchWorkstationHistory(limit = 25): Promise<WorkstationHistory> {
+  return fetchJson<WorkstationHistory>(`/api/workstation/history?limit=${limit}`);
 }
 
 export function updateSeat(
@@ -529,6 +535,38 @@ export function createNote(payload: {
     method: "POST",
     body: JSON.stringify(payload)
   });
+}
+
+export function fetchNote(noteId: string): Promise<WorkstationNote> {
+  return fetchJson<WorkstationNote>(`/api/notes/${encodeURIComponent(noteId)}`);
+}
+
+export function updateNote(noteId: string, payload: {
+  title?: string;
+  body?: string;
+  surface?: string;
+  source_id?: string;
+  tags?: string[];
+}): Promise<WorkstationNote> {
+  return fetchJson<WorkstationNote>(`/api/notes/${encodeURIComponent(noteId)}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function fetchEvents(params: {
+  limit?: number;
+  event_type?: string;
+  surface?: string;
+  source_id?: string;
+} = {}): Promise<{ events: WorkstationEvent[]; count: number }> {
+  const search = new URLSearchParams();
+  if (params.limit) search.set("limit", String(params.limit));
+  if (params.event_type) search.set("event_type", params.event_type);
+  if (params.surface) search.set("surface", params.surface);
+  if (params.source_id) search.set("source_id", params.source_id);
+  const query = search.toString();
+  return fetchJson<{ events: WorkstationEvent[]; count: number }>(`/api/events${query ? `?${query}` : ""}`);
 }
 
 export function createMemory(payload: {

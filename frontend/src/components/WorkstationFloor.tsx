@@ -5,22 +5,45 @@ import RoundTableRoom from "./RoundTableRoom";
 import {
   createNote,
   createRoom,
+  fetchWorkstationHistory,
   fetchWorkstationState,
+  updateNote,
+  type WorkstationHistory,
+  type WorkstationNote,
   type WorkstationState
 } from "../api";
 
 type LoadState = "loading" | "ready" | "error";
+
+type NoteEditDraft = {
+  id: string;
+  title: string;
+  body: string;
+};
 
 function routeText(provider: string, model: string): string {
   const cleanProvider = provider && provider !== "default" ? provider : "default stack";
   return model ? `${cleanProvider} / ${model}` : cleanProvider;
 }
 
+function shortId(value: string): string {
+  return value ? value.slice(0, 8) : "shared";
+}
+
+function sourceLabel(note: WorkstationNote): string {
+  if (note.surface === "roundtable") return `Round Table ${shortId(note.source_id)}`;
+  if (note.surface === "chat") return `Chat ${shortId(note.source_id)}`;
+  if (note.surface === "room") return `Room ${shortId(note.source_id)}`;
+  return note.surface || "workstation";
+}
+
 export default function WorkstationFloor() {
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [workstation, setWorkstation] = useState<WorkstationState | null>(null);
+  const [history, setHistory] = useState<WorkstationHistory | null>(null);
   const [roomDraft, setRoomDraft] = useState({ title: "Planning Room", goal: "" });
   const [noteDraft, setNoteDraft] = useState("");
+  const [noteEdit, setNoteEdit] = useState<NoteEditDraft | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("Loading Workstation floor from shared state...");
   const [error, setError] = useState<string | null>(null);
@@ -29,8 +52,9 @@ export default function WorkstationFloor() {
     setLoadState("loading");
     setError(null);
     try {
-      const state = await fetchWorkstationState();
+      const [state, historyState] = await Promise.all([fetchWorkstationState(), fetchWorkstationHistory(25)]);
       setWorkstation(state);
+      setHistory(historyState);
       setLoadState("ready");
       setMessage("Workstation floor synced with the shared backend store.");
     } catch (caught) {
@@ -89,6 +113,30 @@ export default function WorkstationFloor() {
     }
   }
 
+  async function saveNoteEdit() {
+    if (!noteEdit) return;
+    const title = noteEdit.title.trim() || "Workstation note";
+    const body = noteEdit.body.trim();
+    if (!body) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await updateNote(noteEdit.id, { title, body });
+      setNoteEdit(null);
+      await loadData();
+      setMessage("Note updated in shared backend state.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Workstation note could not be updated.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const notes = history?.notes || workstation?.notes || [];
+  const roundtableSessions = history?.roundtable.sessions || workstation?.roundtable.sessions || [];
+  const chatSessions = history?.chat.sessions || workstation?.chat.sessions || [];
+  const recentEvents = history?.events || workstation?.events || [];
+
   return (
     <section className="workstation-floor" aria-label="Sparkbot Workstation floor">
       <header className="command-header">
@@ -124,6 +172,7 @@ export default function WorkstationFloor() {
             <div><dt>Memory</dt><dd>{workstation?.dashboard.memory_count ?? 0}</dd></div>
             <div><dt>Notes</dt><dd>{workstation?.dashboard.notes_count ?? 0}</dd></div>
             <div><dt>Events</dt><dd>{workstation?.dashboard.events_count ?? 0}</dd></div>
+            <div><dt>Chat turns</dt><dd>{workstation?.dashboard.chat_messages_count ?? 0}</dd></div>
             <div><dt>Round Table</dt><dd>{workstation?.dashboard.roundtable_sessions_count ?? 0}</dd></div>
             <div><dt>Pending confirmations</dt><dd>{workstation?.dashboard.pending_confirmations ?? 0}</dd></div>
           </dl>
@@ -176,7 +225,7 @@ export default function WorkstationFloor() {
         </article>
       </section>
 
-      <section className="command-grid" aria-label="Shared context and activity">
+      <section className="command-grid" aria-label="Shared context and history">
         <article className="command-panel">
           <div className="command-panel-heading">
             <p className="eyebrow">Shared context</p>
@@ -189,29 +238,111 @@ export default function WorkstationFloor() {
           </label>
           <button type="button" onClick={saveFloorNote} disabled={busy || !noteDraft.trim()}>Save note</button>
           <div className="context-list">
+            <h4>Recent memory</h4>
             {(workstation?.memory.items || []).slice(0, 4).map((memory) => (
               <p key={memory.id}><strong>{memory.memory_type}</strong> {memory.content}</p>
             ))}
-            {(workstation?.notes || []).slice(0, 4).map((note) => (
-              <p key={note.id}><strong>{note.title}</strong> {note.body}</p>
-            ))}
+            {workstation?.memory.items.length ? null : <p>No shared memory saved yet.</p>}
+          </div>
+          <div className="context-list">
+            <h4>Notes and artifacts</h4>
+            {notes.slice(0, 6).map((note) => {
+              const editing = noteEdit?.id === note.id;
+              return (
+                <div className="note-list-item" key={note.id}>
+                  {editing ? (
+                    <div className="field-grid">
+                      <label>
+                        <span>Title</span>
+                        <input value={noteEdit.title} onChange={(event) => setNoteEdit((draft) => draft ? { ...draft, title: event.target.value } : draft)} />
+                      </label>
+                      <label>
+                        <span>Body</span>
+                        <textarea rows={5} value={noteEdit.body} onChange={(event) => setNoteEdit((draft) => draft ? { ...draft, body: event.target.value } : draft)} />
+                      </label>
+                      <div className="note-edit-actions">
+                        <button type="button" onClick={saveNoteEdit} disabled={busy || !noteEdit.body.trim()}>Save edit</button>
+                        <button type="button" onClick={() => setNoteEdit(null)} disabled={busy}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="note-list-top">
+                        <strong>{note.title}</strong>
+                        <span>{sourceLabel(note)}</span>
+                      </div>
+                      <p>{note.body}</p>
+                      <div className="metadata-row">
+                        <span>{note.tags.join(", ") || "untagged"}</span>
+                        <span>Updated {new Date(note.updated_at).toLocaleString()}</span>
+                      </div>
+                      <button type="button" onClick={() => setNoteEdit({ id: note.id, title: note.title, body: note.body })} disabled={busy}>Edit note</button>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+            {notes.length ? null : <p>No notes yet.</p>}
           </div>
         </article>
 
         <article className="command-panel">
           <div className="command-panel-heading">
-            <p className="eyebrow">Activity</p>
-            <h3>Events and Guardian</h3>
-            <p>Recent Spine entries and pending confirmations stay visible before any action-capable feature is added.</p>
+            <p className="eyebrow">History</p>
+            <h3>Session history</h3>
+            <p>Chat and Round Table records reopen from the same backend store used by their dedicated pages.</p>
           </div>
-          <div className="context-list">
+          <div className="history-list">
+            <h4>Round Table sessions</h4>
+            {roundtableSessions.slice(0, 5).map((session) => (
+              <div className="history-list-item" key={session.id}>
+                <strong>{session.title}</strong>
+                <span>{session.status} / {session.phase}</span>
+                <span>{session.turn_count || session.turns?.length || 0} turn(s), {session.assignment_count || session.assignments?.length || 0} assignment(s)</span>
+                {session.summaries?.[0]?.note_id ? <span>Wrap-up note {shortId(session.summaries[0].note_id)}</span> : <span>No wrap-up note yet</span>}
+                <a href="/roundtable">Open Round Table</a>
+              </div>
+            ))}
+            {roundtableSessions.length ? null : <p>No Round Table history yet.</p>}
+          </div>
+          <div className="history-list">
+            <h4>Chat sessions</h4>
+            {chatSessions.slice(0, 5).map((session) => (
+              <div className="history-list-item" key={session.id}>
+                <strong>{session.title}</strong>
+                <span>{session.message_count || 0} message(s)</span>
+                <span>{session.last_message ? `${session.last_message.role}: ${session.last_message.content}` : "No messages yet"}</span>
+                <a href="/chat">Open Chat</a>
+              </div>
+            ))}
+            {chatSessions.length ? null : <p>No Chat history yet.</p>}
+          </div>
+        </article>
+      </section>
+
+      <section className="command-grid" aria-label="Activity and Guardian">
+        <article className="command-panel command-panel-wide">
+          <div className="command-panel-heading">
+            <p className="eyebrow">Activity</p>
+            <h3>Spine events and Guardian</h3>
+            <p>Recent events show safe metadata from provider/model calls, memory, notes, rooms, sessions, and Guardian blocks. Prompts, model outputs, headers, credentials, and secrets are not displayed.</p>
+          </div>
+          <div className="event-list-grid">
             {(workstation?.guardian.pending_confirmations || []).slice(0, 4).map((confirmation) => (
-              <p key={confirmation.id}><strong>{confirmation.action_type}</strong> {confirmation.status}: {confirmation.prompt}</p>
+              <div className="event-list-item" key={confirmation.id}>
+                <strong>{confirmation.action_type}</strong>
+                <span>{confirmation.status}: {confirmation.prompt}</span>
+                <span>{confirmation.surface}:{shortId(confirmation.source_id)}</span>
+              </div>
             ))}
-            {(workstation?.events || []).slice(0, 6).map((event) => (
-              <p key={event.id}><strong>{event.event_type}</strong> {event.summary}</p>
+            {recentEvents.slice(0, 10).map((event) => (
+              <div className="event-list-item" key={event.id}>
+                <strong>{event.event_type}</strong>
+                <span>{event.summary}</span>
+                <span>{event.surface}:{shortId(event.source_id)}</span>
+              </div>
             ))}
-            {workstation?.events.length || workstation?.guardian.pending_confirmations.length ? null : <p>No recent activity yet.</p>}
+            {recentEvents.length || workstation?.guardian.pending_confirmations.length ? null : <p>No recent activity yet.</p>}
           </div>
         </article>
       </section>

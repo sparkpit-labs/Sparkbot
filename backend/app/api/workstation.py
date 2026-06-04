@@ -655,6 +655,13 @@ async def workstation_state() -> dict[str, Any]:
     return await _workstation_state_with_controls()
 
 
+@router.get("/api/workstation/history")
+async def workstation_history(limit: int = Query(default=25, ge=1, le=100)) -> dict[str, Any]:
+    history = get_store().workstation_history(limit=limit)
+    history["controls"] = await _build_controls_config()
+    return history
+
+
 @router.get("/api/chat/sessions")
 async def list_chat_sessions(limit: int = Query(default=50, ge=1, le=200)) -> dict[str, Any]:
     sessions = get_store().list_chat_sessions(limit=limit)
@@ -1064,8 +1071,13 @@ async def delete_memory(
 
 
 @router.get("/api/events")
-async def list_events(limit: int = Query(default=100, ge=1, le=500), event_type: str | None = None) -> dict[str, Any]:
-    events = get_store().list_events(limit=limit, event_type=event_type)
+async def list_events(
+    limit: int = Query(default=100, ge=1, le=500),
+    event_type: str | None = None,
+    surface: str | None = None,
+    source_id: str | None = None,
+) -> dict[str, Any]:
+    events = get_store().list_events(limit=limit, event_type=event_type, surface=surface, source_id=source_id)
     return {"events": events, "count": len(events)}
 
 

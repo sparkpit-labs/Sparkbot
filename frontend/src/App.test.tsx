@@ -3,6 +3,7 @@ import { vi } from "vitest";
 
 import App from "./App";
 import ChatWorkstation from "./components/ChatWorkstation";
+import WorkstationFloor from "./components/WorkstationFloor";
 
 describe("App", () => {
   beforeEach(() => {
@@ -144,6 +145,124 @@ describe("App", () => {
       expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/guardian/actions/confirmations"), expect.objectContaining({ method: "POST" }));
       expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/guardian/actions/confirmations/conf-1/decision"), expect.objectContaining({ method: "POST" }));
       expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/memory/mem-1?confirmation_id=conf-1"), expect.objectContaining({ method: "DELETE" }));
+      expect(storageSpy).not.toHaveBeenCalled();
+    } finally {
+      storageSpy.mockRestore();
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("renders backend history and edits notes without browser storage", async () => {
+    const storageSpy = vi.spyOn(Storage.prototype, "setItem");
+    let noteBody = "Original backend note.";
+
+    const note = () => ({
+      id: "note-1",
+      title: "History note",
+      body: noteBody,
+      surface: "roundtable",
+      source_id: "rt-1",
+      actor: "operator",
+      tags: ["roundtable", "summary"],
+      created_at: "2026-01-01T00:00:00Z",
+      updated_at: "2026-01-01T00:00:00Z"
+    });
+
+    const roundtableSession = () => ({
+      id: "rt-1",
+      room_id: "room-1",
+      title: "Backend Round Table",
+      status: "complete",
+      phase: "wrap_up",
+      goal: "Review history",
+      context_query: "Review history",
+      metadata: {},
+      created_at: "2026-01-01T00:00:00Z",
+      updated_at: "2026-01-01T00:00:00Z",
+      completed_at: "2026-01-01T00:00:00Z",
+      room: null,
+      participants: [{ seat_index: 1, label: "Seat 1", agent: "meetings_manager", provider: "default", model: "", role: "meeting_manager" }],
+      turns: [{
+        id: "turn-1",
+        session_id: "rt-1",
+        room_id: "room-1",
+        turn_index: 1,
+        phase: "manager_summary",
+        seat_index: 1,
+        agent: "meetings_manager",
+        role: "meeting_manager",
+        content: "Safe manager summary.",
+        assignment_id: "",
+        provider: "provider-safe",
+        model: "roundtable-local-skeleton",
+        metadata: {},
+        created_at: "2026-01-01T00:00:00Z"
+      }],
+      assignments: [],
+      summaries: [{ id: "summary-1", session_id: "rt-1", room_id: "room-1", phase: "wrap_up", content: "Safe manager summary.", note_id: "note-1", created_at: "2026-01-01T00:00:00Z" }],
+      notes: [note()],
+      turn_count: 1,
+      assignment_count: 0
+    });
+
+    const workstationState = () => ({
+      controls: { default_selection: { provider: "local", model: "local-workstation", label: "Local" } },
+      seats: [{ seat_index: 1, label: "Seat 1", agent: "meetings_manager", provider: "default", model: "", updated_at: "2026-01-01T00:00:00Z" }],
+      rooms: [{ id: "room-1", title: "History room", status: "open", phase: "roundtable_complete", goal: "Review history", summary: "Safe manager summary.", metadata: {}, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" }],
+      notes: [note()],
+      memory: { items: [], count: 0 },
+      events: [{ id: "event-1", event_type: "roundtable.summary.created", surface: "roundtable", source_id: "rt-1", actor: "operator", summary: "Round Table manager summary created.", payload: { note_id: "note-1" }, created_at: "2026-01-01T00:00:00Z" }],
+      guardian: { pending_confirmations: [], recent_confirmations: [] },
+      chat: { sessions: [{ id: "chat-1", title: "Backend chat", status: "open", active_room_id: "", metadata: {}, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z", message_count: 2, last_message: null }], sessions_count: 1, messages_count: 2 },
+      roundtable: { sessions: [roundtableSession()], sessions_count: 1, turns_count: 1, assignments_count: 0, summaries_count: 1 },
+      dashboard: {
+        rooms_count: 1,
+        notes_count: 1,
+        memory_count: 0,
+        events_count: 1,
+        seat_count: 1,
+        chat_sessions_count: 1,
+        chat_messages_count: 2,
+        roundtable_sessions_count: 1,
+        roundtable_turns_count: 1,
+        roundtable_assignments_count: 0,
+        roundtable_summaries_count: 1,
+        pending_confirmations: 0
+      },
+      storage: { type: "sqlite", path: "local-workstation-store" }
+    });
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/api/notes/note-1") && init?.method === "PATCH") {
+        const body = JSON.parse(String(init.body || "{}")) as { body?: string };
+        noteBody = body.body || noteBody;
+        return new Response(JSON.stringify(note()), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      if (url.includes("/api/workstation/state") || url.includes("/api/workstation/history")) {
+        return new Response(JSON.stringify(workstationState()), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      if (url.includes("/api/roundtable/sessions/rt-1")) {
+        return new Response(JSON.stringify(roundtableSession()), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      return new Response(JSON.stringify({ detail: "unexpected request" }), { status: 500, headers: { "Content-Type": "application/json" } });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    try {
+      render(<WorkstationFloor />);
+
+      expect(await screen.findAllByText(/Original backend note/)).toBeDefined();
+      expect(screen.getAllByText("Backend Round Table").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("Backend chat").length).toBeGreaterThan(0);
+      expect(screen.queryByText("raw-ui-secret")).toBeNull();
+
+      fireEvent.click(screen.getAllByRole("button", { name: "Edit note" })[0]);
+      fireEvent.change(screen.getByLabelText("Body"), { target: { value: "Edited backend note." } });
+      fireEvent.click(screen.getByRole("button", { name: "Save edit" }));
+
+      await waitFor(() => expect(screen.getAllByText(/Edited backend note/).length).toBeGreaterThan(0));
+      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/notes/note-1"), expect.objectContaining({ method: "PATCH" }));
       expect(storageSpy).not.toHaveBeenCalled();
     } finally {
       storageSpy.mockRestore();

@@ -990,6 +990,57 @@ textarea {
   gap: 10px;
 }
 
+.note-list-item,
+.history-list-item,
+.event-list-item {
+  background: #f8fafc;
+  border: 1px solid #d7dce3;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.note-list-item p,
+.history-list-item p,
+.event-list-item p {
+  margin: 0;
+}
+
+.note-list-top,
+.metadata-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.note-list-top span,
+.metadata-row span,
+.history-list-item span,
+.event-list-item span {
+  color: #4b5b6c;
+  font-size: 0.86rem;
+}
+
+.note-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.history-list,
+.event-list-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.history-list a {
+  color: #1b5f77;
+  font-weight: 800;
+}
+
 @media (max-width: 880px) {
   .app-topbar,
   .command-header {

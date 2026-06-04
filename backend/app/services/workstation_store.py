@@ -53,6 +53,21 @@ def _json_loads(value: str | None, fallback: Any) -> Any:
 
 
 SENSITIVE_KEY_PARTS = ("api_key", "access_key", "credential", "password", "secret", "token")
+PROTECTED_EVENT_PAYLOAD_KEYS = {
+    "authorization",
+    "headers",
+    "messages",
+    "output",
+    "outputs",
+    "prompt",
+    "prompts",
+    "raw_input",
+    "raw_output",
+    "request_body",
+    "response",
+    "response_body",
+    "responses",
+}
 CONFIRMATION_TTL_SECONDS = 15 * 60
 SECRET_PAIR_RE = re.compile(
     r"(?i)\b(password|passwd|secret|token|api[_-]?key|access[_-]?key|credential|auth[_-]?token|passphrase|private[_-]?key)\b(\s*[:=]\s*)([^\s,;]+)"
@@ -107,7 +122,14 @@ def _sanitize_payload(value: Any) -> Any:
         safe: dict[str, Any] = {}
         for key, item in value.items():
             key_text = str(key)
-            if any(part in key_text.lower() for part in SENSITIVE_KEY_PARTS):
+            normalized_key = key_text.lower().replace("-", "_")
+            protected_payload = (
+                normalized_key in PROTECTED_EVENT_PAYLOAD_KEYS
+                or normalized_key.endswith("_prompt")
+                or normalized_key.endswith("_output")
+                or normalized_key.endswith("_response")
+            )
+            if any(part in normalized_key for part in SENSITIVE_KEY_PARTS) or protected_payload:
                 safe[key_text] = "[redacted]"
             else:
                 safe[key_text] = _sanitize_payload(item)
@@ -1301,17 +1323,65 @@ class WorkstationStore:
                 now,
             )
 
-    def list_events(self, limit: int = 100, event_type: str | None = None) -> list[dict[str, Any]]:
+    def list_events(
+        self,
+        limit: int = 100,
+        event_type: str | None = None,
+        surface: str | None = None,
+        source_id: str | None = None,
+    ) -> list[dict[str, Any]]:
         sql = "SELECT * FROM events"
         params: list[Any] = []
+        clauses: list[str] = []
         if event_type:
-            sql += " WHERE event_type = ?"
+            clauses.append("event_type = ?")
             params.append(event_type)
+        if surface:
+            clauses.append("surface = ?")
+            params.append(surface)
+        if source_id:
+            clauses.append("source_id = ?")
+            params.append(source_id)
+        if clauses:
+            sql += " WHERE " + " AND ".join(clauses)
         sql += " ORDER BY created_at DESC LIMIT ?"
         params.append(max(1, min(limit, 500)))
         with self.connect() as conn:
             rows = conn.execute(sql, params).fetchall()
         return [self._event(row) for row in rows]
+
+    def workstation_history(self, limit: int = 25) -> dict[str, Any]:
+        clean_limit = max(1, min(limit, 100))
+        chat_sessions = self.list_chat_sessions(limit=clean_limit)
+        roundtable_sessions: list[dict[str, Any]] = []
+        for session in self.list_roundtable_sessions(limit=clean_limit):
+            full_session = self.get_roundtable_session(str(session["id"]))
+            if full_session:
+                roundtable_sessions.append(full_session)
+        notes = self.list_notes(limit=clean_limit)
+        rooms = self.list_rooms(limit=clean_limit)
+        memories = self.list_memory(limit=clean_limit)
+        events = self.list_events(limit=clean_limit)
+        return {
+            "rooms": rooms,
+            "notes": notes,
+            "memory": {"items": memories, "count": self.count("memory_entries")},
+            "events": events,
+            "chat": {
+                "sessions": chat_sessions,
+                "sessions_count": self.count("chat_sessions"),
+                "messages_count": self.count("chat_messages"),
+            },
+            "roundtable": {
+                "sessions": roundtable_sessions,
+                "sessions_count": self.count("roundtable_sessions"),
+                "turns_count": self.count("roundtable_turns"),
+                "assignments_count": self.count("roundtable_assignments"),
+                "summaries_count": self.count("roundtable_summaries"),
+            },
+            "dashboard": self.dashboard_summary(),
+            "storage": {"type": "sqlite", "path": "local-workstation-store"},
+        }
 
     def create_confirmation(self, payload: dict[str, Any], actor: str = "operator") -> dict[str, Any]:
         confirmation_id = str(uuid.uuid4())
