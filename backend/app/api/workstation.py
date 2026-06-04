@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
@@ -7,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from app.api.command_center import _build_controls_config
 from app.services.model_execution import ModelExecutionResult, execute_model_request, resolve_model_route
-from app.services.workstation_store import get_store
+from app.services.workstation_store import _roundtable_privileged_action, get_store
 
 
 router = APIRouter()
@@ -251,6 +252,295 @@ def _chat_model_messages(content: str, memories: list[dict[str, Any]], notes: li
     ]
 
 
+ROUND_TABLE_MODEL_TIMEOUT_SECONDS = 20.0
+
+
+def _roundtable_participants(store: Any, session: dict[str, Any]) -> list[dict[str, Any]]:
+    participants = list(session.get("participants") or [])
+    if participants:
+        return participants
+    fallback: list[dict[str, Any]] = []
+    for seat in store.list_seats():
+        seat_index = int(seat.get("seat_index") or 0)
+        fallback.append({**seat, "role": "meeting_manager" if seat_index == 1 else "participant"})
+    return fallback
+
+
+def _roundtable_route(participant: dict[str, Any]) -> dict[str, str]:
+    provider = str(participant.get("provider") or "default").strip()
+    model = str(participant.get("model") or "").strip()
+    if provider in {"", "provider-safe"}:
+        provider = "default"
+    if model in {"roundtable-local-skeleton", "local-workstation"} and provider == "default":
+        model = ""
+    return {"provider": provider, "model": model}
+
+
+def _roundtable_provider_enabled(participants: list[dict[str, Any]]) -> bool:
+    for participant in participants:
+        if resolve_model_route(_roundtable_route(participant)).configured:
+            return True
+    return False
+
+
+def _clip_context(value: Any, limit: int = 500) -> str:
+    text = " ".join(str(value or "").split())
+    if len(text) <= limit:
+        return text
+    return text[: limit - 3].rstrip() + "..."
+
+
+def _roundtable_context_notes(store: Any, room_id: str) -> list[dict[str, Any]]:
+    room_notes = store.list_notes(surface="room", source_id=room_id, limit=5)
+    shared_notes = store.list_notes(surface="workstation", limit=5)
+    return (room_notes + shared_notes)[:8]
+
+
+def _roundtable_context_text(memories: list[dict[str, Any]], notes: list[dict[str, Any]]) -> str:
+    lines = [f"Memory items: {len(memories)}", f"Notes: {len(notes)}"]
+    for memory in memories[:5]:
+        lines.append(f"- Memory/{memory.get('memory_type') or 'note'}: {_clip_context(memory.get('content'))}")
+    for note in notes[:5]:
+        title = _clip_context(note.get("title"), 120)
+        body = _clip_context(note.get("body"), 500)
+        lines.append(f"- Note/{title}: {body}")
+    return "\n".join(lines)
+
+
+def _roundtable_model_messages(
+    *,
+    session: dict[str, Any],
+    participant: dict[str, Any],
+    phase: str,
+    role: str,
+    instruction: str,
+    context_text: str,
+) -> list[dict[str, str]]:
+    return [
+        {
+            "role": "system",
+            "content": (
+                "You are one Sparkbot Round Table seat in a local-first public Workstation. "
+                "Return concise text only. Do not claim to perform protected work, external delivery, "
+                "connector operations, file/process operations, scheduler work, terminal work, or device control. "
+                "If protected work is needed, state that a Guardian-confirmed backend route is required."
+            ),
+        },
+        {
+            "role": "user",
+            "content": (
+                f"Round Table title: {session.get('title') or 'Round Table Room'}\n"
+                f"Goal: {session.get('goal') or session.get('title') or 'Review the room goal.'}\n"
+                f"Phase: {phase}\n"
+                f"Seat: {participant.get('label') or 'Seat'} ({participant.get('agent') or 'participant'})\n"
+                f"Role: {role}\n\n"
+                f"Shared context:\n{context_text}\n\n"
+                f"Instruction:\n{instruction}\n\n"
+                "Return 2 to 4 sentences."
+            ),
+        },
+    ]
+
+
+def _provider_turn_metadata(result: ModelExecutionResult, mode: str) -> dict[str, Any]:
+    metadata: dict[str, Any] = {
+        "mode": mode,
+        "model_execution_status": result.status,
+        "model_event_id": result.event_id,
+        "duration_ms": result.duration_ms,
+    }
+    if result.error:
+        metadata["model_execution_error"] = result.error
+    return metadata
+
+
+async def _roundtable_model_turn(
+    *,
+    store: Any,
+    session: dict[str, Any],
+    participant: dict[str, Any],
+    phase: str,
+    role: str,
+    instruction: str,
+    context_text: str,
+    fallback_content: str,
+) -> dict[str, Any]:
+    result = await execute_model_request(
+        route=_roundtable_route(participant),
+        messages=_roundtable_model_messages(
+            session=session,
+            participant=participant,
+            phase=phase,
+            role=role,
+            instruction=instruction,
+            context_text=context_text,
+        ),
+        store=store,
+        surface="roundtable",
+        source_id=str(session["id"]),
+        actor="sparkbot",
+        timeout_seconds=ROUND_TABLE_MODEL_TIMEOUT_SECONDS,
+        event_metadata={
+            "mode": "roundtable",
+            "roundtable_phase": phase,
+            "roundtable_role": role,
+            "seat_index": participant.get("seat_index"),
+            "agent": participant.get("agent") or "participant",
+        },
+    )
+    if result.ok:
+        blocked_action = _roundtable_privileged_action(result.text)
+        if blocked_action:
+            return {"blocked_action": blocked_action, "model_event_id": result.event_id}
+        return {
+            "participant": participant,
+            "content": result.text,
+            "provider": result.provider,
+            "model": result.model,
+            "metadata": _provider_turn_metadata(result, "provider_backed"),
+        }
+    return {
+        "participant": participant,
+        "content": fallback_content,
+        "provider": "provider-safe",
+        "model": "roundtable-local-skeleton",
+        "metadata": _provider_turn_metadata(result, "provider_safe_fallback"),
+    }
+
+
+async def _build_roundtable_model_run(
+    *,
+    store: Any,
+    session: dict[str, Any],
+    participants: list[dict[str, Any]],
+) -> dict[str, Any]:
+    session_id = str(session["id"])
+    room_id = str(session["room_id"])
+    title = str(session.get("title") or "Round Table Room")
+    goal = str(session.get("goal") or title)
+    context_query = str(session.get("context_query") or goal)
+    memories = store.recall_memory(query=context_query, limit=5)
+    context_notes = _roundtable_context_notes(store, room_id)
+    context_text = _roundtable_context_text(memories, context_notes)
+
+    manager = next((item for item in participants if item.get("seat_index") == 1), participants[0])
+    workers = [item for item in participants if item.get("seat_index") != manager.get("seat_index")]
+    if not workers:
+        workers = participants
+
+    first_turns: list[dict[str, Any]] = []
+    for worker in workers:
+        fallback = (
+            f"{worker.get('label') or 'Seat'} ({worker.get('agent') or 'participant'}) first pass: for '{goal}', "
+            f"keep the response provider-safe, identify useful assumptions, and contribute from the "
+            f"{worker.get('agent') or 'participant'} role. Shared context available: {len(memories)} memory item(s), "
+            f"{len(context_notes)} note(s)."
+        )
+        turn = await _roundtable_model_turn(
+            store=store,
+            session=session,
+            participant=worker,
+            phase="first_pass",
+            role="participant",
+            instruction=(
+                f"Give a first-pass contribution for '{goal}' from the {worker.get('agent') or 'participant'} role. "
+                "Keep it scoped to planning and review."
+            ),
+            context_text=context_text,
+            fallback_content=fallback,
+        )
+        if turn.get("blocked_action"):
+            return turn
+        first_turns.append(turn)
+
+    first_pass_brief = "\n".join(f"- {item['participant'].get('label') or 'Seat'}: {_clip_context(item.get('content'), 500)}" for item in first_turns)
+    manager_fallback = (
+        f"Seat 1 Meeting Manager assessment: the room has enough first-pass input to split '{goal}' into focused assignments. "
+        "No protected actions were executed."
+    )
+    manager_assessment = await _roundtable_model_turn(
+        store=store,
+        session=session,
+        participant=manager,
+        phase="manager_assessment",
+        role="meeting_manager",
+        instruction=f"Assess the first-pass contributions and identify the assignment strategy.\n{first_pass_brief}",
+        context_text=context_text,
+        fallback_content=manager_fallback,
+    )
+    if manager_assessment.get("blocked_action"):
+        return manager_assessment
+
+    assignments: list[dict[str, Any]] = []
+    for worker in workers:
+        instruction = (
+            f"Review '{goal}' from the {worker.get('agent') or 'participant'} perspective. Return a concise second-pass "
+            "recommendation, risks, and the next safe step. Do not perform protected work."
+        )
+        assignments.append(
+            {
+                "id": str(uuid.uuid4()),
+                "worker": worker,
+                "title": f"Assignment for {worker.get('label') or 'Seat'}",
+                "instruction": instruction,
+            }
+        )
+
+    second_turns: list[dict[str, Any]] = []
+    for assignment in assignments:
+        worker = dict(assignment["worker"])
+        fallback = (
+            f"{worker.get('label') or 'Seat'} ({worker.get('agent') or 'participant'}) second pass: complete assignment "
+            f"'{assignment['instruction']}'. Recommendation for '{goal}': keep scope narrow, preserve Guardian boundaries, "
+            "and record the decision in shared state."
+        )
+        turn = await _roundtable_model_turn(
+            store=store,
+            session=session,
+            participant=worker,
+            phase="second_pass",
+            role="participant",
+            instruction=str(assignment["instruction"]),
+            context_text=context_text,
+            fallback_content=fallback,
+        )
+        if turn.get("blocked_action"):
+            return turn
+        turn["assignment_id"] = assignment["id"]
+        second_turns.append(turn)
+
+    second_pass_brief = "\n".join(f"- {item['participant'].get('label') or 'Seat'}: {_clip_context(item.get('content'), 500)}" for item in second_turns)
+    summary_fallback = (
+        f"Meeting Manager wrap-up for '{goal}': first-pass ideas were collected, assignments were answered, "
+        f"and the safe next step is to review the plan before any protected action. Context used: {len(memories)} "
+        f"memory item(s) and {len(context_notes)} note(s)."
+    )
+    manager_summary = await _roundtable_model_turn(
+        store=store,
+        session=session,
+        participant=manager,
+        phase="manager_summary",
+        role="meeting_manager",
+        instruction=f"Create the manager wrap-up and next-step plan from the second-pass responses.\n{second_pass_brief}",
+        context_text=context_text,
+        fallback_content=summary_fallback,
+    )
+    if manager_summary.get("blocked_action"):
+        return manager_summary
+
+    return {
+        "room_id": room_id,
+        "title": title,
+        "memory_count": len(memories),
+        "note_count": len(context_notes),
+        "first_turns": first_turns,
+        "manager_assessment": manager_assessment,
+        "assignments": assignments,
+        "second_turns": second_turns,
+        "manager_summary": manager_summary,
+    }
+
+
 @router.get("/api/workstation/state")
 async def workstation_state() -> dict[str, Any]:
     return await _workstation_state_with_controls()
@@ -467,10 +757,48 @@ async def get_roundtable_session(session_id: str) -> dict[str, Any]:
 @router.post("/api/roundtable/sessions/{session_id}/run")
 async def run_roundtable_session(session_id: str, body: RoundTableRunRequest | None = None) -> dict[str, Any]:
     actor = body.actor if body else "operator"
-    session = get_store().run_roundtable_session(session_id, actor=actor)
+    store = get_store()
+    session = store.get_roundtable_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Round Table session not found.")
-    return session
+    if session["status"] in {"complete", "blocked"} or session["turns"] or session["assignments"] or session["summaries"]:
+        return session
+
+    room_id = str(session["room_id"])
+    blocked_action = _roundtable_privileged_action(
+        " ".join([str(session.get("title") or ""), str(session.get("goal") or ""), str(session.get("context_query") or "")])
+    )
+    if blocked_action:
+        blocked = store.block_roundtable_session(session_id, room_id, blocked_action, actor=actor)
+        if not blocked:
+            raise HTTPException(status_code=404, detail="Round Table session not found.")
+        return blocked
+
+    participants = _roundtable_participants(store, session)
+    if not _roundtable_provider_enabled(participants):
+        fallback_session = store.run_roundtable_session(session_id, actor=actor)
+        if not fallback_session:
+            raise HTTPException(status_code=404, detail="Round Table session not found.")
+        return fallback_session
+
+    run = await _build_roundtable_model_run(store=store, session=session, participants=participants)
+    if run.get("blocked_action"):
+        blocked = store.block_roundtable_session(
+            session_id,
+            room_id,
+            str(run["blocked_action"]),
+            actor="sparkbot",
+            source="model_output",
+            model_event_id=str(run.get("model_event_id") or ""),
+        )
+        if not blocked:
+            raise HTTPException(status_code=404, detail="Round Table session not found.")
+        return blocked
+
+    persisted = store.persist_roundtable_model_session(session_id, actor=actor, run=run)
+    if not persisted:
+        raise HTTPException(status_code=404, detail="Round Table session not found.")
+    return persisted
 
 
 @router.get("/api/seats")

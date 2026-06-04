@@ -79,7 +79,7 @@ The frontend development server binds to `127.0.0.1` through Vite. The frontend 
 ## Current limitations
 
 - Provider credentials can be saved only server-side through Command Center and are not echoed to the browser.
-- Model/provider configuration is active. Chat can call the selected configured provider route; Round Table live provider seats remain deferred.
+- Model/provider configuration is active. Chat can call the selected configured provider route; Round Table can use configured seat routes when available.
 - Chat sessions and messages persist in the shared backend store.
 - Guardian confirmation storage and fail-closed authorization are active for current protected memory deletes; full policy enforcement remains deferred.
 - No sensitive action execution path is active.

@@ -17,7 +17,7 @@ Chat is the operator conversation channel. It stores sessions and messages in th
 ## Deferred from this branch
 
 - Streaming responses
-- Round Table live provider-seat execution
+- Round Table connector/action execution
 - Connector sends
 - File, process, terminal, or shell execution
 - Scheduler/background jobs

@@ -1,6 +1,6 @@
 # Workstation Surface
 
-The current public Workstation surface is no longer a disconnected static preview. `/workstation` is a backend-backed operating-floor view for rooms, model seats, provider-safe Round Table sessions, shared memory, notes, Spine activity, and Guardian confirmation state.
+The current public Workstation surface is no longer a disconnected static preview. `/workstation` is a backend-backed operating-floor view for rooms, model seats, Round Table sessions, shared memory, notes, Spine activity, and Guardian confirmation state.
 
 ## What exists
 
@@ -11,7 +11,7 @@ The current public Workstation surface is no longer a disconnected static previe
 - `/spine` is the event/history/counter surface.
 - `/controls` is the setup/readiness and capability-limit surface.
 - Room foundations can be created and persisted with seat participants.
-- Provider-safe Round Table sessions can be created, run through deterministic local turns, assigned to seats, summarized by Seat 1, and saved as one wrap-up note.
+- Round Table sessions can be created, run through configured provider routes when available or deterministic fallback when unavailable, assigned to seats, summarized by Seat 1, and saved as one wrap-up note.
 - Workstation notes can be saved to shared backend state.
 - Existing static preview components remain inert where still referenced by legacy docs or future planning, but they are not the primary Workstation route.
 
@@ -20,7 +20,7 @@ The current public Workstation surface is no longer a disconnected static previe
 - Backend store: works today
 - Chat sessions/messages: works today, narrow configured-provider execution active
 - Workstation rooms/seats/notes/memory/events: works today
-- Round Table provider-safe sessions/turns/assignments/summaries: works today
+- Round Table sessions/turns/assignments/summaries: works today, configured-provider execution active when available
 - Command Center model/seat/security configuration: works today
 - Spine event log and counters: works today, task/project queues are empty-state placeholders
 - Controls setup/readiness: works today as a reporting surface
@@ -32,7 +32,6 @@ The current public Workstation surface is no longer a disconnected static previe
 
 ## What is intentionally excluded
 
-- Live provider-seat responses from Round Table
 - Tool execution
 - Connector sends or external delivery
 - File/process/shell/terminal execution

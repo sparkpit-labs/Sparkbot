@@ -15,7 +15,7 @@ This index groups the public Sparkbot documentation for first-time visitors, loc
 
 - [Workstation Surface](WORKSTATION_SHELL.md): backend-backed rooms, seats, shared context, activity, and Guardian state.
 - [Chat Surface](CHAT_SHELL.md): backend-backed operator chat with shared context and narrow configured-provider execution.
-- [Round Table Surface](ROUND_TABLE_SHELL.md): backend-backed provider-safe meeting room sessions, assignments, summaries, and wrap-up notes.
+- [Round Table Surface](ROUND_TABLE_SHELL.md): backend-backed meeting room sessions, configured-provider turns when available, assignments, summaries, and wrap-up notes.
 - [Provider Setup Shell](PROVIDER_SETUP_SHELL.md): provider setup preview and current server-side credential boundary.
 - [Guardian Controls Shell](GUARDIAN_CONTROLS_SHELL.md): planned control categories and current confirmation boundary notes.
 
@@ -34,4 +34,4 @@ This index groups the public Sparkbot documentation for first-time visitors, loc
 
 ## Current boundary
 
-The current public app is safe for review and local validation. It includes backend-backed Chat, Workstation state, provider-safe Round Table sessions, Command Center configuration, Spine event logging, and a fail-closed Guardian confirmation boundary for protected actions. It includes a narrow Chat model-call path through the selected configured provider. It does not include Round Table live provider seats, tool execution, connector calls, desktop packaging, deployment workflows, or external/destructive actions without Guardian confirmation.
+The current public app is safe for review and local validation. It includes backend-backed Chat, Workstation state, Round Table sessions, Command Center configuration, Spine event logging, and a fail-closed Guardian confirmation boundary for protected actions. It includes narrow Chat and Round Table model-call paths through configured provider routes. It does not include tool execution, connector calls, desktop packaging, deployment workflows, schedulers, file/process execution, device actions, or external/destructive actions without Guardian confirmation.

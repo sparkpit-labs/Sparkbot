@@ -95,6 +95,7 @@ async def execute_model_request(
     source_id: str,
     actor: str = "sparkbot",
     timeout_seconds: float = 20.0,
+    event_metadata: dict[str, Any] | None = None,
 ) -> ModelExecutionResult:
     resolved = resolve_model_route(route)
     started = perf_counter()
@@ -146,6 +147,7 @@ async def execute_model_request(
         duration_ms=duration_ms,
         error=error,
         http_status=http_status,
+        event_metadata=event_metadata,
     )
     return ModelExecutionResult(
         status=status,
@@ -297,6 +299,7 @@ def _log_model_event(
     duration_ms: int,
     error: str,
     http_status: int | None,
+    event_metadata: dict[str, Any] | None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "provider": provider,
@@ -310,6 +313,10 @@ def _log_model_event(
         payload["error"] = error
     if http_status:
         payload["http_status"] = http_status
+    if event_metadata:
+        for key, value in event_metadata.items():
+            if key not in payload:
+                payload[key] = value
     return store.append_event(
         {
             "event_type": "model.call.completed" if status == "success" else "model.call.failed",

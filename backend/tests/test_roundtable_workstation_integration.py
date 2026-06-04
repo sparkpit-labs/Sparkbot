@@ -2,9 +2,32 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.services import model_execution
+
+
+PROVIDER_ENVS = [
+    "OPENROUTER_API_KEY",
+    "OPENAI_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "GOOGLE_API_KEY",
+    "GROQ_API_KEY",
+    "MINIMAX_API_KEY",
+    "XAI_API_KEY",
+]
+
+
+def _clear_provider_env(monkeypatch) -> None:
+    for name in PROVIDER_ENVS:
+        monkeypatch.delenv(name, raising=False)
+
+
+def _save_openrouter_credential(client: TestClient, credential: str = "unit-test-credential-value") -> None:
+    response = client.post("/api/v1/chat/models/config", json={"providers": {"openrouter_api_key": credential}})
+    assert response.status_code == 200
 
 
 def test_roundtable_provider_safe_flow_persists_shared_state_events_and_wrapup_note(tmp_path, monkeypatch) -> None:
+    _clear_provider_env(monkeypatch)
     monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
     client = TestClient(app)
 
@@ -112,7 +135,95 @@ def test_roundtable_provider_safe_flow_persists_shared_state_events_and_wrapup_n
     assert len(rerun["notes"]) == 1
 
 
+def test_roundtable_provider_model_flow_persists_provider_turns_and_redacted_events(tmp_path, monkeypatch) -> None:
+    _clear_provider_env(monkeypatch)
+    monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
+    calls: list[dict[str, object]] = []
+
+    async def fake_post_json(url: str, headers: dict[str, str], payload: dict[str, object], timeout_seconds: float) -> dict[str, object]:
+        calls.append({"url": url, "headers": headers, "payload": payload, "timeout": timeout_seconds})
+        return {"choices": [{"message": {"content": f"Provider safe Round Table response {len(calls)}."}}]}
+
+    monkeypatch.setattr(model_execution, "_post_json", fake_post_json)
+    client = TestClient(app)
+    _save_openrouter_credential(client)
+
+    create_response = client.post(
+        "/api/roundtable/sessions",
+        json={"title": "Provider room", "goal": "Review a provider-backed Round Table plan."},
+    )
+    assert create_response.status_code == 201
+    session_id = create_response.json()["id"]
+
+    run_response = client.post(f"/api/roundtable/sessions/{session_id}/run", json={})
+
+    assert run_response.status_code == 200
+    session = run_response.json()
+    assert session["status"] == "complete"
+    assert session["phase"] == "wrap_up"
+    assert session["turn_count"] == 16
+    assert session["assignment_count"] == 7
+    assert len(calls) == 16
+    assert all(call["url"] == "https://openrouter.ai/api/v1/chat/completions" for call in calls)
+    assert all(call["payload"]["model"] == "openai/gpt-4o-mini" for call in calls)
+
+    assert all(turn["provider"] == "openrouter" for turn in session["turns"])
+    assert all(turn["model"] == "openrouter/openai/gpt-4o-mini" for turn in session["turns"])
+    assert all(turn["metadata"]["mode"] == "provider_backed" for turn in session["turns"])
+    assert all(turn["metadata"]["model_execution_status"] == "success" for turn in session["turns"])
+    assert all(turn["metadata"]["model_event_id"] for turn in session["turns"])
+    assert session["summaries"][0]["content"] == "Provider safe Round Table response 16."
+
+    events = client.get("/api/events?event_type=model.call.completed").json()["events"]
+    model_events = [event for event in events if event["surface"] == "roundtable" and event["source_id"] == session_id]
+    assert len(model_events) == 16
+    assert all(event["payload"]["status"] == "success" for event in model_events)
+    assert all("roundtable_phase" in event["payload"] for event in model_events)
+    assert "Provider safe Round Table response" not in str([event["payload"] for event in model_events])
+    assert "unit-test-credential-value" not in str(events)
+
+
+def test_roundtable_model_output_blocked_before_persisting_turns(tmp_path, monkeypatch) -> None:
+    _clear_provider_env(monkeypatch)
+    monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
+
+    async def fake_post_json(url: str, headers: dict[str, str], payload: dict[str, object], timeout_seconds: float) -> dict[str, object]:
+        return {"choices": [{"message": {"content": "I will send email after this room."}}]}
+
+    monkeypatch.setattr(model_execution, "_post_json", fake_post_json)
+    client = TestClient(app)
+    _save_openrouter_credential(client)
+
+    create_response = client.post(
+        "/api/roundtable/sessions",
+        json={"title": "Protected output room", "goal": "Review the plan safely."},
+    )
+    assert create_response.status_code == 201
+    session_id = create_response.json()["id"]
+
+    run_response = client.post(f"/api/roundtable/sessions/{session_id}/run", json={})
+
+    assert run_response.status_code == 200
+    blocked = run_response.json()
+    assert blocked["status"] == "blocked"
+    assert blocked["phase"] == "guardian_blocked"
+    assert blocked["blocked_action"] == "external_send"
+    assert blocked["turns"] == []
+    assert blocked["assignments"] == []
+    assert blocked["summaries"] == []
+    assert blocked["notes"] == []
+
+    events = client.get("/api/events").json()["events"]
+    blocked_events = [event for event in events if event["event_type"] == "guardian.action_blocked" and event["surface"] == "roundtable"]
+    assert blocked_events
+    assert blocked_events[0]["payload"]["action_type"] == "external_send"
+    assert blocked_events[0]["payload"]["source"] == "model_output"
+    assert blocked_events[0]["payload"]["model_event_id"]
+    assert "I will send email" not in str(events)
+
+
 def test_roundtable_privileged_request_fails_closed_and_logs_guardian_block(tmp_path, monkeypatch) -> None:
+    _clear_provider_env(monkeypatch)
     monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
     client = TestClient(app)
 
@@ -148,6 +259,7 @@ def test_roundtable_privileged_request_fails_closed_and_logs_guardian_block(tmp_
 
 
 def test_roundtable_blocks_privileged_categories_without_turn_or_note_mutation(tmp_path, monkeypatch) -> None:
+    _clear_provider_env(monkeypatch)
     monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
     client = TestClient(app)
 

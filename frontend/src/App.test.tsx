@@ -32,7 +32,7 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Round Table Room" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Round Table counters" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Seat 1 Meeting Manager" })).toBeDefined();
-    expect(screen.getByRole("button", { name: "Run provider-safe meeting" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Run Round Table meeting" })).toBeDefined();
     expect(screen.queryByRole("heading", { name: "Workstation Floor" })).toBeNull();
     expect(screen.queryByRole("heading", { name: "Sparkbot Chat" })).toBeNull();
   });

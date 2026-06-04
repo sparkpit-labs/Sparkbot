@@ -22,35 +22,35 @@ export const workstationStatusItems: WorkstationStatusItem[] = [
   {
     name: "Workstation shell",
     status: "worksToday",
-    summary: "Product shell layout, section selector, and status model exist as a read-only baseline."
+    summary: "Product shell layout, section selector, and backend-backed status model are present."
   },
   {
     name: "Chat shell",
-    status: "preview",
-    summary: "Read-only Chat Shell preview is visible without message handling, storage, or model behavior."
+    status: "worksToday",
+    summary: "Backend-backed Chat sessions, shared context, and configured-provider execution are active."
   },
   {
     name: "Round Table",
-    status: "preview",
-    summary: "Read-only Round Table preview surface is present without meeting or model behavior."
+    status: "worksToday",
+    summary: "Backend-backed Round Table sessions, shared context, assignments, summaries, and configured-provider turns are active when available."
   },
   {
     name: "Provider setup",
-    status: "planned",
-    summary: "Read-only Provider Setup preview surface is present without credential handling or provider calls."
+    status: "worksToday",
+    summary: "Command Center stores provider credentials server-side and reports provider readiness."
   },
   {
     name: "Guardian-gated controls",
-    status: "planned",
-    summary: "Read-only Guardian Controls preview surface is present without approvals, enforcement, or sensitive actions."
+    status: "worksToday",
+    summary: "Guardian confirmations and fail-closed protected-action blocks are active for current guarded paths."
   }
 ];
 
 export const workstationRoadmapItems: string[] = [
   "Define workstation view structure with stable public contracts.",
-  "Document chat interaction contracts before enabling message handling or model behavior.",
-  "Expand Round Table preview surfaces only after public interaction contracts are documented.",
-  "Document provider setup contracts before enabling credential or network behavior.",
-  "Document Guardian control contracts before enabling approval or enforcement behavior.",
-  "Prepare provider and guardrail integration points without runtime activation."
+  "Keep chat provider execution narrow, logged, and server-side.",
+  "Keep Round Table provider execution text-only with deterministic fallback.",
+  "Keep provider setup server-side and redacted in browser-visible state.",
+  "Expand Guardian enforcement only through action-bound confirmations.",
+  "Do not add connector, scheduler, file/process, terminal, or device execution without new Guardian gates."
 ];

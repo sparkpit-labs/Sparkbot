@@ -35,9 +35,9 @@ function seatLabel(seatIndex: number | null | undefined): string {
 function statusCopy(session: RoundTableSession | null): string {
   if (!session) return "Create or select a session to begin.";
   if (session.status === "blocked") return "Blocked by Guardian boundary";
-  if (session.status === "complete") return "Provider-safe meeting complete";
-  if (session.status === "running") return "Provider-safe meeting running";
-  return "Ready for provider-safe meeting flow";
+  if (session.status === "complete") return "Round Table meeting complete";
+  if (session.status === "running") return "Round Table meeting running";
+  return "Ready for Round Table meeting flow";
 }
 
 export default function RoundTableRoom({ embedded = false }: Props) {
@@ -68,7 +68,7 @@ export default function RoundTableRoom({ embedded = false }: Props) {
     } catch (caught) {
       setLoadState("error");
       setError(caught instanceof Error ? caught.message : "Round Table backend state is unavailable.");
-      setMessage("Start the local backend to inspect provider-safe Round Table sessions.");
+      setMessage("Start the local backend to inspect Round Table sessions.");
     }
   }
 
@@ -87,7 +87,7 @@ export default function RoundTableRoom({ embedded = false }: Props) {
         title,
         goal,
         context_query: goal || title,
-        metadata: { surface: "workstation_roundtable", mode: "provider_safe" }
+        metadata: { surface: "workstation_roundtable", mode: "roundtable" }
       });
       setDraft({ title: "Round Table Planning Room", goal: "" });
       setActiveSession(session);
@@ -122,7 +122,7 @@ export default function RoundTableRoom({ embedded = false }: Props) {
       const session = await runRoundTableSession(activeSession.id);
       setActiveSession(session);
       await loadData(session.id);
-      setMessage(session.status === "blocked" ? "Round Table request was blocked by Guardian boundaries." : "Provider-safe Round Table flow completed and saved a manager summary note.");
+      setMessage(session.status === "blocked" ? "Round Table request was blocked by Guardian boundaries." : "Round Table flow completed and saved a manager summary note.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Round Table session could not be run.");
     } finally {
@@ -142,11 +142,11 @@ export default function RoundTableRoom({ embedded = false }: Props) {
         <div>
           <p className="eyebrow">Workstation room</p>
           <h2>Round Table Room</h2>
-          <p>Backend-backed meeting room for seats, shared context, provider-safe turns, assignments, manager wrap-up, notes, and Spine events.</p>
+          <p>Backend-backed meeting room for seats, shared context, provider-routed turns when configured, assignments, manager wrap-up, notes, and Spine events.</p>
         </div>
         <div className="command-header-actions">
           <span className={`status-badge ${loadState === "ready" ? "status-preview" : loadState === "loading" ? "status-preview" : "status-notImplemented"}`}>
-            {loadState === "ready" ? "Provider-safe" : loadState === "loading" ? "Syncing" : "Backend needed"}
+            {loadState === "ready" ? "Round Table" : loadState === "loading" ? "Syncing" : "Backend needed"}
           </span>
           <button type="button" onClick={() => loadData()} disabled={busy}>Refresh</button>
         </div>
@@ -182,7 +182,7 @@ export default function RoundTableRoom({ embedded = false }: Props) {
           <div className="command-panel-heading">
             <p className="eyebrow">Meeting setup</p>
             <h3>Create or select a session</h3>
-            <p>Starting a session creates a shared room and participants from persisted Workstation seats. Running the flow uses deterministic local responses only.</p>
+            <p>Starting a session creates a shared room and participants from persisted Workstation seats. Running the flow uses configured provider routes when available and deterministic local fallback otherwise.</p>
           </div>
           <form className="field-grid" onSubmit={createSession}>
             <label>
@@ -216,7 +216,7 @@ export default function RoundTableRoom({ embedded = false }: Props) {
           <div className="command-panel-heading">
             <p className="eyebrow">Seats</p>
             <h3>Seat 1 Meeting Manager</h3>
-            <p>Seat 1 manages the provider-safe flow. Other persisted seats contribute first-pass ideas and answer assigned second-pass work.</p>
+            <p>Seat 1 manages the Round Table flow. Other persisted seats contribute first-pass ideas and answer assigned second-pass work.</p>
           </div>
           <div className="seat-grid roundtable-seat-grid">
             {(activeSession?.participants || workstation?.seats || []).slice(0, 8).map((seat) => (
@@ -227,8 +227,8 @@ export default function RoundTableRoom({ embedded = false }: Props) {
               </div>
             ))}
           </div>
-          <button type="button" onClick={runSession} disabled={!canRun}>Run provider-safe meeting</button>
-          <p className="helper-text">No Round Table provider calls, connector sends, scheduled jobs, files, processes, terminal commands, or device actions are executed from this flow.</p>
+          <button type="button" onClick={runSession} disabled={!canRun}>Run Round Table meeting</button>
+          <p className="helper-text">Provider credentials stay server-side. No connector sends, scheduled jobs, files, processes, terminal commands, or device actions are executed from this flow.</p>
         </article>
       </section>
 
@@ -277,7 +277,7 @@ export default function RoundTableRoom({ embedded = false }: Props) {
           <div className="command-panel-heading">
             <p className="eyebrow">Shared context</p>
             <h3>Memory and notes available</h3>
-            <p>Round Table recalls shared memory and Workstation or room notes before writing its provider-safe turns.</p>
+            <p>Round Table recalls shared memory and Workstation or room notes before writing turns.</p>
           </div>
           <div className="context-list">
             {(workstation?.memory.items || []).slice(0, 4).map((memory) => (

@@ -137,7 +137,7 @@ export default function WorkstationFloor() {
           <div className="command-panel-heading">
             <p className="eyebrow">Rooms</p>
             <h3>Room foundation</h3>
-            <p>Rooms persist with participants and setup metadata. Provider-safe Round Table sessions now run from the shared Workstation store.</p>
+            <p>Rooms persist with participants and setup metadata. Round Table sessions now run from the shared Workstation store.</p>
           </div>
           <form className="field-grid" onSubmit={createRoomFoundation}>
             <label>
@@ -162,7 +162,7 @@ export default function WorkstationFloor() {
           <div className="command-panel-heading">
             <p className="eyebrow">Seats</p>
             <h3>Model seats</h3>
-            <p>Seat assignments are shared with Command Center and used by the provider-safe Round Table flow.</p>
+            <p>Seat assignments are shared with Command Center and used by the Round Table flow.</p>
           </div>
           <div className="seat-grid">
             {(workstation?.seats || []).map((seat) => (

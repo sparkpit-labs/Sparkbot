@@ -24,25 +24,25 @@ export const shellSections: ShellSection[] = [
   {
     id: "chat-shell",
     label: "Chat",
-    status: "preview",
-    summary: "Static chat preview with message actions inactive."
+    status: "worksToday",
+    summary: "Backend-backed chat sessions with shared context and configured-provider execution."
   },
   {
     id: "round-table",
     label: "Round Table",
-    status: "preview",
-    summary: "Static seat layout for future multi-participant work."
+    status: "worksToday",
+    summary: "Backend-backed meeting sessions with configured-provider turns when available."
   },
   {
     id: "provider-setup",
     label: "Provider Setup",
     status: "planned",
-    summary: "Read-only provider planning cards with credentials inactive."
+    summary: "Server-side provider configuration is active through Command Center."
   },
   {
     id: "guardian-controls",
     label: "Guardian Controls",
     status: "planned",
-    summary: "Read-only control categories remain inactive in this preview."
+    summary: "Guardian confirmation state and protected-action block logging are active."
   }
 ];

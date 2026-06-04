@@ -18,7 +18,7 @@ export default function WorkstationShell() {
         <h2>Workstation Shell</h2>
         <p>
           A read-only map of the current public shell surfaces. It shows what works today, what is only previewed, and
-          what remains planned without enabling orchestration, connector sends, Round Table live provider seats, or tool actions.
+          what remains planned without enabling connector sends, protected tool actions, schedulers, or device control.
         </p>
       </div>
 

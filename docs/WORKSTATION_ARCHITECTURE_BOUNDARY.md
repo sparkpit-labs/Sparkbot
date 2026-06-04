@@ -26,7 +26,7 @@ A blocked privileged Round Table request may update the session to `blocked` and
 
 - Chat: direct operator conversation surface. It can read shared context counts, save chat turns, save optional memory, call the selected configured provider route, log model-call events, and request Guardian confirmations.
 - Workstation: operating-floor surface for rooms, seats, shared context, Round Table activity, and pending confirmations.
-- Round Table: provider-safe room workflow for persisted meeting sessions, Seat 1 manager checkpoints, assignments, summaries, wrap-up notes, and Spine events.
+- Round Table: provider-capable room workflow for persisted meeting sessions, Seat 1 manager checkpoints, assignments, summaries, wrap-up notes, and Spine events.
 - Command Center: configuration, model routing, agent setup, server-side credential entry, and security/Guardian settings.
 - Spine: event history, dashboard counters, and task/project queue empty states.
 - Controls: local setup readiness, backend health, provider readiness, and explicit capability limits.
@@ -49,6 +49,6 @@ Chat and Round Table fail closed for privileged requests and log Guardian block 
 
 ## Deferred execution rule
 
-Provider/model execution is currently limited to the Chat route using the selected configured provider. Connector sends, Round Table live provider seats, schedulers, file/process execution, and device-action behavior remain deferred until explicit backend routes, tests, user-visible labels, event logging, redaction, and Guardian gates are added.
+Provider/model execution is currently limited to Chat and Round Table text generation through configured provider routes. Connector sends, schedulers, file/process execution, terminal execution, protected tool execution, and device-action behavior remain deferred until explicit backend routes, tests, user-visible labels, event logging, redaction, and Guardian gates are added.
 
-Provider-safe Round Table turn sequencing is active in the public shell. It uses deterministic local responses, reads shared context, writes shared state, and does not execute providers or external actions.
+Round Table turn sequencing reads shared context, writes shared state, keeps provider credentials server-side, falls back when routes are unavailable, and does not execute external actions.
