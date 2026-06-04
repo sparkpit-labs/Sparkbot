@@ -544,6 +544,47 @@ export function createMemory(payload: {
   });
 }
 
+export function updateMemory(memoryId: string, payload: {
+  content?: string;
+  memory_type?: string;
+  source_surface?: string;
+  source_id?: string;
+  tags?: string[];
+}): Promise<WorkstationMemory> {
+  return fetchJson<WorkstationMemory>(`/api/memory/${encodeURIComponent(memoryId)}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function createGuardianConfirmation(payload: {
+  action_type: string;
+  risk_level?: string;
+  prompt?: string;
+  surface?: string;
+  source_id?: string;
+  actor?: string;
+}): Promise<GuardianConfirmation> {
+  return fetchJson<GuardianConfirmation>("/api/guardian/actions/confirmations", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function decideGuardianConfirmation(confirmationId: string, decision: "approved" | "denied"): Promise<GuardianConfirmation> {
+  return fetchJson<GuardianConfirmation>(`/api/guardian/actions/confirmations/${encodeURIComponent(confirmationId)}/decision`, {
+    method: "POST",
+    body: JSON.stringify({ decision })
+  });
+}
+
+export function deleteMemory(memoryId: string, confirmationId: string): Promise<{ deleted: string }> {
+  const params = new URLSearchParams({ confirmation_id: confirmationId });
+  return fetchJson<{ deleted: string }>(`/api/memory/${encodeURIComponent(memoryId)}?${params.toString()}`, {
+    method: "DELETE"
+  });
+}
+
 export function createRoom(payload: {
   title: string;
   status?: string;

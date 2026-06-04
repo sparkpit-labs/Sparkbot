@@ -1,7 +1,8 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 
 import App from "./App";
+import ChatWorkstation from "./components/ChatWorkstation";
 
 describe("App", () => {
   beforeEach(() => {
@@ -62,6 +63,91 @@ describe("App", () => {
       expect(storageSpy).not.toHaveBeenCalled();
     } finally {
       storageSpy.mockRestore();
+    }
+  });
+
+  it("renders and deletes memory through server confirmations", async () => {
+    const storageSpy = vi.spyOn(Storage.prototype, "setItem");
+    let memoryDeleted = false;
+    const workstationState = () => ({
+      controls: { default_selection: { provider: "openrouter", model: "openrouter/openai/gpt-4o-mini", label: "OpenRouter" } },
+      seats: [{ seat_index: 1, label: "Seat 1", agent: "meetings_manager", provider: "default", model: "", updated_at: "2026-01-01T00:00:00Z" }],
+      rooms: [],
+      notes: [],
+      memory: {
+        items: memoryDeleted ? [] : [{
+          id: "mem-1",
+          content: "Visible shared memory. api_key=[redacted]",
+          memory_type: "preference",
+          source_surface: "chat",
+          source_id: "chat-1",
+          actor: "operator",
+          tags: ["chat"],
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-01T00:00:00Z"
+        }],
+        count: memoryDeleted ? 0 : 1
+      },
+      events: [],
+      guardian: { pending_confirmations: [], recent_confirmations: [] },
+      chat: { sessions: [], sessions_count: 0, messages_count: 0 },
+      roundtable: { sessions: [], sessions_count: 0, turns_count: 0, assignments_count: 0, summaries_count: 0 },
+      dashboard: {
+        rooms_count: 0,
+        notes_count: 0,
+        memory_count: memoryDeleted ? 0 : 1,
+        events_count: 0,
+        seat_count: 1,
+        chat_sessions_count: 0,
+        chat_messages_count: 0,
+        roundtable_sessions_count: 0,
+        roundtable_turns_count: 0,
+        roundtable_assignments_count: 0,
+        roundtable_summaries_count: 0,
+        pending_confirmations: 0
+      },
+      storage: { type: "sqlite", path: "local-workstation-store" }
+    });
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/api/workstation/state")) {
+        return new Response(JSON.stringify(workstationState()), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      if (url.includes("/api/chat/sessions")) {
+        return new Response(JSON.stringify({ sessions: [], count: 0 }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      if (url.includes("/api/guardian/actions/confirmations/conf-1/decision")) {
+        return new Response(JSON.stringify({ id: "conf-1", action_type: "memory.delete", status: "approved" }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      if (url.includes("/api/guardian/actions/confirmations")) {
+        return new Response(JSON.stringify({ id: "conf-1", action_type: "memory.delete", status: "pending" }), { status: 201, headers: { "Content-Type": "application/json" } });
+      }
+      if (url.includes("/api/memory/mem-1")) {
+        memoryDeleted = true;
+        return new Response(JSON.stringify({ deleted: "mem-1" }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      return new Response(JSON.stringify({ detail: "unexpected request" }), { status: 500, headers: { "Content-Type": "application/json" } });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    try {
+      render(<ChatWorkstation />);
+
+      expect(await screen.findByText(/Visible shared memory/)).toBeDefined();
+      expect(screen.queryByText(/raw-ui-secret/)).toBeNull();
+
+      fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+      fireEvent.click(await screen.findByRole("button", { name: "Confirm delete" }));
+
+      await waitFor(() => expect(screen.queryByText(/Visible shared memory/)).toBeNull());
+      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/guardian/actions/confirmations"), expect.objectContaining({ method: "POST" }));
+      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/guardian/actions/confirmations/conf-1/decision"), expect.objectContaining({ method: "POST" }));
+      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/memory/mem-1?confirmation_id=conf-1"), expect.objectContaining({ method: "DELETE" }));
+      expect(storageSpy).not.toHaveBeenCalled();
+    } finally {
+      storageSpy.mockRestore();
+      vi.unstubAllGlobals();
     }
   });
 

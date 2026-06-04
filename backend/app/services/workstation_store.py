@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sqlite3
 import uuid
 from contextlib import contextmanager
@@ -53,6 +54,22 @@ def _json_loads(value: str | None, fallback: Any) -> Any:
 
 SENSITIVE_KEY_PARTS = ("api_key", "access_key", "credential", "password", "secret", "token")
 CONFIRMATION_TTL_SECONDS = 15 * 60
+SECRET_PAIR_RE = re.compile(
+    r"(?i)\b(password|passwd|secret|token|api[_-]?key|access[_-]?key|credential|auth[_-]?token|passphrase|private[_-]?key)\b(\s*[:=]\s*)([^\s,;]+)"
+)
+TOKEN_PREFIXES = ("s" + "k-", "g" + "hp_", "x" + "oxb-", "secret" + "_")
+TOKEN_RE = re.compile(
+    r"\b(?:"
+    + re.escape(TOKEN_PREFIXES[0])
+    + r"[A-Za-z0-9]{16,}|"
+    + re.escape(TOKEN_PREFIXES[1])
+    + r"[A-Za-z0-9]{20,}|"
+    + re.escape(TOKEN_PREFIXES[2])
+    + r"[A-Za-z0-9\-]{10,}|"
+    + re.escape(TOKEN_PREFIXES[3])
+    + r"[A-Za-z0-9]{16,})\b"
+)
+PRIVATE_KEY_RE = re.compile(r"-----BEGIN [A-Z ]+PRIVATE KEY-----")
 
 
 ROUND_TABLE_PRIVILEGED_CHECKS = (
@@ -97,7 +114,32 @@ def _sanitize_payload(value: Any) -> Any:
         return safe
     if isinstance(value, list):
         return [_sanitize_payload(item) for item in value]
+    if isinstance(value, str):
+        return _redact_sensitive_text(value)
     return value
+
+
+def _redact_sensitive_text(value: str) -> str:
+    text = str(value or "")
+    text = SECRET_PAIR_RE.sub(lambda match: f"{match.group(1)}{match.group(2)}[redacted]", text)
+    text = TOKEN_RE.sub("[redacted]", text)
+    text = PRIVATE_KEY_RE.sub("[redacted-private-key]", text)
+    redacted: list[str] = []
+    redact_next = False
+    for word in text.split():
+        if redact_next:
+            redacted.append("[redacted]")
+            redact_next = False
+            continue
+        clean = word.strip(".,;:()[]{}").lower().replace("-", "_")
+        key_like = clean in SENSITIVE_KEY_PARTS or any(part in clean for part in SENSITIVE_KEY_PARTS)
+        if key_like and clean not in SENSITIVE_KEY_PARTS and not any(sep in word for sep in (":", "=")):
+            redacted.append("[redacted]")
+            redact_next = False
+        else:
+            redacted.append(word)
+            redact_next = key_like and not any(sep in word for sep in (":", "="))
+    return " ".join(redacted)
 
 
 class WorkstationStore:
@@ -355,12 +397,12 @@ class WorkstationStore:
     def create_room(self, payload: dict[str, Any], actor: str = "operator") -> dict[str, Any]:
         room_id = str(uuid.uuid4())
         now = utc_now()
-        title = str(payload.get("title") or payload.get("name") or "Workstation Room").strip()
+        title = _redact_sensitive_text(str(payload.get("title") or payload.get("name") or "Workstation Room").strip())
         status = str(payload.get("status") or "open").strip()
         phase = str(payload.get("phase") or "setup").strip()
-        goal = str(payload.get("goal") or "").strip()
-        summary = str(payload.get("summary") or "").strip()
-        metadata = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
+        goal = _redact_sensitive_text(str(payload.get("goal") or "").strip())
+        summary = _redact_sensitive_text(str(payload.get("summary") or "").strip())
+        metadata = _sanitize_payload(payload.get("metadata")) if isinstance(payload.get("metadata"), dict) else {}
         with self.connect() as conn:
             conn.execute(
                 """
@@ -421,12 +463,12 @@ class WorkstationStore:
             return None
         now = utc_now()
         next_room = {
-            "title": str(payload.get("title", current["title"])).strip(),
+            "title": _redact_sensitive_text(str(payload.get("title", current["title"])).strip()),
             "status": str(payload.get("status", current["status"])).strip(),
             "phase": str(payload.get("phase", current["phase"])).strip(),
-            "goal": str(payload.get("goal", current["goal"])).strip(),
-            "summary": str(payload.get("summary", current["summary"])).strip(),
-            "metadata": payload.get("metadata") if isinstance(payload.get("metadata"), dict) else current["metadata"],
+            "goal": _redact_sensitive_text(str(payload.get("goal", current["goal"])).strip()),
+            "summary": _redact_sensitive_text(str(payload.get("summary", current["summary"])).strip()),
+            "metadata": _sanitize_payload(payload.get("metadata")) if isinstance(payload.get("metadata"), dict) else current["metadata"],
         }
         with self.connect() as conn:
             conn.execute(
@@ -475,10 +517,10 @@ class WorkstationStore:
 
     def create_roundtable_session(self, payload: dict[str, Any], actor: str = "operator") -> dict[str, Any]:
         room_id = str(payload.get("room_id") or "").strip()
-        title = str(payload.get("title") or "Round Table Room").strip()[:160] or "Round Table Room"
-        goal = str(payload.get("goal") or "").strip()
-        context_query = str(payload.get("context_query") or goal or title).strip()
-        metadata = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
+        title = _redact_sensitive_text(str(payload.get("title") or "Round Table Room").strip())[:160] or "Round Table Room"
+        goal = _redact_sensitive_text(str(payload.get("goal") or "").strip())
+        context_query = _redact_sensitive_text(str(payload.get("context_query") or goal or title).strip())
+        metadata = _sanitize_payload(payload.get("metadata")) if isinstance(payload.get("metadata"), dict) else {}
         if room_id:
             room = self.get_room(room_id)
             if not room:
@@ -701,6 +743,23 @@ class WorkstationStore:
                 actor,
                 now,
             )
+            existing_memory = conn.execute(
+                "SELECT id FROM memory_entries WHERE source_surface = ? AND source_id = ? AND memory_type = ? LIMIT 1",
+                ("roundtable", session_id, "manager_summary"),
+            ).fetchone()
+            if not existing_memory:
+                self._create_memory_conn(
+                    conn,
+                    {
+                        "content": summary,
+                        "memory_type": "manager_summary",
+                        "source_surface": "roundtable",
+                        "source_id": session_id,
+                        "tags": ["roundtable", "summary", "manager_summary", f"room:{room_id}", "seat:1", "agent:meetings_manager"],
+                    },
+                    actor,
+                    now,
+                )
             summary_id = str(uuid.uuid4())
             conn.execute(
                 """
@@ -940,6 +999,23 @@ class WorkstationStore:
                 actor,
                 now,
             )
+            existing_memory = conn.execute(
+                "SELECT id FROM memory_entries WHERE source_surface = ? AND source_id = ? AND memory_type = ? LIMIT 1",
+                ("roundtable", session_id, "manager_summary"),
+            ).fetchone()
+            if not existing_memory:
+                self._create_memory_conn(
+                    conn,
+                    {
+                        "content": summary,
+                        "memory_type": "manager_summary",
+                        "source_surface": "roundtable",
+                        "source_id": session_id,
+                        "tags": ["roundtable", "summary", "manager_summary", f"room:{room_id}", "seat:1", "agent:meetings_manager"],
+                    },
+                    actor,
+                    now,
+                )
             summary_id = str(uuid.uuid4())
             conn.execute(
                 """
@@ -1031,7 +1107,7 @@ class WorkstationStore:
         role = str(payload.get("role") or "user").strip().lower()
         if role not in {"user", "assistant", "system"}:
             raise ValueError("Unsupported chat message role.")
-        content = str(payload.get("content") or "").strip()
+        content = _redact_sensitive_text(str(payload.get("content") or "").strip())
         if not content:
             raise ValueError("Chat message content is required.")
         message_id = str(uuid.uuid4())
@@ -1070,8 +1146,8 @@ class WorkstationStore:
 
     def create_note(self, payload: dict[str, Any], actor: str = "operator") -> dict[str, Any]:
         now = utc_now()
-        title = str(payload.get("title") or "Workstation note").strip()
-        body = str(payload.get("body") or "").strip()
+        title = _redact_sensitive_text(str(payload.get("title") or "Workstation note").strip())
+        body = _redact_sensitive_text(str(payload.get("body") or "").strip())
         surface = str(payload.get("surface") or "workstation").strip()
         source_id = str(payload.get("source_id") or "").strip()
         tags = payload.get("tags") if isinstance(payload.get("tags"), list) else []
@@ -1083,8 +1159,8 @@ class WorkstationStore:
         if not current:
             return None
         now = utc_now()
-        title = str(payload.get("title", current["title"])).strip()
-        body = str(payload.get("body", current["body"])).strip()
+        title = _redact_sensitive_text(str(payload.get("title", current["title"])).strip())
+        body = _redact_sensitive_text(str(payload.get("body", current["body"])).strip())
         surface = str(payload.get("surface", current["surface"])).strip()
         source_id = str(payload.get("source_id", current["source_id"])).strip()
         tags = payload.get("tags") if isinstance(payload.get("tags"), list) else current["tags"]
@@ -1119,30 +1195,40 @@ class WorkstationStore:
             return self._list_notes_conn(conn, surface=surface, source_id=source_id, limit=limit)
 
     def create_memory(self, payload: dict[str, Any], actor: str = "operator") -> dict[str, Any]:
-        memory_id = str(uuid.uuid4())
         now = utc_now()
-        content = str(payload.get("content") or payload.get("text") or "").strip()
-        if not content:
-            raise ValueError("Memory content is required.")
-        memory_type = str(payload.get("memory_type") or payload.get("type") or "note").strip()
-        source_surface = str(payload.get("source_surface") or payload.get("surface") or "workstation").strip()
-        source_id = str(payload.get("source_id") or "").strip()
-        tags = payload.get("tags") if isinstance(payload.get("tags"), list) else []
         with self.connect() as conn:
+            return self._create_memory_conn(conn, payload, actor, now)
+
+    def update_memory(self, memory_id: str, payload: dict[str, Any], actor: str = "operator") -> dict[str, Any] | None:
+        current = None
+        with self.connect() as conn:
+            row = conn.execute("SELECT * FROM memory_entries WHERE id = ?", (memory_id,)).fetchone()
+            if not row:
+                return None
+            current = self._memory(row)
+            now = utc_now()
+            content = _redact_sensitive_text(str(payload.get("content", current["content"])).strip())
+            if not content:
+                raise ValueError("Memory content is required.")
+            memory_type = str(payload.get("memory_type", current["memory_type"])).strip() or current["memory_type"]
+            source_surface = str(payload.get("source_surface", current["source_surface"])).strip() or current["source_surface"]
+            source_id = str(payload.get("source_id", current["source_id"])).strip()
+            tags = payload.get("tags") if isinstance(payload.get("tags"), list) else current["tags"]
             conn.execute(
                 """
-                INSERT INTO memory_entries (id, content, memory_type, source_surface, source_id, actor, tags_json, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                UPDATE memory_entries
+                SET content = ?, memory_type = ?, source_surface = ?, source_id = ?, tags_json = ?, updated_at = ?
+                WHERE id = ?
                 """,
-                (memory_id, content, memory_type, source_surface, source_id, actor, _json_dumps(tags), now, now),
+                (content, memory_type, source_surface, source_id, _json_dumps(tags), now, memory_id),
             )
             self._append_event_conn(
                 conn,
-                "memory.saved",
+                "memory.updated",
                 source_surface,
                 source_id or memory_id,
                 actor,
-                "Memory saved.",
+                "Memory updated.",
                 {"memory_id": memory_id, "memory_type": memory_type, "tags": tags},
                 now,
             )
@@ -1543,8 +1629,8 @@ class WorkstationStore:
 
     def _create_note_conn(self, conn: sqlite3.Connection, payload: dict[str, Any], actor: str, created_at: str) -> dict[str, Any]:
         note_id = str(uuid.uuid4())
-        title = str(payload.get("title") or "Workstation note").strip()
-        body = str(payload.get("body") or "").strip()
+        title = _redact_sensitive_text(str(payload.get("title") or "Workstation note").strip())
+        body = _redact_sensitive_text(str(payload.get("body") or "").strip())
         surface = str(payload.get("surface") or "workstation").strip()
         source_id = str(payload.get("source_id") or "").strip()
         tags = payload.get("tags") if isinstance(payload.get("tags"), list) else []
@@ -1568,6 +1654,35 @@ class WorkstationStore:
         row = conn.execute("SELECT * FROM notes WHERE id = ?", (note_id,)).fetchone()
         return self._note(row)
 
+    def _create_memory_conn(self, conn: sqlite3.Connection, payload: dict[str, Any], actor: str, created_at: str) -> dict[str, Any]:
+        memory_id = str(uuid.uuid4())
+        content = _redact_sensitive_text(str(payload.get("content") or payload.get("text") or "").strip())
+        if not content:
+            raise ValueError("Memory content is required.")
+        memory_type = str(payload.get("memory_type") or payload.get("type") or "note").strip()
+        source_surface = str(payload.get("source_surface") or payload.get("surface") or "workstation").strip()
+        source_id = str(payload.get("source_id") or "").strip()
+        tags = payload.get("tags") if isinstance(payload.get("tags"), list) else []
+        conn.execute(
+            """
+            INSERT INTO memory_entries (id, content, memory_type, source_surface, source_id, actor, tags_json, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (memory_id, content, memory_type, source_surface, source_id, actor, _json_dumps(tags), created_at, created_at),
+        )
+        self._append_event_conn(
+            conn,
+            "memory.saved",
+            source_surface,
+            source_id or memory_id,
+            actor,
+            "Memory saved.",
+            {"memory_id": memory_id, "memory_type": memory_type, "tags": tags},
+            created_at,
+        )
+        row = conn.execute("SELECT * FROM memory_entries WHERE id = ?", (memory_id,)).fetchone()
+        return self._memory(row)
+
     def _insert_roundtable_turn_conn(
         self,
         conn: sqlite3.Connection,
@@ -1586,6 +1701,7 @@ class WorkstationStore:
         metadata: dict[str, Any] | None = None,
     ) -> str:
         turn_id = str(uuid.uuid4())
+        content = _redact_sensitive_text(content)
         provider = provider or "provider-safe"
         model = model or "roundtable-local-skeleton"
         turn_metadata = {"mode": "provider_safe", "label": participant.get("label") or "Seat"}
@@ -1639,11 +1755,11 @@ class WorkstationStore:
     def _room(self, row: sqlite3.Row) -> dict[str, Any]:
         return {
             "id": row["id"],
-            "title": row["title"],
+            "title": _redact_sensitive_text(row["title"]),
             "status": row["status"],
             "phase": row["phase"],
-            "goal": row["goal"],
-            "summary": row["summary"],
+            "goal": _redact_sensitive_text(row["goal"]),
+            "summary": _redact_sensitive_text(row["summary"]),
             "metadata": _json_loads(row["metadata_json"], {}),
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],
@@ -1677,11 +1793,11 @@ class WorkstationStore:
         return {
             "id": row["id"],
             "room_id": row["room_id"],
-            "title": row["title"],
+            "title": _redact_sensitive_text(row["title"]),
             "status": row["status"],
             "phase": row["phase"],
-            "goal": row["goal"],
-            "context_query": row["context_query"],
+            "goal": _redact_sensitive_text(row["goal"]),
+            "context_query": _redact_sensitive_text(row["context_query"]),
             "metadata": _json_loads(row["metadata_json"], {}),
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],
@@ -1698,7 +1814,7 @@ class WorkstationStore:
             "seat_index": row["seat_index"],
             "agent": row["agent"],
             "role": row["role"],
-            "content": row["content"],
+            "content": _redact_sensitive_text(row["content"]),
             "assignment_id": row["assignment_id"],
             "provider": row["provider"],
             "model": row["model"],
@@ -1714,7 +1830,7 @@ class WorkstationStore:
             "seat_index": row["seat_index"],
             "agent": row["agent"],
             "title": row["title"],
-            "instruction": row["instruction"],
+            "instruction": _redact_sensitive_text(row["instruction"]),
             "status": row["status"],
             "response_turn_id": row["response_turn_id"],
             "created_at": row["created_at"],
@@ -1727,7 +1843,7 @@ class WorkstationStore:
             "session_id": row["session_id"],
             "room_id": row["room_id"],
             "phase": row["phase"],
-            "content": row["content"],
+            "content": _redact_sensitive_text(row["content"]),
             "note_id": row["note_id"],
             "created_at": row["created_at"],
         }
@@ -1735,7 +1851,7 @@ class WorkstationStore:
     def _chat_session(self, row: sqlite3.Row) -> dict[str, Any]:
         return {
             "id": row["id"],
-            "title": row["title"],
+            "title": _redact_sensitive_text(row["title"]),
             "status": row["status"],
             "active_room_id": row["active_room_id"],
             "metadata": _json_loads(row["metadata_json"], {}),
@@ -1748,7 +1864,7 @@ class WorkstationStore:
             "id": row["id"],
             "session_id": row["session_id"],
             "role": row["role"],
-            "content": row["content"],
+            "content": _redact_sensitive_text(row["content"]),
             "actor": row["actor"],
             "provider": row["provider"],
             "model": row["model"],
@@ -1759,8 +1875,8 @@ class WorkstationStore:
     def _note(self, row: sqlite3.Row) -> dict[str, Any]:
         return {
             "id": row["id"],
-            "title": row["title"],
-            "body": row["body"],
+            "title": _redact_sensitive_text(row["title"]),
+            "body": _redact_sensitive_text(row["body"]),
             "surface": row["surface"],
             "source_id": row["source_id"],
             "actor": row["actor"],
@@ -1772,7 +1888,7 @@ class WorkstationStore:
     def _memory(self, row: sqlite3.Row) -> dict[str, Any]:
         return {
             "id": row["id"],
-            "content": row["content"],
+            "content": _redact_sensitive_text(row["content"]),
             "memory_type": row["memory_type"],
             "source_surface": row["source_surface"],
             "source_id": row["source_id"],
@@ -1789,8 +1905,8 @@ class WorkstationStore:
             "surface": row["surface"],
             "source_id": row["source_id"],
             "actor": row["actor"],
-            "summary": row["summary"],
-            "payload": _json_loads(row["payload_json"], {}),
+            "summary": _redact_sensitive_text(row["summary"]),
+            "payload": _sanitize_payload(_json_loads(row["payload_json"], {})),
             "created_at": row["created_at"],
         }
 
@@ -1800,7 +1916,7 @@ class WorkstationStore:
             "action_type": row["action_type"],
             "status": row["status"],
             "risk_level": row["risk_level"],
-            "prompt": row["prompt"],
+            "prompt": _redact_sensitive_text(row["prompt"]),
             "surface": row["surface"],
             "source_id": row["source_id"],
             "created_at": row["created_at"],

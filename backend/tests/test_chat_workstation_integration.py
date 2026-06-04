@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.services import model_execution
 
 
 PROVIDER_ENVS = [
@@ -17,6 +18,11 @@ PROVIDER_ENVS = [
 def _clear_provider_env(monkeypatch) -> None:
     for name in PROVIDER_ENVS:
         monkeypatch.delenv(name, raising=False)
+
+
+def _save_openrouter_credential(client: TestClient, credential: str = "unit-test-credential-value") -> None:
+    response = client.post("/api/v1/chat/models/config", json={"providers": {"openrouter_api_key": credential}})
+    assert response.status_code == 200
 
 
 def test_chat_turn_persists_context_memory_and_events(tmp_path, monkeypatch) -> None:
@@ -65,6 +71,64 @@ def test_chat_turn_persists_context_memory_and_events(tmp_path, monkeypatch) -> 
     persisted = second_client.get(f"/api/chat/sessions/{payload['session']['id']}")
     assert persisted.status_code == 200
     assert persisted.json()["message_count"] == 2
+
+
+def test_chat_provider_prompt_uses_recalled_memory_and_notes_safely(tmp_path, monkeypatch) -> None:
+    _clear_provider_env(monkeypatch)
+    monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
+    calls: list[dict[str, object]] = []
+
+    async def fake_post_json(url: str, headers: dict[str, str], payload: dict[str, object], timeout_seconds: float) -> dict[str, object]:
+        calls.append({"url": url, "headers": headers, "payload": payload, "timeout": timeout_seconds})
+        return {"choices": [{"message": {"content": "Safe chat provider response."}}]}
+
+    monkeypatch.setattr(model_execution, "_post_json", fake_post_json)
+    client = TestClient(app)
+    _save_openrouter_credential(client)
+
+    memory_response = client.post(
+        "/api/memory",
+        json={
+            "content": "Launch context prefers short answers. api_key=raw-memory-secret",
+            "memory_type": "preference",
+            "source_surface": "workstation",
+            "tags": ["launch"],
+        },
+    )
+    assert memory_response.status_code == 201
+    assert memory_response.json()["content"] == "Launch context prefers short answers. api_key=[redacted]"
+
+    note_response = client.post(
+        "/api/notes",
+        json={"title": "Launch note", "body": "Use the shared plan. token raw-note-secret", "surface": "workstation", "tags": ["launch"]},
+    )
+    assert note_response.status_code == 201
+    assert "raw-note-secret" not in str(note_response.json())
+
+    chat_response = client.post("/api/chat/messages", json={"content": "Use the launch context memory."})
+
+    assert chat_response.status_code == 201
+    payload = chat_response.json()
+    assert payload["model_execution"]["status"] == "success"
+    assert len(calls) == 1
+    messages = calls[0]["payload"]["messages"]  # type: ignore[index]
+    prompt_text = "\n".join(str(message.get("content") or "") for message in messages)
+    assert "Shared Workstation context is redacted and source-labeled" in prompt_text
+    assert "Memory/preference [workstation:shared; actor:operator; tags:launch]" in prompt_text
+    assert "Launch context prefers short answers. api_key=[redacted]" in prompt_text
+    assert "Note/Launch note [workstation:shared; actor:operator; tags:launch]" in prompt_text
+    assert "Use the shared plan. token [redacted]" in prompt_text
+    assert "raw-memory-secret" not in prompt_text
+    assert "raw-note-secret" not in prompt_text
+
+    events = client.get("/api/events?event_type=model.call.completed").json()["events"]
+    assert events
+    assert all("messages" not in event["payload"] for event in events)
+    assert all("prompt" not in event["payload"] for event in events)
+    assert all("Safe chat provider response" not in str(event["payload"]) for event in events)
+    assert "unit-test-credential-value" not in str(events)
+    assert "raw-memory-secret" not in str(payload)
+    assert "raw-note-secret" not in str(payload)
 
 
 def test_chat_memory_delete_request_creates_confirmation_without_deleting(tmp_path, monkeypatch) -> None:

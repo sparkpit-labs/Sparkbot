@@ -2,7 +2,10 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import {
   createChatSession,
+  createGuardianConfirmation,
   createNote,
+  decideGuardianConfirmation,
+  deleteMemory,
   fetchChatSession,
   fetchChatSessions,
   fetchWorkstationState,
@@ -33,6 +36,7 @@ export default function ChatWorkstation() {
   const [draft, setDraft] = useState("");
   const [noteDraft, setNoteDraft] = useState("");
   const [saveToMemory, setSaveToMemory] = useState(false);
+  const [pendingMemoryDelete, setPendingMemoryDelete] = useState<{ memoryId: string; confirmationId: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("Loading shared Workstation state...");
   const [error, setError] = useState<string | null>(null);
@@ -152,6 +156,59 @@ export default function ChatWorkstation() {
     }
   }
 
+  async function requestMemoryDelete(memoryId: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      const confirmation = await createGuardianConfirmation({
+        action_type: "memory.delete",
+        risk_level: "confirm",
+        prompt: "Confirm memory delete before removing this shared Workstation memory.",
+        surface: "memory",
+        source_id: memoryId
+      });
+      setPendingMemoryDelete({ memoryId, confirmationId: confirmation.id });
+      setMessage("Guardian confirmation created for memory delete.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Memory delete confirmation could not be created.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function confirmMemoryDelete(memoryId: string) {
+    if (!pendingMemoryDelete || pendingMemoryDelete.memoryId !== memoryId) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await decideGuardianConfirmation(pendingMemoryDelete.confirmationId, "approved");
+      await deleteMemory(memoryId, pendingMemoryDelete.confirmationId);
+      setPendingMemoryDelete(null);
+      await loadData(activeSession?.id);
+      setMessage("Memory deleted from shared Workstation state.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Memory could not be deleted.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function cancelMemoryDelete() {
+    if (!pendingMemoryDelete) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await decideGuardianConfirmation(pendingMemoryDelete.confirmationId, "denied");
+      setPendingMemoryDelete(null);
+      await loadData(activeSession?.id);
+      setMessage("Memory delete was denied.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Memory delete confirmation could not be denied.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <section className="chat-workstation" aria-label="Sparkbot Chat">
       <header className="command-header chat-workstation-header">
@@ -248,9 +305,24 @@ export default function ChatWorkstation() {
 
           <div className="context-list">
             <h4>Recent memory</h4>
-            {(workstation?.memory.items || []).slice(0, 4).map((memory) => (
-              <p key={memory.id}><strong>{memory.memory_type}</strong> {memory.content}</p>
-            ))}
+            {(workstation?.memory.items || []).slice(0, 4).map((memory) => {
+              const pendingDelete = pendingMemoryDelete?.memoryId === memory.id;
+              return (
+                <div className="memory-list-item" key={memory.id}>
+                  <p><strong>{memory.memory_type}</strong> {memory.content}</p>
+                  <div className="memory-list-actions">
+                    {pendingDelete ? (
+                      <>
+                        <button type="button" onClick={() => confirmMemoryDelete(memory.id)} disabled={busy}>Confirm delete</button>
+                        <button type="button" onClick={cancelMemoryDelete} disabled={busy}>Cancel</button>
+                      </>
+                    ) : (
+                      <button type="button" onClick={() => requestMemoryDelete(memory.id)} disabled={busy}>Delete</button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           <div className="context-list">

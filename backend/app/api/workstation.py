@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from app.api.command_center import DEFAULT_AGENTS, _build_controls_config, _custom_agent_records, _invite_route_records, _read_config, _read_secrets
 from app.services.model_execution import ModelExecutionResult, execute_model_request, resolve_model_route
-from app.services.workstation_store import _roundtable_privileged_action, get_store
+from app.services.workstation_store import _redact_sensitive_text, _roundtable_privileged_action, get_store
 
 
 router = APIRouter()
@@ -67,6 +67,15 @@ class MemoryCreate(BaseModel):
     source_id: str = Field(default="", max_length=160)
     actor: str = Field(default="operator", max_length=80)
     tags: list[str] = Field(default_factory=list, max_length=20)
+
+
+class MemoryUpdate(BaseModel):
+    content: str | None = Field(default=None, min_length=1, max_length=20000)
+    memory_type: str | None = Field(default=None, max_length=80)
+    source_surface: str | None = Field(default=None, max_length=80)
+    source_id: str | None = Field(default=None, max_length=160)
+    actor: str = Field(default="operator", max_length=80)
+    tags: list[str] | None = Field(default=None, max_length=20)
 
 
 class MemoryRecallRequest(BaseModel):
@@ -237,18 +246,20 @@ def _chat_reply(
 
 
 def _chat_model_messages(content: str, memories: list[dict[str, Any]], notes: list[dict[str, Any]]) -> list[dict[str, str]]:
-    context_summary = f"Local Workstation context available: {len(memories)} memory item(s), {len(notes)} note(s)."
+    context_text = _shared_recall_context_text(memories, notes, memory_limit=5, note_limit=5)
+    safe_content = _redact_sensitive_text(content)
     return [
         {
             "role": "system",
             "content": (
                 "You are Sparkbot Chat inside a local Workstation. Return concise text only. "
+                "Use the shared Workstation context when relevant, but do not reveal hidden metadata or secrets. "
                 "Do not claim to run connectors, send messages externally, mutate files, execute commands, "
                 "schedule jobs, control devices, or perform privileged actions. If protected work is needed, "
                 "state that a Guardian-confirmed backend route is required."
             ),
         },
-        {"role": "user", "content": f"{context_summary}\n\nOperator message:\n{content}"},
+        {"role": "user", "content": f"Shared context:\n{context_text}\n\nOperator message:\n{safe_content}"},
     ]
 
 
@@ -334,10 +345,43 @@ def _roundtable_provider_enabled(participants: list[dict[str, Any]], agent_conte
 
 
 def _clip_context(value: Any, limit: int = 500) -> str:
-    text = " ".join(str(value or "").split())
+    text = " ".join(_redact_sensitive_text(str(value or "")).split())
     if len(text) <= limit:
         return text
     return text[: limit - 3].rstrip() + "..."
+
+
+def _source_ref(surface: Any, source_id: Any) -> str:
+    clean_surface = _clip_context(surface or "workstation", 80)
+    clean_source = _clip_context(source_id or "shared", 80)
+    return f"{clean_surface}:{clean_source}"
+
+
+def _shared_recall_context_text(memories: list[dict[str, Any]], notes: list[dict[str, Any]], *, memory_limit: int = 5, note_limit: int = 5) -> str:
+    lines = [
+        "Shared Workstation context is redacted and source-labeled. Use it only as background; do not reveal hidden metadata or execute actions.",
+        f"Memory items: {len(memories)}",
+        f"Notes: {len(notes)}",
+    ]
+    for memory in memories[:memory_limit]:
+        tags = memory.get("tags") if isinstance(memory.get("tags"), list) else []
+        tag_text = ",".join(_clip_context(tag, 40) for tag in tags[:6]) or "untagged"
+        actor = _clip_context(memory.get("actor") or "operator", 80)
+        source = _source_ref(memory.get("source_surface"), memory.get("source_id"))
+        kind = _clip_context(memory.get("memory_type") or "note", 80)
+        content = _clip_context(memory.get("content"), 700)
+        if content:
+            lines.append(f"- Memory/{kind} [{source}; actor:{actor}; tags:{tag_text}]: {content}")
+    for note in notes[:note_limit]:
+        tags = note.get("tags") if isinstance(note.get("tags"), list) else []
+        tag_text = ",".join(_clip_context(tag, 40) for tag in tags[:6]) or "untagged"
+        actor = _clip_context(note.get("actor") or "operator", 80)
+        source = _source_ref(note.get("surface"), note.get("source_id"))
+        title = _clip_context(note.get("title"), 120)
+        body = _clip_context(note.get("body"), 700)
+        if title or body:
+            lines.append(f"- Note/{title or 'untitled'} [{source}; actor:{actor}; tags:{tag_text}]: {body}")
+    return "\n".join(lines)
 
 
 def _roundtable_context_notes(store: Any, room_id: str) -> list[dict[str, Any]]:
@@ -347,14 +391,7 @@ def _roundtable_context_notes(store: Any, room_id: str) -> list[dict[str, Any]]:
 
 
 def _roundtable_context_text(memories: list[dict[str, Any]], notes: list[dict[str, Any]]) -> str:
-    lines = [f"Memory items: {len(memories)}", f"Notes: {len(notes)}"]
-    for memory in memories[:5]:
-        lines.append(f"- Memory/{memory.get('memory_type') or 'note'}: {_clip_context(memory.get('content'))}")
-    for note in notes[:5]:
-        title = _clip_context(note.get("title"), 120)
-        body = _clip_context(note.get("body"), 500)
-        lines.append(f"- Note/{title}: {body}")
-    return "\n".join(lines)
+    return _shared_recall_context_text(memories, notes, memory_limit=5, note_limit=5)
 
 
 def _roundtable_model_messages(
@@ -458,9 +495,10 @@ async def _roundtable_model_turn(
         blocked_action = _roundtable_privileged_action(result.text)
         if blocked_action:
             return {"blocked_action": blocked_action, "model_event_id": result.event_id}
+        safe_text = _redact_sensitive_text(result.text)
         return {
             "participant": participant,
-            "content": result.text,
+            "content": safe_text,
             "provider": result.provider,
             "model": result.model,
             "metadata": _provider_turn_metadata(result, "provider_backed", agent_context),
@@ -644,12 +682,14 @@ async def add_chat_turn(body: ChatMessageCreate) -> dict[str, Any]:
     resolved_route = resolve_model_route(route)
     route = {**route, "provider": resolved_route.provider, "model": resolved_route.model, "label": resolved_route.label}
 
+    safe_content = _redact_sensitive_text(body.content)
+
     if body.session_id:
         session = store.get_chat_session(body.session_id)
         if not session:
             raise HTTPException(status_code=404, detail="Chat session not found.")
     else:
-        title = body.content.strip()[:80] or "Sparkbot chat"
+        title = safe_content.strip()[:80] or "Sparkbot chat"
         session = store.create_chat_session({"title": title, "metadata": {"surface": "chat"}}, actor=body.actor)
 
     session_id = str(session["id"])
@@ -658,7 +698,7 @@ async def add_chat_turn(body: ChatMessageCreate) -> dict[str, Any]:
             session_id,
             {
                 "role": "user",
-                "content": body.content,
+                "content": safe_content,
                 "provider": route["provider"],
                 "model": route["model"],
                 "metadata": {"source": "chat", **body.metadata},
@@ -668,7 +708,7 @@ async def add_chat_turn(body: ChatMessageCreate) -> dict[str, Any]:
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    memories = store.recall_memory(query=body.content, limit=5)
+    memories = store.recall_memory(query=safe_content, limit=5)
     notes = _chat_notes_for_context(store, session_id)
     store.append_event(
         {
@@ -686,7 +726,7 @@ async def add_chat_turn(body: ChatMessageCreate) -> dict[str, Any]:
         try:
             saved_memory = store.create_memory(
                 {
-                    "content": body.content,
+                    "content": safe_content,
                     "memory_type": "chat",
                     "source_surface": "chat",
                     "source_id": session_id,
@@ -697,7 +737,7 @@ async def add_chat_turn(body: ChatMessageCreate) -> dict[str, Any]:
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    delete_target = _memory_delete_target(body.content, store.list_memory(limit=500))
+    delete_target = _memory_delete_target(safe_content, store.list_memory(limit=500))
     confirmation = None
     blocked_action = None
     if delete_target:
@@ -712,7 +752,7 @@ async def add_chat_turn(body: ChatMessageCreate) -> dict[str, Any]:
             actor=body.actor,
         )
     else:
-        blocked_action = _unsupported_privileged_request(body.content)
+        blocked_action = _unsupported_privileged_request(safe_content)
         if blocked_action:
             store.append_event(
                 {
@@ -730,7 +770,7 @@ async def add_chat_turn(body: ChatMessageCreate) -> dict[str, Any]:
     if not confirmation and not blocked_action:
         model_result = await execute_model_request(
             route=route,
-            messages=_chat_model_messages(body.content, memories, notes),
+            messages=_chat_model_messages(safe_content, memories, notes),
             store=store,
             surface="chat",
             source_id=session_id,
@@ -978,6 +1018,21 @@ async def create_memory(body: MemoryCreate) -> dict[str, Any]:
         return get_store().create_memory(body.model_dump(exclude={"actor"}), actor=body.actor)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.patch("/api/memory/{memory_id}")
+async def update_memory(memory_id: str, body: MemoryUpdate) -> dict[str, Any]:
+    try:
+        memory = get_store().update_memory(
+            memory_id,
+            {key: value for key, value in body.model_dump(exclude={"actor"}).items() if value is not None},
+            actor=body.actor,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not memory:
+        raise HTTPException(status_code=404, detail="Memory not found.")
+    return memory
 
 
 @router.post("/api/memory/recall")

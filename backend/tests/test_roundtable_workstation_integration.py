@@ -97,6 +97,15 @@ def test_roundtable_provider_safe_flow_persists_shared_state_events_and_wrapup_n
     assert notes_response.status_code == 200
     assert notes_response.json()["count"] == 1
 
+    summary_memory_response = client.get("/api/memory?memory_type=manager_summary")
+    assert summary_memory_response.status_code == 200
+    summary_memories = summary_memory_response.json()["memories"]
+    assert len(summary_memories) == 1
+    assert summary_memories[0]["source_surface"] == "roundtable"
+    assert summary_memories[0]["source_id"] == session_id
+    assert "seat:1" in summary_memories[0]["tags"]
+    assert "agent:meetings_manager" in summary_memories[0]["tags"]
+
     state = client.get("/api/workstation/state").json()
     assert state["roundtable"]["sessions_count"] == 1
     assert state["roundtable"]["turns_count"] == 16
@@ -134,6 +143,7 @@ def test_roundtable_provider_safe_flow_persists_shared_state_events_and_wrapup_n
     assert rerun["assignment_count"] == 7
     assert len(rerun["summaries"]) == 1
     assert len(rerun["notes"]) == 1
+    assert second_client.get("/api/memory?memory_type=manager_summary").json()["count"] == 1
 
 
 def test_roundtable_provider_model_flow_persists_provider_turns_and_redacted_events(tmp_path, monkeypatch) -> None:
@@ -148,6 +158,22 @@ def test_roundtable_provider_model_flow_persists_provider_turns_and_redacted_eve
     monkeypatch.setattr(model_execution, "_post_json", fake_post_json)
     client = TestClient(app)
     _save_openrouter_credential(client)
+
+    memory_response = client.post(
+        "/api/memory",
+        json={
+            "content": "Round Table should recall launch memory. api_key=roundtable-memory-secret",
+            "memory_type": "preference",
+            "source_surface": "workstation",
+            "tags": ["roundtable"],
+        },
+    )
+    assert memory_response.status_code == 201
+    note_response = client.post(
+        "/api/notes",
+        json={"title": "Provider planning note", "body": "Use recalled notes. token roundtable-note-secret", "surface": "workstation", "tags": ["roundtable"]},
+    )
+    assert note_response.status_code == 201
 
     create_response = client.post(
         "/api/roundtable/sessions",
@@ -168,6 +194,15 @@ def test_roundtable_provider_model_flow_persists_provider_turns_and_redacted_eve
     assert all(call["url"] == "https://openrouter.ai/api/v1/chat/completions" for call in calls)
     assert all(call["payload"]["model"] == "openai/gpt-4o-mini" for call in calls)
 
+    first_prompt = "\n".join(str(message.get("content") or "") for message in calls[0]["payload"]["messages"])  # type: ignore[index]
+    assert "Shared Workstation context is redacted and source-labeled" in first_prompt
+    assert "Memory/preference [workstation:shared; actor:operator; tags:roundtable]" in first_prompt
+    assert "Round Table should recall launch memory. api_key=[redacted]" in first_prompt
+    assert "Note/Provider planning note [workstation:shared; actor:operator; tags:roundtable]" in first_prompt
+    assert "Use recalled notes. token [redacted]" in first_prompt
+    assert "roundtable-memory-secret" not in first_prompt
+    assert "roundtable-note-secret" not in first_prompt
+
     assert all(turn["provider"] == "openrouter" for turn in session["turns"])
     assert all(turn["model"] == "openrouter/openai/gpt-4o-mini" for turn in session["turns"])
     assert all(turn["metadata"]["mode"] == "provider_backed" for turn in session["turns"])
@@ -182,6 +217,14 @@ def test_roundtable_provider_model_flow_persists_provider_turns_and_redacted_eve
     assert all("roundtable_phase" in event["payload"] for event in model_events)
     assert "Provider safe Round Table response" not in str([event["payload"] for event in model_events])
     assert "unit-test-credential-value" not in str(events)
+    assert "roundtable-memory-secret" not in str(events)
+    assert "roundtable-note-secret" not in str(events)
+
+    summary_memories = client.get("/api/memory?memory_type=manager_summary").json()["memories"]
+    assert len(summary_memories) == 1
+    assert summary_memories[0]["source_id"] == session_id
+    assert "seat:1" in summary_memories[0]["tags"]
+    assert "agent:meetings_manager" in summary_memories[0]["tags"]
 
 
 def test_roundtable_provider_flow_uses_assigned_agent_context_and_persists_links(tmp_path, monkeypatch) -> None:

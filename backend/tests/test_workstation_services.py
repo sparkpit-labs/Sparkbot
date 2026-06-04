@@ -94,6 +94,15 @@ def test_memory_create_list_recall_delete(tmp_path, monkeypatch) -> None:
     assert recall_response.status_code == 200
     assert recall_response.json()["count"] == 1
 
+    update_response = client.patch(
+        f"/api/memory/{memory['id']}",
+        json={"content": "The user prefers concise meeting plans. secret:raw-memory-secret", "tags": ["meetings", "updated"]},
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["content"] == "The user prefers concise meeting plans. secret:[redacted]"
+    assert update_response.json()["tags"] == ["meetings", "updated"]
+    assert "raw-memory-secret" not in str(update_response.json())
+
     confirmation_response = client.post(
         "/api/guardian/actions/confirmations",
         json={
