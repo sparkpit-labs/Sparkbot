@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from app.api.command_center import _build_controls_config
+from app.services.model_execution import ModelExecutionResult, execute_model_request, resolve_model_route
 from app.services.workstation_store import get_store
 
 
@@ -135,10 +136,10 @@ def _selected_chat_route(state: dict[str, Any]) -> dict[str, Any]:
     default = controls.get("default_selection") if isinstance(controls.get("default_selection"), dict) else {}
     seats = state.get("seats") if isinstance(state.get("seats"), list) else []
     seat_one = seats[0] if seats else {}
-    model = str(seat_one.get("model") or default.get("model") or "local-workstation")
-    provider = str(seat_one.get("provider") or default.get("provider") or "local")
-    if provider == "default" and default.get("provider"):
-        provider = str(default.get("provider"))
+    model = str(default.get("model") or seat_one.get("model") or "local-workstation")
+    provider = str(default.get("provider") or seat_one.get("provider") or "local")
+    if provider == "default":
+        provider = "local"
     return {
         "provider": provider or "local",
         "model": model or "local-workstation",
@@ -197,6 +198,8 @@ def _chat_reply(
     notes: list[dict[str, Any]],
     confirmation: dict[str, Any] | None,
     blocked_action: str | None,
+    model_result: ModelExecutionResult | None,
+    model_blocked_action: str | None,
     saved_memory: dict[str, Any] | None,
 ) -> str:
     if confirmation:
@@ -209,13 +212,41 @@ def _chat_reply(
             "That request is treated as privileged Workstation work. "
             "No action was executed; a dedicated route and Guardian confirmation are required first."
         )
+    if model_blocked_action:
+        return (
+            "The model response requested protected Workstation work. "
+            "No action was executed; a dedicated route and Guardian confirmation are required before protected actions."
+        )
+    if model_result:
+        if model_result.ok:
+            return model_result.text
+        return (
+            f"Selected model route {route['provider']} / {route['model']} could not complete safely: "
+            f"{model_result.error or model_result.status}. No tools or protected actions were executed."
+        )
     saved = " The user message was also saved to Workstation memory." if saved_memory else ""
     return (
         f"Saved this chat turn to the shared Workstation state. "
         f"Selected route: {route['provider']} / {route['model']} from {route['seat_label']}. "
         f"Context available now: {len(memories)} memory item(s) and {len(notes)} note(s)."
-        f"{saved} Provider execution remains deferred in this branch."
+        f"{saved} No provider call was made."
     )
+
+
+def _chat_model_messages(content: str, memories: list[dict[str, Any]], notes: list[dict[str, Any]]) -> list[dict[str, str]]:
+    context_summary = f"Local Workstation context available: {len(memories)} memory item(s), {len(notes)} note(s)."
+    return [
+        {
+            "role": "system",
+            "content": (
+                "You are Sparkbot Chat inside a local Workstation. Return concise text only. "
+                "Do not claim to run connectors, send messages externally, mutate files, execute commands, "
+                "schedule jobs, control devices, or perform privileged actions. If protected work is needed, "
+                "state that a Guardian-confirmed backend route is required."
+            ),
+        },
+        {"role": "user", "content": f"{context_summary}\n\nOperator message:\n{content}"},
+    ]
 
 
 @router.get("/api/workstation/state")
@@ -247,6 +278,8 @@ async def add_chat_turn(body: ChatMessageCreate) -> dict[str, Any]:
     store = get_store()
     state = await _workstation_state_with_controls()
     route = _selected_chat_route(state)
+    resolved_route = resolve_model_route(route)
+    route = {**route, "provider": resolved_route.provider, "model": resolved_route.model, "label": resolved_route.label}
 
     if body.session_id:
         session = store.get_chat_session(body.session_id)
@@ -329,12 +362,44 @@ async def add_chat_turn(body: ChatMessageCreate) -> dict[str, Any]:
                 actor=body.actor,
             )
 
+    model_result = None
+    model_blocked_action = None
+    if not confirmation and not blocked_action:
+        model_result = await execute_model_request(
+            route=route,
+            messages=_chat_model_messages(body.content, memories, notes),
+            store=store,
+            surface="chat",
+            source_id=session_id,
+            actor="sparkbot",
+        )
+        if model_result.ok:
+            model_blocked_action = _unsupported_privileged_request(model_result.text)
+            if model_blocked_action:
+                store.append_event(
+                    {
+                        "event_type": "guardian.action_blocked",
+                        "surface": "chat",
+                        "source_id": session_id,
+                        "summary": "Protected model output was not executed.",
+                        "payload": {
+                            "action_type": model_blocked_action,
+                            "requires_confirmation": True,
+                            "source": "model_output",
+                            "model_event_id": model_result.event_id,
+                        },
+                    },
+                    actor="sparkbot",
+                )
+
     assistant_text = _chat_reply(
         route=route,
         memories=memories,
         notes=notes,
         confirmation=confirmation,
         blocked_action=blocked_action,
+        model_result=model_result,
+        model_blocked_action=model_blocked_action,
         saved_memory=saved_memory,
     )
     assistant_message = store.add_chat_message(
@@ -345,9 +410,11 @@ async def add_chat_turn(body: ChatMessageCreate) -> dict[str, Any]:
             "provider": route["provider"],
             "model": route["model"],
             "metadata": {
-                "mode": "provider_deferred",
+                "mode": "provider_execution" if model_result and model_result.ok else "provider_not_called" if not model_result else "provider_failed_safe",
+                "model_execution_status": model_result.status if model_result else "not_called",
+                "model_event_id": model_result.event_id if model_result else "",
                 "confirmation_id": confirmation["id"] if confirmation else "",
-                "blocked_action": blocked_action or "",
+                "blocked_action": blocked_action or model_blocked_action or "",
             },
         },
         actor="sparkbot",
@@ -361,7 +428,14 @@ async def add_chat_turn(body: ChatMessageCreate) -> dict[str, Any]:
         "context": {"memories": memories, "notes": notes},
         "saved_memory": saved_memory,
         "guardian_confirmation": confirmation,
-        "blocked_action": blocked_action,
+        "blocked_action": blocked_action or model_blocked_action,
+        "model_execution": {
+            "status": model_result.status if model_result else "not_called",
+            "provider": route["provider"],
+            "model": route["model"],
+            "event_id": model_result.event_id if model_result else "",
+            "error": model_result.error if model_result else "",
+        },
         "workstation": await _workstation_state_with_controls(),
     }
 

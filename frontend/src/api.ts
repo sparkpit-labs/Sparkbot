@@ -346,6 +346,13 @@ export type ChatTurnResult = {
   saved_memory: WorkstationMemory | null;
   guardian_confirmation: GuardianConfirmation | null;
   blocked_action: string | null;
+  model_execution: {
+    status: string;
+    provider: string;
+    model: string;
+    event_id: string;
+    error: string;
+  };
   workstation: WorkstationState;
 };
 

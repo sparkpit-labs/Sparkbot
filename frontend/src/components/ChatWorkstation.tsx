@@ -20,8 +20,8 @@ function shortId(value: string): string {
 function selectedRoute(state: WorkstationState | null): string {
   const seatOne = state?.seats?.[0];
   const fallback = state?.controls?.default_selection;
-  const provider = seatOne?.provider && seatOne.provider !== "default" ? seatOne.provider : fallback?.provider;
-  const model = seatOne?.model || fallback?.model;
+  const provider = fallback?.provider || (seatOne?.provider && seatOne.provider !== "default" ? seatOne.provider : undefined);
+  const model = fallback?.model || seatOne?.model;
   return `${provider || "local"} / ${model || "local-workstation"}`;
 }
 
@@ -115,6 +115,10 @@ export default function ChatWorkstation() {
         setMessage("Guardian confirmation created. No privileged action was executed.");
       } else if (result.blocked_action) {
         setMessage("Privileged request blocked. No external or destructive action was executed.");
+      } else if (result.model_execution.status === "success") {
+        setMessage("Model response saved to shared Workstation state.");
+      } else if (result.model_execution.status !== "not_called") {
+        setMessage("Provider route returned a safe error. No protected action was executed.");
       } else {
         setMessage("Chat turn saved to shared Workstation state.");
       }
@@ -198,7 +202,7 @@ export default function ChatWorkstation() {
           <div className="command-panel-heading">
             <p className="eyebrow">Conversation</p>
             <h3>{activeSession?.title || "No chat session selected"}</h3>
-            <p>Provider calls are deferred here; Chat saves turns, recalls shared context, writes events, and blocks privileged requests through Guardian.</p>
+            <p>Chat uses the selected Command Center provider route when configured; it saves turns, recalls shared context counts, writes events, and blocks privileged requests through Guardian.</p>
           </div>
 
           <div className="chat-thread" aria-live="polite">

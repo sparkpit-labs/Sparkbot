@@ -24,7 +24,7 @@ A blocked privileged Round Table request may update the session to `blocked` and
 
 ## Surface roles
 
-- Chat: direct operator conversation surface. It can read shared context, save chat turns, save optional memory, and request Guardian confirmations.
+- Chat: direct operator conversation surface. It can read shared context counts, save chat turns, save optional memory, call the selected configured provider route, log model-call events, and request Guardian confirmations.
 - Workstation: operating-floor surface for rooms, seats, shared context, Round Table activity, and pending confirmations.
 - Round Table: provider-safe room workflow for persisted meeting sessions, Seat 1 manager checkpoints, assignments, summaries, wrap-up notes, and Spine events.
 - Command Center: configuration, model routing, agent setup, server-side credential entry, and security/Guardian settings.
@@ -45,10 +45,10 @@ Confirmations are expected to be:
 - visible through Workstation/Spine/Guardian state
 - fail-closed when missing, pending, denied, expired, already used, or mismatched
 
-Round Table currently fails closed for privileged requests and logs Guardian block events. It does not execute protected actions.
+Chat and Round Table fail closed for privileged requests and log Guardian block events. Model output is returned as text only and cannot execute protected actions.
 
 ## Deferred execution rule
 
-Real provider/model calls, connector sends, schedulers, file/process execution, and device-action behavior remain deferred until they are added through explicit backend routes, tests, user-visible labels, event logging, redaction, and Guardian gates where applicable.
+Provider/model execution is currently limited to the Chat route using the selected configured provider. Connector sends, Round Table live provider seats, schedulers, file/process execution, and device-action behavior remain deferred until explicit backend routes, tests, user-visible labels, event logging, redaction, and Guardian gates are added.
 
 Provider-safe Round Table turn sequencing is active in the public shell. It uses deterministic local responses, reads shared context, writes shared state, and does not execute providers or external actions.

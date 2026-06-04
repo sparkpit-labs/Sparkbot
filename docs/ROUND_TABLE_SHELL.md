@@ -27,6 +27,6 @@ Requests that look destructive, external, privileged, scheduled, connector-based
 
 Future action-capable Round Table behavior must use the shared Guardian confirmation boundary before execution.
 
-## Next public slice
+## Current provider boundary
 
-The next slice should audit this integration, then decide between a narrow provider/model execution path or model-seat/provider configuration polish. Real provider execution must keep secrets server-side, preserve event redaction, and keep Guardian as the mandatory boundary for protected actions.
+Round Table remains deterministic in this slice. The narrow provider/model execution path is limited to Chat, uses the selected Command Center route, keeps secrets server-side, redacts event payloads, and does not execute protected actions from model output.

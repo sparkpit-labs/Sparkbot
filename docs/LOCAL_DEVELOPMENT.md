@@ -14,8 +14,7 @@ This guide covers the local-only developer runner scripts for the current public
 
 - They do not configure provider credentials automatically.
 - They do not print or expose saved secrets.
-- They do not run models.
-- They do not enable provider/model execution.
+- They do not call providers by themselves; Chat model calls occur only after a configured provider route receives a Chat turn.
 - They do not start deployment infrastructure.
 - They do not configure desktop packaging.
 

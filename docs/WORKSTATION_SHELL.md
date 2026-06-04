@@ -18,13 +18,13 @@ The current public Workstation surface is no longer a disconnected static previe
 ## Current status model
 
 - Backend store: works today
-- Chat sessions/messages: works today, provider execution deferred
+- Chat sessions/messages: works today, narrow configured-provider execution active
 - Workstation rooms/seats/notes/memory/events: works today
 - Round Table provider-safe sessions/turns/assignments/summaries: works today
 - Command Center model/seat/security configuration: works today
 - Spine event log and counters: works today, task/project queues are empty-state placeholders
 - Controls setup/readiness: works today as a reporting surface
-- Real provider/model execution: deferred
+- Chat provider/model execution: active only through the selected configured route
 - Connector sends: deferred
 - File/process/terminal execution: deferred
 - Scheduler/background workers: deferred
@@ -32,8 +32,7 @@ The current public Workstation surface is no longer a disconnected static previe
 
 ## What is intentionally excluded
 
-- Real provider/model calls from Chat or seats
-- Live meeting responses from providers
+- Live provider-seat responses from Round Table
 - Tool execution
 - Connector sends or external delivery
 - File/process/shell/terminal execution

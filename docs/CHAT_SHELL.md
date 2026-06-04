@@ -2,23 +2,22 @@
 
 The current public Sparkbot app includes a backend-backed Chat surface at `/chat`.
 
-Chat is the operator conversation channel. It stores sessions and messages in the shared local Workstation store, reads shared memory and notes for context, writes Spine event-log entries, and shows Guardian confirmation state. Provider/model execution is still deferred: Chat returns a local Workstation acknowledgement instead of calling a model.
+Chat is the operator conversation channel. It stores sessions and messages in the shared local Workstation store, reads shared memory and notes for context, writes Spine event-log entries, and shows Guardian confirmation state. Chat can call the selected Command Center provider/model when that provider is configured server-side. When the selected provider is unavailable, Chat returns a user-safe error and still saves the turn in shared Workstation state.
 
 ## Current behavior
 
 - Chat sessions and messages persist through the backend SQLite Workstation store.
 - Chat can create a new session, send a turn, reload previous sessions, and save a chat-scoped note.
 - User messages can optionally be saved to shared Workstation memory.
-- Chat reads shared memory and notes context and reports the selected Command Center/Seat 1 model route.
-- Chat writes event-log entries for session creation, user turns, assistant acknowledgements, context recall, and Guardian blocks.
+- Chat reads shared memory and notes context counts and uses the selected Command Center model route.
+- Chat writes event-log entries for session creation, user turns, assistant model responses or safe errors, context recall, and Guardian blocks.
 - Memory delete requests create a Guardian confirmation and do not delete memory directly.
 - Unsupported privileged requests are blocked and logged without execution.
 
 ## Deferred from this branch
 
-- Provider/model execution
 - Streaming responses
-- Full Round Table meeting turns
+- Round Table live provider-seat execution
 - Connector sends
 - File, process, terminal, or shell execution
 - Scheduler/background jobs

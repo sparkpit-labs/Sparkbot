@@ -78,7 +78,7 @@ Open:
 http://127.0.0.1:15173
 ```
 
-The page should show Sparkbot navigation for Workstation, Chat, Command Center, Spine, and Controls, plus the backend health panel. Chat and Workstation should be labeled as backend-backed local surfaces; model execution and connector sends should remain deferred.
+The page should show Sparkbot navigation for Workstation, Chat, Command Center, Spine, and Controls, plus the backend health panel. Chat and Workstation should be labeled as backend-backed local surfaces. Chat model execution should be limited to the selected configured provider route; connector sends and Round Table live provider seats should remain deferred.
 
 ## Cleanup
 

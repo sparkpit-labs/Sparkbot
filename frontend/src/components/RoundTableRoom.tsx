@@ -228,7 +228,7 @@ export default function RoundTableRoom({ embedded = false }: Props) {
             ))}
           </div>
           <button type="button" onClick={runSession} disabled={!canRun}>Run provider-safe meeting</button>
-          <p className="helper-text">No provider calls, connector sends, scheduled jobs, files, processes, terminal commands, or device actions are executed in this branch.</p>
+          <p className="helper-text">No Round Table provider calls, connector sends, scheduled jobs, files, processes, terminal commands, or device actions are executed from this flow.</p>
         </article>
       </section>
 

@@ -60,6 +60,8 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Shared Chat" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Memory, notes, and Spine" })).toBeDefined();
     expect(screen.getByRole("button", { name: "Send" })).toBeDefined();
+    expect(screen.getByText(/Selected route:/)).toBeDefined();
+    expect(screen.queryByText("unit-test-credential-value")).toBeNull();
     expect(screen.queryByRole("heading", { name: "Workstation Floor" })).toBeNull();
   });
 

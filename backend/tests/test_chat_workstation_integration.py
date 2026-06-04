@@ -3,7 +3,24 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 
+PROVIDER_ENVS = [
+    "OPENROUTER_API_KEY",
+    "OPENAI_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "GOOGLE_API_KEY",
+    "GROQ_API_KEY",
+    "MINIMAX_API_KEY",
+    "XAI_API_KEY",
+]
+
+
+def _clear_provider_env(monkeypatch) -> None:
+    for name in PROVIDER_ENVS:
+        monkeypatch.delenv(name, raising=False)
+
+
 def test_chat_turn_persists_context_memory_and_events(tmp_path, monkeypatch) -> None:
+    _clear_provider_env(monkeypatch)
     monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
     client = TestClient(app)
 
@@ -51,6 +68,7 @@ def test_chat_turn_persists_context_memory_and_events(tmp_path, monkeypatch) -> 
 
 
 def test_chat_memory_delete_request_creates_confirmation_without_deleting(tmp_path, monkeypatch) -> None:
+    _clear_provider_env(monkeypatch)
     monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
     client = TestClient(app)
 
@@ -77,6 +95,7 @@ def test_chat_memory_delete_request_creates_confirmation_without_deleting(tmp_pa
 
 
 def test_chat_blocks_privileged_requests_without_execution(tmp_path, monkeypatch) -> None:
+    _clear_provider_env(monkeypatch)
     monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
     client = TestClient(app)
 
@@ -97,6 +116,7 @@ def test_chat_blocks_privileged_requests_without_execution(tmp_path, monkeypatch
 
 
 def test_workstation_state_aggregates_chat_rooms_notes_memory_events_and_guardian(tmp_path, monkeypatch) -> None:
+    _clear_provider_env(monkeypatch)
     monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
     client = TestClient(app)
 
@@ -164,6 +184,7 @@ def test_workstation_state_aggregates_chat_rooms_notes_memory_events_and_guardia
 
 
 def test_approved_guardian_confirmation_survives_restart_and_is_used_once(tmp_path, monkeypatch) -> None:
+    _clear_provider_env(monkeypatch)
     monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
     client = TestClient(app)
 
