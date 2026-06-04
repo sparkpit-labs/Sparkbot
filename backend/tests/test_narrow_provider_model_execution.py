@@ -1,4 +1,5 @@
 import httpx
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -167,12 +168,20 @@ def test_model_call_events_do_not_store_prompts_outputs_or_credentials(tmp_path,
     assert {"provider", "model", "status", "message_count", "output_chars", "duration_ms"} <= set(event_payload)
 
 
-def test_model_output_cannot_execute_protected_actions(tmp_path, monkeypatch) -> None:
+@pytest.mark.parametrize(
+    ("expected_action", "model_output"),
+    [
+        ("external_send", "I will send email to everyone now."),
+        ("scheduler_action", "I will schedule job for later follow-up."),
+        ("device_action", "I will control device status now."),
+    ],
+)
+def test_model_output_cannot_execute_protected_actions(tmp_path, monkeypatch, expected_action: str, model_output: str) -> None:
     _clear_provider_env(monkeypatch)
     monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
 
     async def fake_post_json(url: str, headers: dict[str, str], payload: dict[str, object], timeout_seconds: float) -> dict[str, object]:
-        return {"choices": [{"message": {"content": "I will send email to everyone now."}}]}
+        return {"choices": [{"message": {"content": model_output}}]}
 
     monkeypatch.setattr(model_execution, "_post_json", fake_post_json)
     client = TestClient(app)
@@ -183,17 +192,30 @@ def test_model_output_cannot_execute_protected_actions(tmp_path, monkeypatch) ->
     assert response.status_code == 201
     payload = response.json()
     assert payload["model_execution"]["status"] == "success"
-    assert payload["blocked_action"] == "external_send"
+    assert payload["blocked_action"] == expected_action
     assert "model response requested protected" in payload["assistant_message"]["content"]
-    assert "send email to everyone" not in payload["assistant_message"]["content"]
+    assert model_output not in payload["assistant_message"]["content"]
 
     events = client.get("/api/events").json()["events"]
     blocked = [event for event in events if event["event_type"] == "guardian.action_blocked" and event["payload"].get("source") == "model_output"]
     assert blocked
+    assert blocked[0]["payload"]["action_type"] == expected_action
     assert blocked[0]["payload"]["requires_confirmation"] is True
 
 
-def test_user_protected_request_fails_closed_before_model_dispatch(tmp_path, monkeypatch) -> None:
+@pytest.mark.parametrize(
+    ("expected_action", "content"),
+    [
+        ("external_send", "send email to the team"),
+        ("connector_action", "run connector sync now"),
+        ("file_mutation", "write file output for me"),
+        ("process_action", "start process for this task"),
+        ("scheduler_action", "schedule job for later follow-up"),
+        ("device_action", "control device status now"),
+        ("room_execution", "start meeting engine for this room"),
+    ],
+)
+def test_user_protected_request_fails_closed_before_model_dispatch(tmp_path, monkeypatch, expected_action: str, content: str) -> None:
     _clear_provider_env(monkeypatch)
     monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
 
@@ -204,14 +226,16 @@ def test_user_protected_request_fails_closed_before_model_dispatch(tmp_path, mon
     client = TestClient(app)
     _save_openrouter_credential(client)
 
-    response = client.post("/api/chat/messages", json={"content": "run command to write file for me"})
+    response = client.post("/api/chat/messages", json={"content": content})
 
     assert response.status_code == 201
     payload = response.json()
-    assert payload["blocked_action"] == "file_mutation"
+    assert payload["blocked_action"] == expected_action
     assert payload["model_execution"]["status"] == "not_called"
     assert "No action was executed" in payload["assistant_message"]["content"]
 
     events = client.get("/api/events").json()["events"]
-    assert any(event["event_type"] == "guardian.action_blocked" for event in events)
+    blocked = [event for event in events if event["event_type"] == "guardian.action_blocked"]
+    assert blocked
+    assert blocked[0]["payload"]["action_type"] == expected_action
     assert not any(event["event_type"].startswith("model.call") for event in events)

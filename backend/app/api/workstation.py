@@ -179,10 +179,12 @@ def _memory_delete_target(content: str, memories: list[dict[str, Any]]) -> str |
 def _unsupported_privileged_request(content: str) -> str | None:
     normalized = content.lower()
     checks = (
-        ("external_send", ("send email", "post message", "publish", "webhook")),
-        ("connector_action", ("run connector", "sync calendar", "push to repo")),
-        ("file_mutation", ("delete file", "write file", "modify file")),
-        ("process_action", ("run command", "execute command", "start process")),
+        ("external_send", ("send email", "post message", "publish", "webhook", "send to channel")),
+        ("connector_action", ("run connector", "sync calendar", "push to repo", "external bridge")),
+        ("file_mutation", ("delete file", "write file", "modify file", "edit file")),
+        ("process_action", ("run command", "execute command", "start process", "terminal")),
+        ("scheduler_action", ("schedule job", "background worker", "run later", "cron")),
+        ("device_action", ("control device", "device control", "start device")),
         ("room_execution", ("run room", "start meeting engine", "execute room")),
     )
     for action_type, terms in checks:
