@@ -20,7 +20,7 @@ Frontend state should stay transient: loading flags, form drafts, selected tabs,
 
 Round Table durable state is limited to backend-backed rooms, participants, sessions, turns, assignments, summaries, wrap-up note links, notes, memory recall, events, and Guardian block records. The frontend may hold only form drafts, loading state, the selected session response, and status messages.
 
-A blocked privileged Round Table request may update the session to `blocked` and write a Guardian block event. It must not create turns, assignments, summaries, or wrap-up notes.
+Round Table text requests should create normal meeting turns, assignments, summaries, and wrap-up notes when a meeting runs. Execution-capable routes remain deferred and must not be implied by text output.
 
 ## Surface roles
 
@@ -45,7 +45,7 @@ Confirmations are expected to be:
 - visible through Workstation/Spine/Guardian state
 - fail-closed when missing, pending, denied, expired, already used, or mismatched
 
-Chat and Round Table fail closed for privileged requests and log Guardian block events. Model output is returned as text only and cannot execute protected actions.
+Chat and Round Table dispatch text requests through configured provider routes when available and treat model output as text only. They do not execute protected actions, and operator-provided Command Center guardrails are the supported way to add model-behavior restrictions.
 
 ## Deferred execution rule
 

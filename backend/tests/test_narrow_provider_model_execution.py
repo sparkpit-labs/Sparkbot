@@ -89,6 +89,36 @@ def test_chat_model_route_tracks_updated_default_selection(tmp_path, monkeypatch
     assert calls[0]["payload"]["model"] == "gpt-4o-mini"
 
 
+def test_command_center_custom_guardrails_are_injected_into_chat_prompt(tmp_path, monkeypatch) -> None:
+    _clear_provider_env(monkeypatch)
+    monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
+    calls: list[dict[str, object]] = []
+
+    async def fake_post_json(url: str, headers: dict[str, str], payload: dict[str, object], timeout_seconds: float) -> dict[str, object]:
+        calls.append({"url": url, "headers": headers, "payload": payload})
+        return {"choices": [{"message": {"content": "Guardrailed response."}}]}
+
+    monkeypatch.setattr(model_execution, "_post_json", fake_post_json)
+    client = TestClient(app)
+    config_response = client.post(
+        "/api/v1/chat/models/config",
+        json={
+            "providers": {"openrouter_api_key": "unit-test-credential-value"},
+            "security_guardrails_enabled": True,
+            "custom_guardrails": "Keep responses formal and concise.",
+        },
+    )
+    assert config_response.status_code == 200
+
+    response = client.post("/api/chat/messages", json={"content": "Draft the update."})
+
+    assert response.status_code == 201
+    assert calls
+    system_prompt = calls[0]["payload"]["messages"][0]["content"]  # type: ignore[index]
+    assert "Operator-provided Command Center guardrails:" in system_prompt
+    assert "Keep responses formal and concise." in system_prompt
+
+
 def test_subscription_only_provider_route_fails_closed_without_dispatch(tmp_path, monkeypatch) -> None:
     _clear_provider_env(monkeypatch)
     monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
@@ -205,7 +235,7 @@ def test_model_call_events_do_not_store_prompts_outputs_or_credentials(tmp_path,
         ("device_action", "I will control device status now."),
     ],
 )
-def test_model_output_cannot_execute_protected_actions(tmp_path, monkeypatch, expected_action: str, model_output: str) -> None:
+def test_model_output_action_language_returns_as_text_only(tmp_path, monkeypatch, expected_action: str, model_output: str) -> None:
     _clear_provider_env(monkeypatch)
     monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
 
@@ -221,15 +251,15 @@ def test_model_output_cannot_execute_protected_actions(tmp_path, monkeypatch, ex
     assert response.status_code == 201
     payload = response.json()
     assert payload["model_execution"]["status"] == "success"
-    assert payload["blocked_action"] == expected_action
-    assert "model response requested protected" in payload["assistant_message"]["content"]
-    assert model_output not in payload["assistant_message"]["content"]
+    assert payload["blocked_action"] is None
+    assert payload["assistant_message"]["content"] == model_output
 
     events = client.get("/api/events").json()["events"]
-    blocked = [event for event in events if event["event_type"] == "guardian.action_blocked" and event["payload"].get("source") == "model_output"]
-    assert blocked
-    assert blocked[0]["payload"]["action_type"] == expected_action
-    assert blocked[0]["payload"]["requires_confirmation"] is True
+    assert not any(event["event_type"] == "guardian.action_blocked" and event["payload"].get("source") == "model_output" for event in events)
+    model_events = [event for event in events if event["event_type"] == "model.call.completed"]
+    assert model_events
+    assert model_output not in str([event["payload"] for event in model_events])
+    assert expected_action
 
 
 @pytest.mark.parametrize(
@@ -244,12 +274,14 @@ def test_model_output_cannot_execute_protected_actions(tmp_path, monkeypatch, ex
         ("room_execution", "start meeting engine for this room"),
     ],
 )
-def test_user_protected_request_fails_closed_before_model_dispatch(tmp_path, monkeypatch, expected_action: str, content: str) -> None:
+def test_user_work_request_dispatches_to_model_as_text_only(tmp_path, monkeypatch, expected_action: str, content: str) -> None:
     _clear_provider_env(monkeypatch)
     monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
+    calls: list[dict[str, object]] = []
 
     async def fake_post_json(url: str, headers: dict[str, str], payload: dict[str, object], timeout_seconds: float) -> dict[str, object]:
-        raise AssertionError("protected requests must not dispatch to providers")
+        calls.append({"url": url, "headers": headers, "payload": payload})
+        return {"choices": [{"message": {"content": "Text-only work result."}}]}
 
     monkeypatch.setattr(model_execution, "_post_json", fake_post_json)
     client = TestClient(app)
@@ -259,12 +291,14 @@ def test_user_protected_request_fails_closed_before_model_dispatch(tmp_path, mon
 
     assert response.status_code == 201
     payload = response.json()
-    assert payload["blocked_action"] == expected_action
-    assert payload["model_execution"]["status"] == "not_called"
-    assert "No action was executed" in payload["assistant_message"]["content"]
+    assert payload["blocked_action"] is None
+    assert payload["model_execution"]["status"] == "success"
+    assert payload["assistant_message"]["content"] == "Text-only work result."
+    assert calls
 
+    prompt_text = "\n".join(str(message.get("content") or "") for message in calls[0]["payload"]["messages"])  # type: ignore[index]
+    assert content in prompt_text
     events = client.get("/api/events").json()["events"]
-    blocked = [event for event in events if event["event_type"] == "guardian.action_blocked"]
-    assert blocked
-    assert blocked[0]["payload"]["action_type"] == expected_action
-    assert not any(event["event_type"].startswith("model.call") for event in events)
+    assert any(event["event_type"] == "model.call.completed" for event in events)
+    assert not any(event["event_type"] == "guardian.action_blocked" for event in events)
+    assert expected_action

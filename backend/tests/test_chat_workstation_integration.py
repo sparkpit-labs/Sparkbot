@@ -158,10 +158,18 @@ def test_chat_memory_delete_request_creates_confirmation_without_deleting(tmp_pa
     assert state["dashboard"]["pending_confirmations"] == 1
 
 
-def test_chat_blocks_privileged_requests_without_execution(tmp_path, monkeypatch) -> None:
+def test_chat_work_request_dispatches_as_text_without_execution_block(tmp_path, monkeypatch) -> None:
     _clear_provider_env(monkeypatch)
     monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
+    calls: list[dict[str, object]] = []
+
+    async def fake_post_json(url: str, headers: dict[str, str], payload: dict[str, object], timeout_seconds: float) -> dict[str, object]:
+        calls.append({"url": url, "headers": headers, "payload": payload})
+        return {"choices": [{"message": {"content": "Text-only work plan."}}]}
+
+    monkeypatch.setattr(model_execution, "_post_json", fake_post_json)
     client = TestClient(app)
+    _save_openrouter_credential(client)
 
     chat_response = client.post(
         "/api/chat/messages",
@@ -169,13 +177,14 @@ def test_chat_blocks_privileged_requests_without_execution(tmp_path, monkeypatch
     )
     assert chat_response.status_code == 201
     payload = chat_response.json()
-    assert payload["blocked_action"] == "file_mutation"
-    assert "No action was executed" in payload["assistant_message"]["content"]
+    assert payload["blocked_action"] is None
+    assert payload["model_execution"]["status"] == "success"
+    assert payload["assistant_message"]["content"] == "Text-only work plan."
+    assert calls
 
     events = client.get("/api/events").json()["events"]
-    blocked_events = [event for event in events if event["event_type"] == "guardian.action_blocked"]
-    assert blocked_events
-    assert blocked_events[0]["payload"]["requires_confirmation"] is True
+    assert any(event["event_type"] == "model.call.completed" for event in events)
+    assert not any(event["event_type"] == "guardian.action_blocked" for event in events)
 
 
 

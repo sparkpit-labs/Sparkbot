@@ -439,6 +439,12 @@ def test_roundtable_provider_flow_uses_invite_route_for_assigned_agent(tmp_path,
     assert seat_response.json()["agent"] == "invite_lens"
     assert seat_response.json()["provider"] == "default"
 
+    guardrail_response = client.post(
+        "/api/v1/chat/models/config",
+        json={"security_guardrails_enabled": True, "custom_guardrails": "Keep meeting responses review-ready."},
+    )
+    assert guardrail_response.status_code == 200
+
     create_session = client.post(
         "/api/roundtable/sessions",
         json={"title": "Invite route room", "goal": "Review invited agent routing."},
@@ -464,6 +470,8 @@ def test_roundtable_provider_flow_uses_invite_route_for_assigned_agent(tmp_path,
     assert "Agent instructions: Use INVITE-LENS instructions for invited seat review." in first_invited_prompt
     assert "Seat: Seat 2" in first_invited_prompt
     assert "Seat role: participant" in first_invited_prompt
+    assert "Operator-provided Command Center guardrails:" in first_invited_prompt
+    assert "Keep meeting responses review-ready." in first_invited_prompt
 
     second_invited_prompt = call_text(1)
     assert "Assigned agent identity: Invite Lens (invite_lens)" in second_invited_prompt
@@ -545,7 +553,7 @@ def test_roundtable_invite_route_secret_only_applies_to_default_seat_route() -> 
     assert explicit_route == {"provider": "openai", "model": "openai/gpt-4o-mini"}
 
 
-def test_roundtable_model_output_blocked_before_persisting_turns(tmp_path, monkeypatch) -> None:
+def test_roundtable_model_output_action_language_persists_as_text_only(tmp_path, monkeypatch) -> None:
     _clear_provider_env(monkeypatch)
     monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
 
@@ -558,7 +566,7 @@ def test_roundtable_model_output_blocked_before_persisting_turns(tmp_path, monke
 
     create_response = client.post(
         "/api/roundtable/sessions",
-        json={"title": "Protected output room", "goal": "Review the plan safely."},
+        json={"title": "Text-only output room", "goal": "Review the plan safely."},
     )
     assert create_response.status_code == 201
     session_id = create_response.json()["id"]
@@ -566,61 +574,55 @@ def test_roundtable_model_output_blocked_before_persisting_turns(tmp_path, monke
     run_response = client.post(f"/api/roundtable/sessions/{session_id}/run", json={})
 
     assert run_response.status_code == 200
-    blocked = run_response.json()
-    assert blocked["status"] == "blocked"
-    assert blocked["phase"] == "guardian_blocked"
-    assert blocked["blocked_action"] == "external_send"
-    assert blocked["turns"] == []
-    assert blocked["assignments"] == []
-    assert blocked["summaries"] == []
-    assert blocked["notes"] == []
+    session = run_response.json()
+    assert session["status"] == "complete"
+    assert session["phase"] == "wrap_up"
+    assert session["turns"]
+    assert session["assignments"]
+    assert session["summaries"]
+    assert session["notes"]
+    assert any("I will send email" in turn["content"] for turn in session["turns"])
 
     events = client.get("/api/events").json()["events"]
-    blocked_events = [event for event in events if event["event_type"] == "guardian.action_blocked" and event["surface"] == "roundtable"]
-    assert blocked_events
-    assert blocked_events[0]["payload"]["action_type"] == "external_send"
-    assert blocked_events[0]["payload"]["source"] == "model_output"
-    assert blocked_events[0]["payload"]["model_event_id"]
-    assert "I will send email" not in str(events)
+    assert not any(event["event_type"] == "guardian.action_blocked" and event["surface"] == "roundtable" for event in events)
+    model_events = [event for event in events if event["event_type"] == "model.call.completed" and event["surface"] == "roundtable"]
+    assert model_events
+    assert "I will send email" not in str([event["payload"] for event in model_events])
 
 
-def test_roundtable_privileged_request_fails_closed_and_logs_guardian_block(tmp_path, monkeypatch) -> None:
+def test_roundtable_work_request_runs_as_text_only_deterministic_meeting(tmp_path, monkeypatch) -> None:
     _clear_provider_env(monkeypatch)
     monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
     client = TestClient(app)
 
     create_response = client.post(
         "/api/roundtable/sessions",
-        json={"title": "Blocked request", "goal": "Send email and run command after the meeting."},
+        json={"title": "Text-only work request", "goal": "Send email and run command after the meeting."},
     )
     assert create_response.status_code == 201
     session_id = create_response.json()["id"]
 
     run_response = client.post(f"/api/roundtable/sessions/{session_id}/run", json={})
     assert run_response.status_code == 200
-    blocked = run_response.json()
-    assert blocked["status"] == "blocked"
-    assert blocked["phase"] == "guardian_blocked"
-    assert blocked["blocked_action"] == "external_send"
-    assert blocked["turns"] == []
-    assert blocked["assignments"] == []
-    assert blocked["summaries"] == []
-    assert blocked["notes"] == []
+    session = run_response.json()
+    assert session["status"] == "complete"
+    assert session["phase"] == "wrap_up"
+    assert session["turns"]
+    assert session["assignments"]
+    assert session["summaries"]
+    assert len(session["notes"]) == 1
 
     state = client.get("/api/workstation/state").json()
     assert state["roundtable"]["sessions_count"] == 1
-    assert state["roundtable"]["turns_count"] == 0
-    assert state["roundtable"]["assignments_count"] == 0
-    assert state["roundtable"]["summaries_count"] == 0
+    assert state["roundtable"]["turns_count"] > 0
+    assert state["roundtable"]["assignments_count"] > 0
+    assert state["roundtable"]["summaries_count"] == 1
 
     events = client.get("/api/events").json()["events"]
-    blocked_events = [event for event in events if event["event_type"] == "guardian.action_blocked" and event["surface"] == "roundtable"]
-    assert blocked_events
-    assert blocked_events[0]["payload"]["requires_confirmation"] is True
-    assert blocked_events[0]["payload"]["action_type"] == "external_send"
+    assert not any(event["event_type"] == "guardian.action_blocked" and event["surface"] == "roundtable" for event in events)
 
 
-def test_roundtable_blocks_privileged_categories_without_turn_or_note_mutation(tmp_path, monkeypatch) -> None:
+def test_roundtable_text_work_categories_complete_without_execution_blocks(tmp_path, monkeypatch) -> None:
     _clear_provider_env(monkeypatch)
     monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
     client = TestClient(app)
@@ -637,7 +639,7 @@ def test_roundtable_blocks_privileged_categories_without_turn_or_note_mutation(t
     for expected_action, goal in cases:
         create_response = client.post(
             "/api/roundtable/sessions",
-            json={"title": f"Blocked {expected_action}", "goal": goal},
+            json={"title": f"Text work {expected_action}", "goal": goal},
         )
         assert create_response.status_code == 201
         session_id = create_response.json()["id"]
@@ -645,25 +647,19 @@ def test_roundtable_blocks_privileged_categories_without_turn_or_note_mutation(t
         run_response = client.post(f"/api/roundtable/sessions/{session_id}/run", json={})
         assert run_response.status_code == 200
         session = run_response.json()
-        assert session["status"] == "blocked"
-        assert session["phase"] == "guardian_blocked"
-        assert session["blocked_action"] == expected_action
-        assert session["turns"] == []
-        assert session["assignments"] == []
-        assert session["summaries"] == []
-        assert session["notes"] == []
+        assert session["status"] == "complete"
+        assert session["phase"] == "wrap_up"
+        assert session["turns"]
+        assert session["assignments"]
+        assert session["summaries"]
+        assert len(session["notes"]) == 1
 
     state = client.get("/api/workstation/state").json()
     assert state["roundtable"]["sessions_count"] == len(cases)
-    assert state["roundtable"]["turns_count"] == 0
-    assert state["roundtable"]["assignments_count"] == 0
-    assert state["roundtable"]["summaries_count"] == 0
-    assert state["dashboard"]["notes_count"] == 0
+    assert state["roundtable"]["turns_count"] > 0
+    assert state["roundtable"]["assignments_count"] > 0
+    assert state["roundtable"]["summaries_count"] == len(cases)
+    assert state["dashboard"]["notes_count"] == len(cases)
 
     events = client.get("/api/events").json()["events"]
-    blocked_actions = {
-        event["payload"]["action_type"]
-        for event in events
-        if event["event_type"] == "guardian.action_blocked" and event["surface"] == "roundtable"
-    }
-    assert blocked_actions == {action for action, _goal in cases}
+    assert not any(event["event_type"] == "guardian.action_blocked" and event["surface"] == "roundtable" for event in events)

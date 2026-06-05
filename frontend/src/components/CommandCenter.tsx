@@ -656,7 +656,7 @@ export default function CommandCenter() {
           <div className="command-panel-heading">
             <p className="eyebrow">Operator profile</p>
             <h3 id="security-heading">Security</h3>
-            <p>Owner-controlled security profile for local guardrails and operator setup.</p>
+            <p>Owner-controlled security profile for optional local guardrails and operator setup.</p>
           </div>
           <div className="switch-row">
             <span>Security profile {config.security_guardrails_enabled ? "on" : "off"}</span>
@@ -958,7 +958,7 @@ export default function CommandCenter() {
           </div>
           <div className="command-actions">
             <button type="button" onClick={saveAgentOverrides}>Save seat routes</button>
-            <button type="button" disabled title="Start Round Table sessions from Workstation. Provider credentials stay server-side and protected actions remain blocked.">Configured in Workstation</button>
+            <button type="button" disabled title="Start Round Table sessions from Workstation. Provider credentials stay server-side and external/tool execution remains unavailable.">Configured in Workstation</button>
           </div>
         </article>
       </section>

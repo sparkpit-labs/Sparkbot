@@ -87,14 +87,6 @@ TOKEN_RE = re.compile(
 PRIVATE_KEY_RE = re.compile(r"-----BEGIN [A-Z ]+PRIVATE KEY-----")
 
 
-ROUND_TABLE_PRIVILEGED_CHECKS = (
-    ("external_send", ("send email", "post message", "publish", "webhook", "send to channel")),
-    ("connector_action", ("run connector", "sync calendar", "push to repo", "external bridge")),
-    ("file_mutation", ("delete file", "write file", "modify file", "edit file")),
-    ("process_action", ("run command", "execute command", "start process", "terminal")),
-    ("scheduler_action", ("schedule job", "background worker", "run later", "cron")),
-    ("device_action", ("control device", "device control", "start device")),
-)
 TASK_STATUSES = {"open", "paused", "done", "canceled", "blocked"}
 TASK_OPERATION_STATUS = {
     "pause": "paused",
@@ -112,14 +104,6 @@ TASK_PRODUCERS = {
     "model": {"description": "Provider/model routing metadata without prompts or outputs", "event_types": ["model.call.completed", "model.call.failed", "model.call.blocked"]},
     "memory": {"description": "Shared Workstation memory create/update/delete events", "event_types": ["memory.saved", "memory.updated", "memory.deleted"]},
 }
-
-
-def _roundtable_privileged_action(text: str) -> str | None:
-    normalized = text.lower()
-    for action_type, terms in ROUND_TABLE_PRIVILEGED_CHECKS:
-        if any(term in normalized for term in terms):
-            return action_type
-    return None
 
 
 def _parse_utc(value: str | None) -> datetime | None:
@@ -662,28 +646,7 @@ class WorkstationStore:
         title = str(session["title"])
         goal = str(session["goal"] or title)
         context_query = str(session["context_query"] or goal)
-        blocked_action = _roundtable_privileged_action(" ".join([title, goal, context_query]))
         now = utc_now()
-        if blocked_action:
-            with self.connect() as conn:
-                conn.execute(
-                    "UPDATE roundtable_sessions SET status = ?, phase = ?, updated_at = ? WHERE id = ?",
-                    ("blocked", "guardian_blocked", now, session_id),
-                )
-                self._append_event_conn(
-                    conn,
-                    "guardian.action_blocked",
-                    "roundtable",
-                    session_id,
-                    actor,
-                    "Privileged Round Table request was not executed.",
-                    {"action_type": blocked_action, "requires_confirmation": True, "session_id": session_id, "room_id": room_id},
-                    now,
-                )
-            blocked = self.get_roundtable_session(session_id)
-            if blocked is not None:
-                blocked["blocked_action"] = blocked_action
-            return blocked
 
         memories = self.recall_memory(query=context_query, limit=5)
         room_notes = self.list_notes(surface="room", source_id=room_id, limit=5)
@@ -716,7 +679,7 @@ class WorkstationStore:
 
             for worker in workers:
                 content = (
-                    f"{worker['label']} ({worker['agent']}) first pass: for '{goal}', keep the response provider-safe, "
+                    f"{worker['label']} ({worker['agent']}) first pass: for '{goal}', keep the response text-only, "
                     f"identify useful assumptions, and contribute from the {worker['agent']} role. "
                     f"Shared context available: {len(memories)} memory item(s), {len(context_notes)} note(s)."
                 )
@@ -735,7 +698,7 @@ class WorkstationStore:
                 assignment_id = str(uuid.uuid4())
                 instruction = (
                     f"Review '{goal}' from the {worker['agent']} perspective. Return a concise second-pass recommendation, "
-                    "risks, and the next safe step. Do not execute tools or external actions."
+                    "risks, and the next operator step. Do not claim the app executed tools or external actions."
                 )
                 conn.execute(
                     """
@@ -777,7 +740,7 @@ class WorkstationStore:
                 worker = assignment["worker"]
                 content = (
                     f"{worker['label']} ({worker['agent']}) second pass: complete assignment '{assignment['instruction']}'. "
-                    f"Recommendation for '{goal}': keep scope narrow, preserve Guardian boundaries, and record the decision in shared state."
+                    f"Recommendation for '{goal}': keep scope narrow, make the result usable for operator review, and record the decision in shared state."
                 )
                 turn_id = self._insert_roundtable_turn_conn(
                     conn, session_id, room_id, turn_index, "second_pass", worker, "participant", content, assignment["id"], now, actor
@@ -790,7 +753,7 @@ class WorkstationStore:
 
             summary = (
                 f"Meeting Manager wrap-up for '{goal}': first-pass ideas were collected, assignments were answered, "
-                "and the safe next step is to review the plan before adding real provider execution. "
+                "and the next operator step is to review the plan before any external execution outside this text-only meeting. "
                 f"Context used: {len(memories)} memory item(s) and {len(context_notes)} note(s)."
             )
             self._insert_roundtable_turn_conn(conn, session_id, room_id, turn_index, "manager_summary", manager, "meeting_manager", summary, "", now, actor)

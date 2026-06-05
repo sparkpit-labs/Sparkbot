@@ -4,10 +4,10 @@ Guardian controls in the current public app are a limited safety boundary, not a
 
 ## Current behavior
 
-- Chat and Round Table detect protected-action requests and fail closed before dispatching or persisting unsafe model output.
+- Chat and Round Table allow text-only model work through configured routes; they do not execute external/tool actions from prompts or model output.
 - Memory delete uses server-side Guardian confirmation before deletion.
 - Task run/write-mode requests fail closed in backend routes and log safe block events.
-- Command Center stores local security settings such as operator PIN state, guardrail text, and routing monitor labels.
+- Command Center stores local security settings such as operator PIN state, optional guardrail text, and routing monitor labels. Saved guardrails are injected into model prompts only when enabled.
 - Workstation, Command Center, and Spine show pending confirmations, safe Guardian block events, and disabled execution state.
 
 ## What remains disabled

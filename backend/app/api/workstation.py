@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from app.api.command_center import DEFAULT_AGENTS, _build_controls_config, _custom_agent_records, _invite_route_records, _read_config, _read_secrets
 from app.services.model_execution import ModelExecutionResult, execute_model_request, resolve_model_route
-from app.services.workstation_store import _redact_sensitive_text, _roundtable_privileged_action, get_store
+from app.services.workstation_store import _redact_sensitive_text, get_store
 
 
 router = APIRouter()
@@ -212,21 +212,14 @@ def _memory_delete_target(content: str, memories: list[dict[str, Any]]) -> str |
     return None
 
 
-def _unsupported_privileged_request(content: str) -> str | None:
-    normalized = content.lower()
-    checks = (
-        ("external_send", ("send email", "post message", "publish", "webhook", "send to channel")),
-        ("connector_action", ("run connector", "sync calendar", "push to repo", "external bridge")),
-        ("file_mutation", ("delete file", "write file", "modify file", "edit file")),
-        ("process_action", ("run command", "execute command", "start process", "terminal")),
-        ("scheduler_action", ("schedule job", "background worker", "run later", "cron")),
-        ("device_action", ("control device", "device control", "start device")),
-        ("room_execution", ("run room", "start meeting engine", "execute room")),
-    )
-    for action_type, terms in checks:
-        if any(term in normalized for term in terms):
-            return action_type
-    return None
+def _command_center_guardrails_text() -> str:
+    config = _read_config()
+    if not bool(config.get("security_guardrails_enabled")):
+        return ""
+    custom_guardrails = _redact_sensitive_text(str(config.get("custom_guardrails") or "").strip())
+    if not custom_guardrails:
+        return ""
+    return f"\n\nOperator-provided Command Center guardrails:\n{custom_guardrails}"
 
 
 def _chat_reply(
@@ -244,16 +237,6 @@ def _chat_reply(
         return (
             "Guardian confirmation is required before that memory can be deleted. "
             "I created a one-time confirmation request and did not delete the memory."
-        )
-    if blocked_action:
-        return (
-            "That request is treated as privileged Workstation work. "
-            "No action was executed; a dedicated route and Guardian confirmation are required first."
-        )
-    if model_blocked_action:
-        return (
-            "The model response requested protected Workstation work. "
-            "No action was executed; a dedicated route and Guardian confirmation are required before protected actions."
         )
     if model_result:
         if model_result.ok:
@@ -278,11 +261,13 @@ def _chat_model_messages(content: str, memories: list[dict[str, Any]], notes: li
         {
             "role": "system",
             "content": (
-                "You are Sparkbot Chat inside a local Workstation. Return concise text only. "
-                "Use the shared Workstation context when relevant, but do not reveal hidden metadata or secrets. "
-                "Do not claim to run connectors, send messages externally, mutate files, execute commands, "
-                "schedule jobs, control devices, or perform privileged actions. If protected work is needed, "
-                "state that a Guardian-confirmed backend route is required."
+                "You are Sparkbot Chat inside a local Workstation. You can help with any text-based work "
+                "the selected model supports. Use the shared Workstation context when relevant, but do not reveal "
+                "hidden metadata or secrets. Return text only. If the operator asks for external delivery, connector "
+                "work, file/process work, scheduling, terminal work, or device control, provide drafts, plans, "
+                "commands, checklists, or instructions for the operator to use; do not claim the Workstation itself "
+                "performed those external actions."
+                f"{_command_center_guardrails_text()}"
             ),
         },
         {"role": "user", "content": f"Shared context:\n{context_text}\n\nOperator message:\n{safe_content}"},
@@ -439,9 +424,11 @@ def _roundtable_model_messages(
                 f"({agent_context.get('name') or 'participant'}). "
                 f"Agent description: {agent_context.get('description') or 'No additional description.'} "
                 f"Agent instructions: {agent_context.get('system_prompt') or 'Use the assigned role and meeting phase.'} "
-                "Return concise text only. Do not claim to perform protected work, external delivery, "
-                "connector operations, file/process operations, scheduler work, terminal work, or device control. "
-                "If protected work is needed, state that a Guardian-confirmed backend route is required."
+                "Return concise text only. You can help with any text-based work the selected model supports. "
+                "If the meeting asks for external delivery, connector work, file/process work, scheduling, "
+                "terminal work, or device control, provide drafts, plans, commands, checklists, or instructions "
+                "for the operator to use; do not claim the Workstation itself performed those external actions."
+                f"{_command_center_guardrails_text()}"
             ),
         },
         {
@@ -518,9 +505,6 @@ async def _roundtable_model_turn(
         },
     )
     if result.ok:
-        blocked_action = _roundtable_privileged_action(result.text)
-        if blocked_action:
-            return {"blocked_action": blocked_action, "model_event_id": result.event_id}
         safe_text = _redact_sensitive_text(result.text)
         return {
             "participant": participant,
@@ -563,7 +547,7 @@ async def _build_roundtable_model_run(
     for worker in workers:
         fallback = (
             f"{worker.get('label') or 'Seat'} ({_roundtable_agent_context(worker, agent_contexts).get('label') or worker.get('agent') or 'participant'}) first pass: for '{goal}', "
-            f"keep the response provider-safe, identify useful assumptions, and contribute from the assigned agent role. "
+            f"keep the response text-only, identify useful assumptions, and contribute from the assigned agent role. "
             f"Shared context available: {len(memories)} memory item(s), "
             f"{len(context_notes)} note(s)."
         )
@@ -575,7 +559,7 @@ async def _build_roundtable_model_run(
             role="participant",
             instruction=(
                 f"Give a first-pass contribution for '{goal}' from the assigned {_roundtable_agent_context(worker, agent_contexts).get('label') or worker.get('agent') or 'participant'} agent role. "
-                "Keep it scoped to planning and review."
+                "Produce text work only; do not claim the app executed external steps."
             ),
             context_text=context_text,
             fallback_content=fallback,
@@ -588,7 +572,7 @@ async def _build_roundtable_model_run(
     first_pass_brief = "\n".join(f"- {item['participant'].get('label') or 'Seat'}: {_clip_context(item.get('content'), 500)}" for item in first_turns)
     manager_fallback = (
         f"Seat 1 Meeting Manager assessment: the room has enough first-pass input to split '{goal}' into focused assignments. "
-        "No protected actions were executed."
+        "No external actions were executed by the app."
     )
     manager_assessment = await _roundtable_model_turn(
         store=store,
@@ -608,7 +592,7 @@ async def _build_roundtable_model_run(
     for worker in workers:
         instruction = (
             f"Review '{goal}' from the {_roundtable_agent_context(worker, agent_contexts).get('label') or worker.get('agent') or 'participant'} perspective. Return a concise second-pass "
-            "recommendation, risks, and the next safe step. Do not perform protected work."
+            "recommendation, risks, and the next operator step. Produce text only; do not claim the app executed external steps."
         )
         assignments.append(
             {
@@ -624,7 +608,7 @@ async def _build_roundtable_model_run(
         worker = dict(assignment["worker"])
         fallback = (
             f"{worker.get('label') or 'Seat'} ({_roundtable_agent_context(worker, agent_contexts).get('label') or worker.get('agent') or 'participant'}) second pass: complete assignment "
-            f"'{assignment['instruction']}'. Recommendation for '{goal}': keep scope narrow, preserve Guardian boundaries, "
+            f"'{assignment['instruction']}'. Recommendation for '{goal}': keep scope narrow, make the result usable for operator review, "
             "and record the decision in shared state."
         )
         turn = await _roundtable_model_turn(
@@ -646,7 +630,7 @@ async def _build_roundtable_model_run(
     second_pass_brief = "\n".join(f"- {item['participant'].get('label') or 'Seat'}: {_clip_context(item.get('content'), 500)}" for item in second_turns)
     summary_fallback = (
         f"Meeting Manager wrap-up for '{goal}': first-pass ideas were collected, assignments were answered, "
-        f"and the safe next step is to review the plan before any protected action. Context used: {len(memories)} "
+        f"and the next operator step is to review the plan before any external execution outside this text-only meeting. Context used: {len(memories)} "
         f"memory item(s) and {len(context_notes)} note(s)."
     )
     manager_summary = await _roundtable_model_turn(
@@ -784,23 +768,10 @@ async def add_chat_turn(body: ChatMessageCreate) -> dict[str, Any]:
             },
             actor=body.actor,
         )
-    else:
-        blocked_action = _unsupported_privileged_request(safe_content)
-        if blocked_action:
-            store.append_event(
-                {
-                    "event_type": "guardian.action_blocked",
-                    "surface": "chat",
-                    "source_id": session_id,
-                    "summary": "Privileged chat request was not executed.",
-                    "payload": {"action_type": blocked_action, "requires_confirmation": True},
-                },
-                actor=body.actor,
-            )
 
     model_result = None
     model_blocked_action = None
-    if not confirmation and not blocked_action:
+    if not confirmation:
         model_result = await execute_model_request(
             route=route,
             messages=_chat_model_messages(safe_content, memories, notes),
@@ -809,24 +780,6 @@ async def add_chat_turn(body: ChatMessageCreate) -> dict[str, Any]:
             source_id=session_id,
             actor="sparkbot",
         )
-        if model_result.ok:
-            model_blocked_action = _unsupported_privileged_request(model_result.text)
-            if model_blocked_action:
-                store.append_event(
-                    {
-                        "event_type": "guardian.action_blocked",
-                        "surface": "chat",
-                        "source_id": session_id,
-                        "summary": "Protected model output was not executed.",
-                        "payload": {
-                            "action_type": model_blocked_action,
-                            "requires_confirmation": True,
-                            "source": "model_output",
-                            "model_event_id": model_result.event_id,
-                        },
-                    },
-                    actor="sparkbot",
-                )
 
     assistant_text = _chat_reply(
         route=route,
@@ -909,14 +862,6 @@ async def run_roundtable_session(session_id: str, body: RoundTableRunRequest | N
         return session
 
     room_id = str(session["room_id"])
-    blocked_action = _roundtable_privileged_action(
-        " ".join([str(session.get("title") or ""), str(session.get("goal") or ""), str(session.get("context_query") or "")])
-    )
-    if blocked_action:
-        blocked = store.block_roundtable_session(session_id, room_id, blocked_action, actor=actor)
-        if not blocked:
-            raise HTTPException(status_code=404, detail="Round Table session not found.")
-        return blocked
 
     participants = _roundtable_participants(store, session)
     agent_contexts = _roundtable_agent_contexts()

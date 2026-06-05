@@ -12,7 +12,7 @@ The Round Table surface is now a provider-capable public room workflow inside Sp
 - The manager wrap-up creates one Round Table summary and one wrap-up note. Turn-by-turn notes are not generated.
 - Round Table recalls shared memory and Workstation or room notes before saving turns.
 - Round Table events write to the shared Spine/event log, including redacted model-call metadata when provider execution runs.
-- Provider outputs are scanned for protected-action requests before any turns, assignments, summaries, or notes are persisted.
+- Provider outputs are persisted as text-only meeting turns; model-call events remain metadata-only and do not store prompts or outputs.
 
 ## Provider and action limits
 
@@ -25,10 +25,10 @@ The Round Table surface is now a provider-capable public room workflow inside Sp
 
 ## Guardian boundary
 
-Requests that look destructive, external, privileged, scheduled, connector-based, file/process-related, terminal-related, or device-related fail closed. Round Table logs Guardian block events for those requests and does not execute them.
+Round Table does not execute external delivery, connector work, file/process work, terminal work, scheduled work, or device actions. Requests for that kind of work are handled as text planning/drafting through the selected model route or deterministic fallback.
 
-Future action-capable Round Table behavior must use the shared Guardian confirmation boundary before execution.
+Future action-capable Round Table behavior must use explicit backend routes and the shared Guardian confirmation boundary before execution.
 
 ## Current provider boundary
 
-Round Table now shares the narrow provider/model execution service with Chat. It uses persisted seat routes when configured, falls back safely when routes are unavailable, keeps secrets server-side, redacts event payloads, and blocks protected actions requested by model output before persisting meeting artifacts.
+Round Table now shares the provider/model execution service with Chat. It uses persisted seat routes when configured, falls back safely when routes are unavailable, keeps secrets server-side, redacts event payloads, and treats model output as text only.

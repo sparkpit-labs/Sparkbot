@@ -6,14 +6,15 @@ This guide is for hands-on internal review of the current local Sparkbot Worksta
 
 - Local backend health, Command Center, Workstation, Chat, Round Table, Spine, and Controls routes.
 - Backend-backed provider/model configuration with server-side credential storage.
-- Chat sessions using the selected supported provider/model route, or a safe unconfigured response when no route is ready.
-- Round Table meetings with fixed phases, Seat 1 Meeting Manager, assignments, manager summary, wrap-up note, and deterministic fallback.
+- Chat sessions using the selected supported provider/model route for text work the model can perform, or a safe unconfigured response when no route is ready.
+- Round Table meetings with fixed phases, Seat 1 Meeting Manager, assignments, manager summary, wrap-up note, provider-backed text turns when configured, and deterministic fallback.
 - Agents Wing create/edit behavior, persistent agent identity/instructions, invite routes, and seat assignment.
 - Shared local Workstation state for rooms, sessions, seats, agents, memory, notes, history, events, confirmations, and task records.
 - Source-labeled memory/context recall into Chat and provider-backed Round Table prompts.
 - Notes/history/Spine visibility with safe event metadata.
 - Manual task records with create/list/update/pause/resume/done/cancel state transitions.
-- Fail-closed backend behavior for task run/write-mode and protected action requests.
+- Optional Command Center guardrails are injected into model prompts only when enabled and saved by the operator.
+- Fail-closed backend behavior for task run/write-mode execution routes.
 
 ## What This MVP Does Not Support Yet
 
@@ -146,17 +147,17 @@ Backend tests cover mocked/local-safe provider execution for Chat and Round Tabl
 
 | Area | Review steps | Expected result |
 | --- | --- | --- |
-| Command Center | Open `/command-center`, refresh status, inspect provider/model state | Shows real backend-backed status and clear disabled-state wording |
+| Command Center | Open `/command-center`, refresh status, inspect provider/model state and custom guardrails | Shows real backend-backed status; custom guardrails are operator-controlled |
 | Provider/model setup | Save a supported test route or confirm unconfigured/local state | Credentials stay server-side and are not echoed |
-| Chat | Start a chat and send a small message through configured or fallback path | Message persists and events remain metadata-only |
+| Chat | Start a chat and send a small work request through configured or fallback path | Message persists; configured models can answer text work; events remain metadata-only |
 | Agents Wing | Create or edit an agent with identity and instructions | Agent persists server-side; instructions remain redacted in unsafe surfaces |
-| Round Table | Assign an agent to a seat and run a small session | Seat 1 remains Meeting Manager; assigned agent context is used |
+| Round Table | Assign an agent to a seat and run a small session | Seat 1 remains Meeting Manager; assigned agent context and optional Command Center guardrails are used |
 | Invite routes | Save or inspect invite-route/provider/model state for an agent | Safe routes persist; unsupported subscription-only routes fail closed |
 | Memory | Create/list/edit/delete memory if the UI/API exposes it | Memory persists server-side, recalls safely, and deletes after confirmation |
 | Notes/history | Save or edit a note and inspect history | Notes persist, history links to sessions, no per-turn Round Table notes are created |
 | Spine/events | Inspect recent events and producer/source filters | Events show safe metadata only, not prompts, outputs, headers, or credentials |
 | Task records | Create/update/pause/resume/done/cancel a task record | Task changes persist as state only |
-| Fail-closed execution | Try disabled run/write-mode controls or backend routes in a safe test | UI remains disabled and backend returns fail-closed responses |
+| Fail-closed execution | Try disabled run/write-mode controls or backend routes in a safe test | Execution UI remains disabled and backend returns fail-closed responses; Chat/Round Table text prompts still dispatch when a model route is configured |
 | Restart persistence | Restart backend and reload frontend | Provider config, agents, seats, invite routes, sessions, memory, notes, events, and tasks remain available |
 
 ## Known Warnings

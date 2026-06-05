@@ -10,7 +10,7 @@ This document tracks public Workstation MVP readiness for review and phased rele
 - Command Center: provider/model configuration, server-side credential entry, Agents Wing, invite routes, seats, local setup, and visible disabled Task Guardian state.
 - Chat: backend-backed sessions/messages with shared context recall and narrow configured-provider execution.
 - Round Table: backend-backed meeting sessions with Seat 1 Meeting Manager, assignments, summaries, wrap-up notes, configured provider routes when available, and deterministic fallback.
-- Public safety: provider credentials stay server-side; event payloads and stored records are redacted; unsupported action paths fail closed.
+- Public safety: provider credentials stay server-side; event payloads and stored records are redacted; Chat and Round Table text work is not keyword-blocked; unsupported execution paths fail closed.
 
 ## Not yet in scope
 

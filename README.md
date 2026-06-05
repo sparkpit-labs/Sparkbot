@@ -147,7 +147,7 @@ Key docs:
 
 ## Security and privacy posture
 
-Validation does not require secrets. Provider credentials may be entered through Command Center and are stored server-side in local configuration, not echoed to the browser. Chat and Round Table model calls use only configured supported provider routes. Unsupported subscription-only routes fail closed. Product events store safe metadata, not prompts, model outputs, headers, credentials, or secrets.
+Validation does not require secrets. Provider credentials may be entered through Command Center and are stored server-side in local configuration, not echoed to the browser. Chat and Round Table model calls use configured supported provider routes for text work the selected model can perform. Optional Command Center guardrails are injected only when enabled by the operator. Unsupported subscription-only routes fail closed. Product events store safe metadata, not prompts, model outputs, headers, credentials, or secrets.
 
 Sparkbot does not execute tools, run connectors, mutate files, start schedulers, run terminal commands, automate browsers, control devices, or send data externally from task or Guardian surfaces.
 

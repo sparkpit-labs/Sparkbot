@@ -41,4 +41,4 @@ export const roundTableSeats: RoundTableSeat[] = [
 ];
 
 export const roundTablePreviewSummary =
-  "Round Table sessions are backend-backed and can use configured provider routes for text turns while protected actions remain blocked.";
+  "Round Table sessions are backend-backed and can use configured provider routes for text turns while external/tool execution remains unavailable.";
