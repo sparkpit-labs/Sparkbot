@@ -7,6 +7,7 @@ This index groups the public Sparkbot documentation for first-time visitors, loc
 - [Contributing](../CONTRIBUTING.md): contribution scope, pull request expectations, and validation commands.
 - [Security](../SECURITY.md): supported status, security report scope, and reporting guidance.
 - [Development](DEVELOPMENT.md): prerequisites, backend workflow, frontend workflow, and current limitations.
+- [Operator Review Guide](OPERATOR_REVIEW_GUIDE.md): hands-on local MVP review steps and checklist.
 - [Local Development](LOCAL_DEVELOPMENT.md): local runner scripts and what they do not enable.
 - [Local Smoke Test](LOCAL_SMOKE_TEST.md): alternate-port local smoke testing without touching existing services.
 - [Validation](VALIDATION.md): full validation, safety scans, backend checks, and frontend checks.

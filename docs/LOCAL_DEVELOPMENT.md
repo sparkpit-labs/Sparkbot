@@ -1,6 +1,6 @@
 # Local Development
 
-This guide covers the local-only developer runner scripts for the current public Sparkbot shell baseline.
+This guide covers the local-only developer runner scripts for the current public Sparkbot Workstation MVP.
 
 ## What the scripts do
 

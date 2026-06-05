@@ -27,7 +27,7 @@ This document tracks public Workstation MVP readiness for review and phased rele
 
 This repository is suitable for internal MVP review as a local AI Workstation. It is more than a static shell baseline, but it is not production-ready and does not claim complete product functionality or full parity with earlier research builds.
 
-The next readiness step should be a manual end-to-end local MVP smoke branch before any release or announcement branch.
+The next readiness step is hands-on internal operator review using the current local Workstation MVP. Public release, packaging, and announcement branches should wait until that review is complete and any review findings are handled.
 
 ## Desktop packaging status
 

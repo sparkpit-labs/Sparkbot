@@ -136,6 +136,7 @@ Key docs:
 - `CONTRIBUTING.md` for contribution scope and validation expectations.
 - `SECURITY.md` for reporting security concerns.
 - `docs/DEVELOPMENT.md` for local development workflow.
+- `docs/OPERATOR_REVIEW_GUIDE.md` for hands-on internal MVP review steps.
 - `docs/VALIDATION.md` for validation commands.
 - `docs/LOCAL_DEVELOPMENT.md` for local runner scripts.
 - `docs/LOCAL_SMOKE_TEST.md` for alternate-port local smoke testing.

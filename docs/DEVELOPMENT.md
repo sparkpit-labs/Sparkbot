@@ -1,6 +1,6 @@
 # Development
 
-This repository is an early public shell baseline for local development and review.
+This repository is an early public local Workstation MVP for local development and review.
 
 ## Prerequisites
 
