@@ -1,25 +1,27 @@
 # Frontend Baseline
 
-This repository now includes an early public v1.0.0 frontend foundation for Sparkbot.
+This repository now includes a functional local Workstation MVP frontend for Sparkbot.
 
 ## What Exists
 
-- Minimal React and TypeScript frontend shell under `frontend/`.
+- React and TypeScript frontend under `frontend/`.
 - Vite-based build pipeline with `npm run build`.
-- Health panel that can run a read-only request to backend `GET /health`.
+- Health panel for backend `GET /health`.
 - Configurable API base URL via `VITE_SPARKBOT_API_BASE_URL`.
-- Minimal frontend test coverage with Vitest and Testing Library.
-- Frontend-only continuous integration workflow.
-- Static Workstation and Round Table preview surfaces.
+- Frontend test coverage with Vitest and Testing Library.
+- Routes for `/workstation`, `/chat`, `/roundtable`, `/command-center`, `/spine`, and `/controls`.
+- Backend-backed Workstation, Chat, Round Table, Command Center, Spine, notes/history, task records, and Controls views.
+- Disabled/fail-closed UI for unsupported run/write-mode execution paths.
 
 ## What Is Intentionally Excluded
 
-- Active Workstation runtime behavior.
-- Active Round Table runtime behavior.
 - Desktop packaging.
-- Provider setup and model runtime wiring.
-- Guarded control runtimes.
-- Production and staging deployment assumptions.
+- Production or staging deployment assumptions.
+- Connector write flows and external sends.
+- File/process/terminal/browser/device automation.
+- Scheduler/runner execution.
+- Local CLI-backed subscription-auth execution.
+- Full private Guardian/Vault/platform-internal UI.
 
 ## Local Development Commands
 
@@ -42,8 +44,8 @@ cd frontend && npm test -- --run && npm run build
 
 ## Status Limitations
 
-This frontend baseline is intentionally minimal. It does not claim release readiness and does not include active product runtimes. Public setup and release documentation will expand in later phases.
+The frontend is ready for internal MVP review, not production release. Public setup and release documentation should continue to distinguish active local Workstation behavior from disabled automation and future packaging work.
 
 ## Dependency Advisory Status
 
-Frontend development tooling was updated to clear the Vite development server advisory chain during the Round Table shell slice. Current validation uses Node 22.22.0; contributors should use Node 20.19.0 or newer for the current Vite toolchain.
+Frontend development tooling was updated to clear the Vite development server advisory chain during earlier shell work. Contributors should use Node 20.19.0 or newer for the current Vite toolchain.

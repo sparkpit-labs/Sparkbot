@@ -1,26 +1,26 @@
 # Contributing to Sparkbot
 
-Sparkbot is currently an early public shell baseline for quiet review and local validation. Contributions are welcome, but the project is intentionally keeping changes small, public-safe, and aligned with the current baseline.
+Sparkbot is currently an early public local Workstation MVP for review and local validation. Contributions are welcome, but the project is intentionally keeping changes small, public-safe, and aligned with the current validated behavior.
 
 ## Good contributions for this stage
 
 - Documentation corrections and clarity improvements.
 - Validation script improvements that do not start services or require secrets.
 - Public safety scan improvements.
-- Small frontend or backend test improvements for existing shell behavior.
+- Small frontend or backend test improvements for existing Workstation behavior.
 - Issues that clearly separate current behavior from planned future work.
 
 ## Current contribution boundaries
 
-The current public baseline does not include:
+The current public MVP includes backend-backed Chat, Round Table, Command Center, Agents Wing, memory, notes/history, events, dashboard counters, and task records. It does not include:
 
-- Model calls or model routing.
-- Provider credential setup or credential storage.
-- Real chat runtime or message persistence.
-- Round Table meeting runtime.
-- Guardian policy enforcement runtime.
-- Terminal, tool execution, connector calls, external sends, or file mutation controls.
+- Production deployment or production support.
 - Desktop installer or packaged app.
+- Background scheduler, automatic runner, reminders engine, or recurring jobs.
+- Connector write flows, connector sends, or external delivery.
+- File mutation, process execution, terminal execution, browser automation, or device automation.
+- Public CLI-backed OpenAI or Claude subscription-auth execution.
+- Full private Guardian, Vault, or platform-internal control systems.
 
 Please do not submit changes that enable those behaviors unless a future maintainer-approved task explicitly opens that scope.
 
@@ -53,4 +53,4 @@ Please keep issues focused and specific. Good issues include:
 - A public safety concern.
 - A mismatch between README instructions and actual behavior.
 
-A contribution or issue may be declined if it is out of scope for the current public baseline, too broad to review safely, or depends on unimplemented runtime features.
+A contribution or issue may be declined if it is out of scope for the current public MVP, too broad to review safely, or depends on unsupported runtime features.

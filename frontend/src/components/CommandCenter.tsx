@@ -869,7 +869,7 @@ export default function CommandCenter() {
         <article className="command-panel">
           <div className="command-panel-heading">
             <p className="eyebrow">Model routing monitor</p>
-            <h3>Token Guardian</h3>
+            <h3>Routing status</h3>
             <p>Routing monitor mode is stored locally; it does not enable external execution.</p>
           </div>
           <select value={tokenMode} onChange={(event) => setTokenMode(event.target.value as "off" | "shadow" | "live")}>
@@ -882,8 +882,8 @@ export default function CommandCenter() {
 
         <article className="command-panel">
           <div className="command-panel-heading">
-            <p className="eyebrow">Task Guardian</p>
-            <h3>Scheduled work</h3>
+            <p className="eyebrow">Task controls</p>
+            <h3>Manual task records</h3>
             <p>Route status is visible; scheduler and job mutation remain blocked until a public backend gate exists.</p>
           </div>
           <dl className="mini-metrics">
@@ -893,7 +893,7 @@ export default function CommandCenter() {
             <div><dt>Status</dt><dd>{guardian?.task_guardian_enabled ? "visible only" : "state only"}</dd></div>
           </dl>
           <button type="button" disabled title="Task scheduler execution is disabled in this public branch.">Run now</button>
-          <button type="button" disabled title="Task Guardian write mode is disabled in this public branch.">Write mode</button>
+          <button type="button" disabled title="Write mode is disabled in this public branch.">Write mode</button>
         </article>
       </section>
 
@@ -919,10 +919,10 @@ export default function CommandCenter() {
             {workstation?.tasks.items.length ? null : <p>No task records yet.</p>}
           </div>
           <div className="connector-grid">
-            {["Overview", "Queues", "Projects", "Events", "Producers", "Security", "Vault", "Task Guardian", "Improvement"].map((tab) => (
+            {["Overview", "Queues", "Events", "Producers", "Security", "Task records", "Confirmations", "Disabled execution"].map((tab) => (
               <div className="connector-card" key={tab}>
                 <strong>{tab}</strong>
-                <span>{tab === "Overview" ? "Active empty-state route" : "Route path documented for follow-up parity"}</span>
+                <span>{tab === "Overview" ? "Active backend-backed route" : "Visible metadata only; no execution path"}</span>
               </div>
             ))}
           </div>

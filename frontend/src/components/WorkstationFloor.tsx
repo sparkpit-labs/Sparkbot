@@ -96,7 +96,7 @@ export default function WorkstationFloor() {
       });
       setRoomDraft({ title: "Planning Room", goal: "" });
       await loadData();
-      setMessage("Room foundation created. No meeting engine or model turn loop was started.");
+      setMessage("Room foundation created. No Round Table session, provider call, or task execution was started.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Room could not be created.");
     } finally {

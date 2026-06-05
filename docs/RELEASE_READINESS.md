@@ -1,29 +1,33 @@
 # Release Readiness
 
-This document tracks public shell readiness for review and phased release decisions.
+This document tracks public Workstation MVP readiness for review and phased release decisions.
 
 ## Current baseline
 
-- Backend: local read-only health endpoint is present and validated.
-- Frontend: static shell previews are present and validated.
-- Workstation, Round Table, Provider Setup, and Guardian Controls are preview or skeleton surfaces.
+- Backend: local FastAPI app with health, Command Center, Chat, Workstation, Round Table, memory, notes, events, Guardian confirmation, and task record routes.
+- Frontend: React/Vite app with `/`, `/spine`, `/controls`, `/command-center`, `/workstation`, `/chat`, and `/roundtable` routes.
+- Workstation: backend-backed rooms, seats, memory, notes, history, events, dashboard counters, and task records.
+- Command Center: provider/model configuration, server-side credential entry, Agents Wing, invite routes, seats, local setup, and visible disabled Task Guardian state.
+- Chat: backend-backed sessions/messages with shared context recall and narrow configured-provider execution.
+- Round Table: backend-backed meeting sessions with Seat 1 Meeting Manager, assignments, summaries, wrap-up notes, configured provider routes when available, and deterministic fallback.
+- Public safety: provider credentials stay server-side; event payloads and stored records are redacted; unsupported action paths fail closed.
 
 ## Not yet in scope
 
-- Provider credential workflows
-- Model execution and routing
-- Approval token workflows
-- Policy enforcement runtime
-- Sensitive action execution
-- Desktop packaging and install artifacts
-- Desktop binaries, installers, auto-update, and code signing
-- Deployment workflows
+- Production deployment workflow or production support guarantee.
+- Desktop installer, desktop binary, auto-update, and code signing.
+- Background scheduler, automatic runner, reminders engine, or recurring jobs.
+- Connector write flows, connector sends, external delivery, or third-party action execution.
+- File mutation, process execution, terminal execution, browser automation, or device automation.
+- Public CLI-backed OpenAI or Claude subscription-auth execution.
+- Full private Guardian, Vault, or platform-internal control systems.
+- Rich memory lifecycle automation such as stale/archive/delete-proposal/restore workflows.
 
 ## Readiness position
 
-This repository is suitable for professional public review as an early shell baseline.
+This repository is suitable for internal MVP review as a local AI Workstation. It is more than a static shell baseline, but it is not production-ready and does not claim complete product functionality or full parity with earlier research builds.
 
-This repository does not claim production readiness or complete product functionality.
+The next readiness step should be a manual end-to-end local MVP smoke branch before any release or announcement branch.
 
 ## Desktop packaging status
 
@@ -31,4 +35,4 @@ Desktop packaging is planned but not implemented. The current repository contain
 
 ## Contribution and security posture
 
-The repository includes lightweight contribution and security reporting guidance for quiet public review. The current baseline does not provide a production support guarantee.
+The repository includes contribution and security reporting guidance for public review. The current MVP does not provide a production support guarantee. Contributions should stay narrow, public-safe, and aligned with the disabled automation boundaries above.

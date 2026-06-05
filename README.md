@@ -1,37 +1,37 @@
 # Sparkbot
 
-Sparkbot is an early public, local-first AI workstation shell from SparkPit Labs. It is for builders, hobbyists, and technical users who want a self-hosted workspace for future chat, model seats, Round Table collaboration, provider setup, and safety-gated controls.
+Sparkbot is an early public, local-first AI Workstation MVP from SparkPit Labs. It is for builders, hobbyists, and technical users who want a self-hosted workspace for Chat, provider/model routing, Round Table meetings, Agents Wing setup, shared memory, notes/history, dashboard counters, safe task records, and guarded local controls.
 
-The current repository is a validated shell baseline. It is useful for review, local validation, and continued public development, but it is not a complete product release.
+The current repository is suitable for internal MVP review, local validation, and continued public development. It is not a production release and does not claim full parity with earlier research builds.
 
 ## Who this is for
 
-- Hobbyists and tinkerers who want to inspect and run the local shell baseline.
+- Hobbyists and tinkerers who want to inspect and run a local AI Workstation MVP.
 - Developers evaluating the project structure, validation path, and public roadmap.
-- Security-conscious users who want clear boundaries before provider credentials, model calls, or sensitive actions exist.
-- Future contributors who want to understand what is implemented, what is preview-only, and what is intentionally excluded.
+- Security-conscious users who want clear boundaries before entering provider credentials or attempting sensitive actions.
+- Future contributors who want to understand what is implemented, what is disabled, and what is intentionally excluded.
 
 ## Current status at a glance
 
 | Area | Current status | Notes |
 | --- | --- | --- |
 | Backend health endpoint | Works | FastAPI exposes local `GET /health`. |
-| Frontend shell | Works | React/Vite shell builds and tests successfully. |
-| Workstation shell | Preview | Read-only product layout. |
-| Chat shell | Preview | Disabled planned composer; no send action. |
-| Round Table | Preview | Inert planned seats for future collaboration. |
-| Provider Setup | Preview only | No API key fields, save action, or provider calls. |
-| Guardian Controls | Preview only | No approvals, enforcement, or sensitive actions. |
+| Frontend app routes | Works | `/`, `/spine`, `/controls`, `/command-center`, `/workstation`, `/chat`, and `/roundtable` render through the React app. |
+| Shared Workstation store | Works | Local SQLite-backed rooms, seats, notes, memory, events, Chat, Round Table, confirmations, and task records. |
+| Command Center | Works | Provider/model config, server-side credential entry, seats, Agents Wing, invite routes, local readiness, and disabled Task Guardian state. |
+| Chat | Works | Backend-backed sessions/messages with shared memory and notes recall; provider calls run only through configured supported routes. |
+| Round Table | Works | Backend-backed sessions, fixed phase order, Seat 1 Meeting Manager, assignments, summaries, wrap-up notes, provider routes when configured, and deterministic fallback. |
+| Agents Wing | Works | Create/edit agents, persist identity/instructions, invite/assign agents to seats, and use assigned agents in Round Table context. |
+| Memory/context | Works | Persistent source-labeled memory with create/list/edit/delete and safe recall into Chat and Round Table. |
+| Notes/history/Spine | Works | Notes, wrap-up artifacts, session history, safe events, producer metadata, and dashboard counters are visible from Workstation/Spine. |
+| Task records | Works as state only | Manual task records/history and pause/resume/done/cancel are local state only. |
+| Run/write-mode execution | Disabled | UI controls are disabled and backend run/write-mode routes fail closed. |
 | Desktop packaging | Planning only | No installer or desktop binary exists yet. |
-| Model calls | Not implemented | No model routing or provider runtime is active. |
-| Credential storage | Not implemented | No secrets are accepted, stored, or transmitted. |
-| Tool execution | Not implemented | No terminal, tool execution, connector calls, or external sends. |
+| Tool/connector execution | Not implemented | No terminal, process, file, connector, browser, scheduled, external-send, or device automation is active. |
 
 ## Release and checkpoint status
 
-The latest public checkpoint tag on `main` is `public-v1-local-smoke-ready-0`.
-
-The GitHub pre-release `public-v1-shell-baseline-0` remains the first published shell baseline release. Development continues on `main` through checkpoint tags, so `main` may include newer docs and planning checkpoints than the first pre-release page.
+The earlier GitHub pre-release `public-v1-shell-baseline-0` remains a historical shell-baseline checkpoint. The current branch line has moved beyond that baseline into a local Workstation MVP. Use the current docs and audit reports for present behavior.
 
 ## Quickstart
 
@@ -41,7 +41,7 @@ The GitHub pre-release `public-v1-shell-baseline-0` remains the first published 
 - Node.js 20.19.0 or newer
 - npm
 
-### 1. Validate the full shell baseline
+### 1. Validate the local Workstation MVP
 
 From the repository root:
 
@@ -94,7 +94,7 @@ Vite may print the exact local URL when the frontend server starts.
 
 ### 5. Optional alternate-port smoke test
 
-When the default ports are already in use, run the shell on alternate localhost ports and verify both surfaces:
+When the default ports are already in use, run the app on alternate localhost ports and verify both surfaces:
 
 ```bash
 SPARKBOT_BACKEND_PORT=18000 bash scripts/start-backend-dev.sh
@@ -118,14 +118,14 @@ Open `http://127.0.0.1:15173` for the browser check. See `docs/LOCAL_SMOKE_TEST.
 ## What this repository does not do yet
 
 - No desktop installer or desktop binary.
-- No real chat runtime.
-- No model calls or model routing.
-- No provider credential setup.
-- No credential storage.
-- No Round Table meeting engine.
-- No Guardian policy enforcement runtime.
-- No terminal, tool execution, connector calls, external sends, or file mutation controls.
-- No production deployment workflow.
+- No production deployment workflow or production support guarantee.
+- No background scheduler, automatic runner, reminders engine, or recurring job execution.
+- No connector write flows, connector sends, or external delivery actions.
+- No file mutation, process execution, terminal execution, browser automation, or device automation.
+- No public CLI-backed OpenAI or Claude subscription-auth execution path.
+- No full private Guardian, Vault, or platform-internal control system.
+- No rich memory lifecycle automation such as stale/archive/delete proposals or scheduled hygiene.
+- No guarantee that every earlier research feature has public parity.
 
 ## Documentation map
 
@@ -140,13 +140,15 @@ Key docs:
 - `docs/LOCAL_DEVELOPMENT.md` for local runner scripts.
 - `docs/LOCAL_SMOKE_TEST.md` for alternate-port local smoke testing.
 - `docs/ROADMAP.md` for staged product direction.
-- `docs/RELEASE_READINESS.md` for current release-readiness boundaries.
+- `docs/RELEASE_READINESS.md` for current readiness boundaries.
 - `docs/PUBLIC_ARTIFACT_MANIFEST.md` for included and excluded public artifacts.
 - `docs/DESKTOP_PACKAGING_PLAN.md` for desktop packaging planning only.
 
 ## Security and privacy posture
 
-Current validation does not require secrets. The repository does not accept provider credentials, store credentials, call models, execute tools, run connectors, or send data to external services. Product surfaces beyond the backend health endpoint and frontend shell are previews until explicit public contracts and runtime gates are added.
+Validation does not require secrets. Provider credentials may be entered through Command Center and are stored server-side in local configuration, not echoed to the browser. Chat and Round Table model calls use only configured supported provider routes. Unsupported subscription-only routes fail closed. Product events store safe metadata, not prompts, model outputs, headers, credentials, or secrets.
+
+Sparkbot does not execute tools, run connectors, mutate files, start schedulers, run terminal commands, automate browsers, control devices, or send data externally from task or Guardian surfaces.
 
 ## Repository standards
 

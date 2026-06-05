@@ -74,7 +74,7 @@ Start the frontend development server:
 bash scripts/start-frontend-dev.sh
 ```
 
-The frontend development server binds to `127.0.0.1` through Vite. The frontend currently presents distinct `/workstation`, `/chat`, `/command-center`, `/spine`, and `/controls` routes backed by the local backend where state is implemented.
+The frontend development server binds to `127.0.0.1` through Vite. The frontend currently presents distinct `/workstation`, `/chat`, `/roundtable`, `/command-center`, `/spine`, and `/controls` routes backed by the local backend where state is implemented.
 
 ## Current limitations
 

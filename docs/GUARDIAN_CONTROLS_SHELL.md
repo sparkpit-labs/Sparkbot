@@ -1,41 +1,24 @@
-# Guardian Controls Shell
+# Guardian Controls
 
-This slice adds a static Guardian Controls preview to the public Sparkbot Workstation shell.
-
-The preview is intentionally read-only and does not implement approvals, policy enforcement, tokens, vault behavior, sensitive action execution, or backend mutation.
-
-## Preview control categories
-
-- Local actions
-- Provider access
-- Files and workspace
-- External connections
-- Approval checkpoints
-- Audit trail
+Guardian controls in the current public app are a limited safety boundary, not a full private policy runtime.
 
 ## Current behavior
 
-- Control cards render with `skeleton` or `planned` status labels.
-- The preview includes no approval actions.
-- The preview includes no execute actions.
-- The preview includes no save actions.
-- The preview includes no policy enforcement behavior.
-- Existing backend `GET /health` check remains unchanged as the only frontend network call.
+- Chat and Round Table detect protected-action requests and fail closed before dispatching or persisting unsafe model output.
+- Memory delete uses server-side Guardian confirmation before deletion.
+- Task run/write-mode requests fail closed in backend routes and log safe block events.
+- Command Center stores local security settings such as operator PIN state, guardrail text, and routing monitor labels.
+- Workstation, Command Center, and Spine show pending confirmations, safe Guardian block events, and disabled execution state.
 
-## Excluded from this baseline
+## What remains disabled
 
-- Real Guardian implementation
-- Approval token implementation
-- Policy enforcement engine
-- Vault or credential storage
-- Shell or terminal execution
-- Tool execution
-- Browser automation
-- File mutation controls
-- External sends or connector calls
-- Model calls or routing
-- Backend mutation beyond the existing health endpoint
+- No full policy engine is included.
+- No connector action approval/resume path is included.
+- No file/process/terminal/browser/device action approval path is included.
+- No scheduler or automatic runner approval path is included.
+- No full private Vault or platform-internal control system is included.
+- No sensitive action is executed from Guardian state in this public MVP.
 
 ## Follow-up direction
 
-A later slice should define public Guardian control contracts before any approval, enforcement, or sensitive action workflow is enabled.
+Any future action-capable route must be explicit, server-side, source-bound, one-time confirmed, fail-closed, tested for redaction, and clear in UI copy before execution is enabled.

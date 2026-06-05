@@ -1,43 +1,35 @@
 # Sparkbot Public Roadmap
 
-This roadmap describes the staged path toward Sparkbot public v1.0.0.
+This roadmap describes the staged path toward a public Sparkbot v1.0.0. It separates historical baseline work from the current local Workstation MVP.
 
-## Phase 0: Public repo foundation
+## Completed foundation
 
-Establish the clean public repository, documentation standards, release standards, and initial project direction.
+- Clean public repository, documentation standards, release standards, validation scripts, and public safety scan.
+- Local FastAPI backend and React/Vite frontend.
+- Shared local Workstation store.
+- Command Center configuration for providers, model routes, seats, Agents Wing, invite routes, and local safety state.
+- Backend-backed Chat with shared context recall and configured-provider execution.
+- Backend-backed Round Table with persisted sessions, Seat 1 Meeting Manager, assignments, summaries, wrap-up notes, configured provider routes, deterministic fallback, and agent/seat context.
+- Persistent memory, notes, history, Spine events, dashboard counters, producer metadata, and manual task records.
+- Disabled/fail-closed run and write-mode paths for public Task Guardian visibility.
 
-## Phase 1: Sanitized source inventory
+## Current readiness phase
 
-Review candidate ideas and implementation approaches, then rewrite or import only material that meets public release standards.
+Audit route, copy, docs, and public-boundary accuracy, then run a manual local MVP smoke branch.
 
-## Phase 2: Minimal buildable shell
+## Deferred public-safe work
 
-Create a minimal buildable Sparkbot shell with a clear project structure and repeatable local development commands.
+- Manual end-to-end MVP smoke and route polish.
+- Provider setup UX polish and clearer unsupported subscription labels.
+- Notes/history polish after smoke findings.
+- Optional public-safe memory lifecycle improvements after product review.
+- Desktop packaging planning and installer work only after explicit release gates are met.
 
-## Phase 3: Local-first backend and frontend
+## Out of scope until explicitly approved
 
-Add the initial local-first backend and frontend surfaces with safe defaults and clear setup documentation.
-
-## Phase 4: Workstation shell skeleton and Round Table preview
-
-Establish a read-only Workstation shell skeleton and static Round Table preview seats. Active collaboration behavior remains planned until public interaction contracts and validation gates are documented.
-
-## Phase 4a: Chat shell preview
-
-Add a read-only Chat Shell preview with no message handling, persistence, model calls, provider credentials, or send actions.
-
-## Phase 5: Provider setup shell preview
-
-Add a read-only Provider Setup preview with planned provider profiles and no credential, save, test, or runtime behavior.
-
-## Phase 6: Guardian-gated controls shell preview
-
-Add a read-only Guardian Controls preview with planned control categories and no approval, enforcement, execution, connector, or mutation behavior.
-
-## Phase 7: Desktop packaging and release testing
-
-Define the Windows/local desktop path, smoke tests, release artifacts, and fresh clone validation. Desktop packaging is planned only; no installer or desktop binary exists in the current baseline.
-
-## Phase 8: Plugins and future runtime integration
-
-Expand toward plugins, skills, and deeper runtime integration after the public v1.0.0 foundation is stable.
+- Production deployment workflow.
+- Background scheduler, automatic runner, reminders engine, or recurring jobs.
+- Connector write flows or external sends.
+- File/process/terminal/browser/device automation.
+- Local CLI-backed OpenAI or Claude subscription-auth execution.
+- Private platform internals or full commercial Guardian/Vault behavior.

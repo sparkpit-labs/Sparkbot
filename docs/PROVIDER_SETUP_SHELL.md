@@ -1,36 +1,26 @@
-# Provider Setup Shell
+# Provider Setup
 
-This slice adds a static Provider Setup shell preview to the public Sparkbot Workstation shell.
-
-The preview is intentionally read-only and does not implement credential storage, provider calls, model routing, or backend secret handling.
-
-## Preview provider cards
-
-- Local model provider
-- OpenAI-compatible provider
-- Anthropic-compatible provider
-- Google-compatible provider
-- Custom endpoint
+Provider setup is now an active Command Center surface, not only a static preview.
 
 ## Current behavior
 
-- Provider cards render with `skeleton` or `planned` status labels.
-- The preview includes no API key input fields.
-- The preview includes no save actions.
-- The preview includes no test connection actions.
-- Existing backend `GET /health` check remains unchanged as the only frontend network call.
+- Command Center lists supported provider routes and local model readiness.
+- Provider credentials can be entered through the frontend and are stored server-side in local configuration.
+- Saved credentials are represented to the browser as configured/not configured flags; raw secret values are not returned.
+- Chat uses the selected Command Center provider/model route when that route is configured and supported.
+- Round Table uses configured seat/default provider routes when available and falls back deterministically when routes are unavailable.
+- OpenRouter, OpenAI, Anthropic, Google, Groq, MiniMax, xAI, and local Ollama-style routes are represented in the public configuration surface.
+- Anthropic invite-route OAuth token mode is available only for Anthropic invite models.
+- Subscription-only OpenAI/Claude local-session routes remain unsupported for public server-side execution and fail closed.
 
-## Excluded from this baseline
+## Current limits
 
-- Real provider configuration
-- Credential entry or persistence
-- Vault or secret management
-- Provider authentication
-- Model calls or routing
-- Chat integration
-- Tool execution
-- Guardian runtime controls
+- No browser sign-in flow is implemented.
+- No local CLI session bridge is implemented.
+- No token bridge, connector bridge, or browser-cookie/session scraping is implemented.
+- No provider secret is displayed in API responses, frontend state, events, notes, memory, or history.
+- No model-call event stores prompts, model outputs, headers, raw request bodies, raw response bodies, credentials, or secrets.
 
 ## Follow-up direction
 
-A later slice should define a public-safe provider configuration contract before any runtime behavior or credential workflow is enabled.
+Future provider work should stay narrow: improve supported provider UX, clarify unsupported subscription labels, and add any new auth path only when it can run through a public-safe server-side route without subprocess execution or private credential bridges.

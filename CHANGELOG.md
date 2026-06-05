@@ -6,18 +6,23 @@ This changelog tracks public Sparkbot repository baselines and release-facing do
 
 ### Added
 
+- Local Workstation MVP surfaces for Command Center, Chat, Round Table, Workstation, Spine, and Controls.
+- Shared local SQLite Workstation store for rooms, seats, agents, invite routes, memory, notes, events, Chat, Round Table, confirmations, and task records.
+- Provider/model configuration with server-side credential storage and configured-provider execution for Chat and Round Table.
+- Agents Wing creation/editing and seat assignment for Round Table participation.
+- Persistent memory/context recall, notes/history visibility, Spine events, dashboard counters, producer metadata, and manual task records.
+- Fail-closed public Task Guardian visibility for run/write-mode requests.
 - Local smoke readiness checkpoint with alternate localhost ports and confirmed manual browser smoke.
-- Chat Shell preview with disabled read-only planned composer and no send action.
-- Chat Shell documentation describing the public skeleton boundary.
-- Local development runner scripts for backend and frontend dev servers.
 - Public safety scan helper and local development documentation.
 - Desktop packaging planning document with candidate paths, decision criteria, and release gates.
-- Public visitor README polish and documentation index.
-- Lightweight contribution and security reporting docs for quiet public review.
+- Lightweight contribution and security reporting docs for public review.
 
 ### Not Included
 
-- No real chat runtime, message persistence, model calls, provider credentials, backend chat endpoint, desktop app, installer, auto-update path, or code signing setup.
+- No production deployment or production support guarantee.
+- No desktop app, installer, auto-update path, or code signing setup.
+- No background scheduler, automatic runner, reminders engine, connector write flow, external send, file/process/terminal/browser/device automation, or local CLI-backed subscription-auth execution.
+- No full private Guardian, Vault, or platform-internal control system.
 
 ## public-v1-clean-baseline-0 - 2026-05-30
 
