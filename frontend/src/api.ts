@@ -119,6 +119,12 @@ export type DashboardSummary = {
     task_guardian_enabled: boolean;
     token_guardian_mode: string;
     security_guardrails_enabled: boolean;
+    tasks_count?: number;
+    paused_tasks_count?: number;
+    done_tasks_count?: number;
+    canceled_tasks_count?: number;
+    blocked_tasks_count?: number;
+    task_execution_enabled?: boolean;
   };
   today: {
     meeting_artifacts: unknown[];
@@ -137,8 +143,11 @@ export type SpineOverview = {
   recently_resurfaced_queue: unknown[];
   assignment_ready_queue: unknown[];
   executive_directives_queue: unknown[];
+  completed_queue?: unknown[];
   status: string;
   note: string;
+  workstation_counts?: Record<string, number | boolean>;
+  task_execution_enabled?: boolean;
 };
 
 const DEFAULT_API_BASE_URL = "http://127.0.0.1:8000";
@@ -332,6 +341,42 @@ export type WorkstationEvent = {
   created_at: string;
 };
 
+export type EventProducer = {
+  subsystem: string;
+  description: string;
+  event_types: string[];
+  event_count: number;
+  last_event_at: string | null;
+};
+
+export type TaskHistoryEntry = {
+  id: string;
+  task_id: string;
+  event_type: string;
+  status_from: string;
+  status_to: string;
+  note: string;
+  actor: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+};
+
+export type WorkstationTask = {
+  id: string;
+  title: string;
+  status: "open" | "paused" | "done" | "canceled" | "blocked" | string;
+  notes: string;
+  surface: string;
+  source_id: string;
+  actor: string;
+  tags: string[];
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  execution_enabled: boolean;
+  history?: TaskHistoryEntry[];
+};
+
 export type GuardianConfirmation = {
   id: string;
   action_type: string;
@@ -471,6 +516,18 @@ export type WorkstationState = {
   notes: WorkstationNote[];
   memory: { items: WorkstationMemory[]; count: number };
   events: WorkstationEvent[];
+  producers: EventProducer[];
+  tasks: {
+    items: WorkstationTask[];
+    count: number;
+    open_count: number;
+    paused_count: number;
+    done_count: number;
+    canceled_count: number;
+    blocked_count: number;
+    history: TaskHistoryEntry[];
+    execution_enabled: boolean;
+  };
   guardian: {
     pending_confirmations: GuardianConfirmation[];
     recent_confirmations: GuardianConfirmation[];
@@ -500,6 +557,14 @@ export type WorkstationState = {
     roundtable_assignments_count: number;
     roundtable_summaries_count: number;
     pending_confirmations: number;
+    tasks_count: number;
+    open_tasks_count: number;
+    paused_tasks_count: number;
+    done_tasks_count: number;
+    canceled_tasks_count: number;
+    blocked_tasks_count: number;
+    task_history_count: number;
+    task_execution_enabled: boolean;
   };
   storage: { type: string; path: string };
 };
@@ -554,6 +619,51 @@ export function updateNote(noteId: string, payload: {
   });
 }
 
+export function fetchTasks(params: { limit?: number; status?: string } = {}): Promise<{ tasks: WorkstationTask[]; count: number; execution_enabled: boolean }> {
+  const search = new URLSearchParams();
+  if (params.limit) search.set("limit", String(params.limit));
+  if (params.status) search.set("status", params.status);
+  const query = search.toString();
+  return fetchJson<{ tasks: WorkstationTask[]; count: number; execution_enabled: boolean }>(`/api/tasks${query ? `?${query}` : ""}`);
+}
+
+export function createTask(payload: {
+  title: string;
+  notes?: string;
+  status?: string;
+  surface?: string;
+  source_id?: string;
+  tags?: string[];
+  metadata?: Record<string, unknown>;
+}): Promise<WorkstationTask> {
+  return fetchJson<WorkstationTask>("/api/tasks", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function updateTask(taskId: string, payload: {
+  title?: string;
+  notes?: string;
+  status?: string;
+  surface?: string;
+  source_id?: string;
+  tags?: string[];
+  metadata?: Record<string, unknown>;
+}): Promise<WorkstationTask> {
+  return fetchJson<WorkstationTask>(`/api/tasks/${encodeURIComponent(taskId)}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function transitionTask(taskId: string, operation: "pause" | "resume" | "done" | "cancel"): Promise<WorkstationTask> {
+  return fetchJson<WorkstationTask>(`/api/tasks/${encodeURIComponent(taskId)}/${operation}`, {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+}
+
 export function fetchEvents(params: {
   limit?: number;
   event_type?: string;
@@ -567,6 +677,10 @@ export function fetchEvents(params: {
   if (params.source_id) search.set("source_id", params.source_id);
   const query = search.toString();
   return fetchJson<{ events: WorkstationEvent[]; count: number }>(`/api/events${query ? `?${query}` : ""}`);
+}
+
+export function fetchEventProducers(): Promise<{ producers: EventProducer[]; count: number }> {
+  return fetchJson<{ producers: EventProducer[]; count: number }>("/api/events/producers");
 }
 
 export function createMemory(payload: {

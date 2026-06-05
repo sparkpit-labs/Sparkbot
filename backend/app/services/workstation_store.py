@@ -95,6 +95,23 @@ ROUND_TABLE_PRIVILEGED_CHECKS = (
     ("scheduler_action", ("schedule job", "background worker", "run later", "cron")),
     ("device_action", ("control device", "device control", "start device")),
 )
+TASK_STATUSES = {"open", "paused", "done", "canceled", "blocked"}
+TASK_OPERATION_STATUS = {
+    "pause": "paused",
+    "resume": "open",
+    "done": "done",
+    "cancel": "canceled",
+}
+TASK_PRODUCERS = {
+    "workstation": {"description": "Shared local Workstation state", "event_types": ["room.created", "note.saved", "memory.saved", "seat.updated"]},
+    "command_center": {"description": "Command Center configuration and provider setup", "event_types": ["command_center.config_updated", "model.default_updated", "agent.created"]},
+    "tasks": {"description": "Public-safe manual task records and state history", "event_types": ["task.created", "task.updated", "task.paused", "task.resumed", "task.done", "task.canceled"]},
+    "chat": {"description": "Shared Chat sessions and message history", "event_types": ["chat.message.user", "chat.message.assistant"]},
+    "roundtable": {"description": "Round Table sessions, turns, assignments, summaries, and safe model-call metadata", "event_types": ["roundtable.session.created", "roundtable.turn.created", "roundtable.summary.created"]},
+    "guardian": {"description": "Guardian confirmations and blocked protected-action attempts", "event_types": ["guardian.confirmation_required", "guardian.action_blocked", "guardian.action_authorized"]},
+    "model": {"description": "Provider/model routing metadata without prompts or outputs", "event_types": ["model.call.completed", "model.call.failed", "model.call.blocked"]},
+    "memory": {"description": "Shared Workstation memory create/update/delete events", "event_types": ["memory.saved", "memory.updated", "memory.deleted"]},
+}
 
 
 def _roundtable_privileged_action(text: str) -> str | None:
@@ -332,6 +349,30 @@ class WorkstationStore:
               expires_at TEXT NOT NULL DEFAULT '',
               resolved_at TEXT,
               used_at TEXT
+            );
+            CREATE TABLE IF NOT EXISTS tasks (
+              id TEXT PRIMARY KEY,
+              title TEXT NOT NULL,
+              status TEXT NOT NULL,
+              notes TEXT NOT NULL,
+              surface TEXT NOT NULL,
+              source_id TEXT NOT NULL,
+              actor TEXT NOT NULL,
+              tags_json TEXT NOT NULL,
+              metadata_json TEXT NOT NULL,
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS task_history (
+              id TEXT PRIMARY KEY,
+              task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+              event_type TEXT NOT NULL,
+              status_from TEXT NOT NULL,
+              status_to TEXT NOT NULL,
+              note TEXT NOT NULL,
+              actor TEXT NOT NULL,
+              metadata_json TEXT NOT NULL,
+              created_at TEXT NOT NULL
             );
             """
         )
@@ -1350,6 +1391,238 @@ class WorkstationStore:
             rows = conn.execute(sql, params).fetchall()
         return [self._event(row) for row in rows]
 
+    def create_task(self, payload: dict[str, Any], actor: str = "operator") -> dict[str, Any]:
+        task_id = str(uuid.uuid4())
+        now = utc_now()
+        title = _redact_sensitive_text(str(payload.get("title") or "Workstation task").strip())[:200] or "Workstation task"
+        notes = _redact_sensitive_text(str(payload.get("notes") or payload.get("description") or "").strip())
+        status = str(payload.get("status") or "open").strip().lower()
+        if status not in TASK_STATUSES:
+            raise ValueError("Task status must be open, paused, done, canceled, or blocked.")
+        surface = str(payload.get("surface") or "workstation").strip()[:80] or "workstation"
+        source_id = str(payload.get("source_id") or "").strip()[:160]
+        tags = [_redact_sensitive_text(str(tag)) for tag in payload.get("tags", []) if str(tag).strip()] if isinstance(payload.get("tags"), list) else []
+        metadata = _sanitize_payload(payload.get("metadata")) if isinstance(payload.get("metadata"), dict) else {}
+        with self.connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO tasks (id, title, status, notes, surface, source_id, actor, tags_json, metadata_json, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (task_id, title, status, notes, surface, source_id, actor, _json_dumps(tags), _json_dumps(metadata), now, now),
+            )
+            self._append_task_history_conn(
+                conn,
+                task_id,
+                "task.created",
+                "",
+                status,
+                "Task record created.",
+                actor,
+                {"surface": surface, "source_id": source_id, "tags": tags},
+                now,
+            )
+            self._append_event_conn(
+                conn,
+                "task.created",
+                "tasks",
+                task_id,
+                actor,
+                f"Task created: {title}",
+                {"task_id": task_id, "status": status, "surface": surface, "source_id": source_id, "tags": tags},
+                now,
+            )
+            row = conn.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
+            history_rows = conn.execute("SELECT * FROM task_history WHERE task_id = ? ORDER BY created_at ASC", (task_id,)).fetchall()
+        task = self._task(row)
+        task["history"] = [self._task_history(item) for item in history_rows]
+        return task
+
+    def list_tasks(self, limit: int = 50, status: str | None = None) -> list[dict[str, Any]]:
+        clauses: list[str] = []
+        params: list[Any] = []
+        if status:
+            clean_status = status.strip().lower()
+            if clean_status not in TASK_STATUSES:
+                raise ValueError("Task status must be open, paused, done, canceled, or blocked.")
+            clauses.append("status = ?")
+            params.append(clean_status)
+        sql = "SELECT * FROM tasks"
+        if clauses:
+            sql += " WHERE " + " AND ".join(clauses)
+        sql += " ORDER BY updated_at DESC LIMIT ?"
+        params.append(max(1, min(limit, 200)))
+        with self.connect() as conn:
+            rows = conn.execute(sql, params).fetchall()
+        return [self._task(row) for row in rows]
+
+    def get_task(self, task_id: str) -> dict[str, Any] | None:
+        with self.connect() as conn:
+            row = conn.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
+            if not row:
+                return None
+            history_rows = conn.execute("SELECT * FROM task_history WHERE task_id = ? ORDER BY created_at ASC", (task_id,)).fetchall()
+        task = self._task(row)
+        task["history"] = [self._task_history(item) for item in history_rows]
+        return task
+
+    def update_task(
+        self,
+        task_id: str,
+        payload: dict[str, Any],
+        actor: str = "operator",
+        event_type: str = "task.updated",
+        history_note: str = "Task record updated.",
+    ) -> dict[str, Any] | None:
+        current = self.get_task(task_id)
+        if not current:
+            return None
+        now = utc_now()
+        status = str(payload.get("status", current["status"]) or current["status"]).strip().lower()
+        if status not in TASK_STATUSES:
+            raise ValueError("Task status must be open, paused, done, canceled, or blocked.")
+        title = _redact_sensitive_text(str(payload.get("title", current["title"])).strip())[:200] or current["title"]
+        notes = _redact_sensitive_text(str(payload.get("notes", current["notes"])).strip())
+        surface = str(payload.get("surface", current["surface"])).strip()[:80] or "workstation"
+        source_id = str(payload.get("source_id", current["source_id"])).strip()[:160]
+        tags = [_redact_sensitive_text(str(tag)) for tag in payload.get("tags", []) if str(tag).strip()] if isinstance(payload.get("tags"), list) else current["tags"]
+        metadata = _sanitize_payload(payload.get("metadata")) if isinstance(payload.get("metadata"), dict) else current["metadata"]
+        with self.connect() as conn:
+            conn.execute(
+                """
+                UPDATE tasks
+                SET title = ?, status = ?, notes = ?, surface = ?, source_id = ?, tags_json = ?, metadata_json = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (title, status, notes, surface, source_id, _json_dumps(tags), _json_dumps(metadata), now, task_id),
+            )
+            self._append_task_history_conn(
+                conn,
+                task_id,
+                event_type,
+                current["status"],
+                status,
+                history_note,
+                actor,
+                {"surface": surface, "source_id": source_id, "tags": tags},
+                now,
+            )
+            self._append_event_conn(
+                conn,
+                event_type,
+                "tasks",
+                task_id,
+                actor,
+                f"Task updated: {title}",
+                {"task_id": task_id, "status_from": current["status"], "status_to": status, "surface": surface, "source_id": source_id},
+                now,
+            )
+            row = conn.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
+            history_rows = conn.execute("SELECT * FROM task_history WHERE task_id = ? ORDER BY created_at ASC", (task_id,)).fetchall()
+        task = self._task(row)
+        task["history"] = [self._task_history(item) for item in history_rows]
+        return task
+
+    def transition_task(self, task_id: str, operation: str, actor: str = "operator") -> dict[str, Any] | None:
+        clean_operation = operation.strip().lower().replace("-", "_")
+        if clean_operation not in TASK_OPERATION_STATUS:
+            raise ValueError("Task operation must be pause, resume, done, or cancel.")
+        event_type = {
+            "pause": "task.paused",
+            "resume": "task.resumed",
+            "done": "task.done",
+            "cancel": "task.canceled",
+        }[clean_operation]
+        status = TASK_OPERATION_STATUS[clean_operation]
+        return self.update_task(
+            task_id,
+            {"status": status},
+            actor=actor,
+            event_type=event_type,
+            history_note=f"Task {clean_operation.replace('_', ' ')} recorded as a state-only operation.",
+        )
+
+    def block_task_execution(self, task_id: str, operation: str, actor: str = "operator") -> dict[str, Any] | None:
+        clean_operation = operation.strip().lower().replace("-", "_")
+        now = utc_now()
+        with self.connect() as conn:
+            row = conn.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
+            if not row:
+                return None
+            task = self._task(row)
+            self._append_task_history_conn(
+                conn,
+                task_id,
+                "task.execution_blocked",
+                task["status"],
+                task["status"],
+                "Task execution request was blocked in the public Workstation boundary.",
+                actor,
+                {"operation": clean_operation, "execution_enabled": False},
+                now,
+            )
+            self._append_event_conn(
+                conn,
+                "guardian.action_blocked",
+                "tasks",
+                task_id,
+                actor,
+                "Task execution request was not executed.",
+                {"action_type": f"task.{clean_operation}", "operation": clean_operation, "requires_confirmation": True, "execution_enabled": False},
+                now,
+            )
+            history_rows = conn.execute("SELECT * FROM task_history WHERE task_id = ? ORDER BY created_at ASC", (task_id,)).fetchall()
+        task["history"] = [self._task_history(item) for item in history_rows]
+        return task
+
+    def list_task_history(self, task_id: str | None = None, limit: int = 100) -> list[dict[str, Any]]:
+        sql = "SELECT * FROM task_history"
+        params: list[Any] = []
+        if task_id:
+            sql += " WHERE task_id = ?"
+            params.append(task_id)
+        sql += " ORDER BY created_at DESC LIMIT ?"
+        params.append(max(1, min(limit, 500)))
+        with self.connect() as conn:
+            rows = conn.execute(sql, params).fetchall()
+        return [self._task_history(row) for row in rows]
+
+    def event_producers(self, limit: int = 500) -> list[dict[str, Any]]:
+        events = self.list_events(limit=limit)
+        grouped: dict[str, dict[str, Any]] = {}
+        for subsystem, info in TASK_PRODUCERS.items():
+            grouped[subsystem] = {
+                "subsystem": subsystem,
+                "description": info["description"],
+                "event_types": set(info["event_types"]),
+                "event_count": 0,
+                "last_event_at": None,
+            }
+        for event in events:
+            subsystem = str(event.get("surface") or "workstation")
+            event_type = str(event.get("event_type") or "workstation.event")
+            if event_type.startswith("model.call"):
+                subsystem = "model"
+            producer = grouped.setdefault(
+                subsystem,
+                {
+                    "subsystem": subsystem,
+                    "description": f"{subsystem.replace('_', ' ').title()} event producer",
+                    "event_types": set(),
+                    "event_count": 0,
+                    "last_event_at": None,
+                },
+            )
+            producer["event_types"].add(event_type)
+            producer["event_count"] += 1
+            created_at = event.get("created_at")
+            if created_at and (not producer["last_event_at"] or str(created_at) > str(producer["last_event_at"])):
+                producer["last_event_at"] = created_at
+        return [
+            {**producer, "event_types": sorted(producer["event_types"])}
+            for producer in sorted(grouped.values(), key=lambda item: (item["event_count"], item["last_event_at"] or ""), reverse=True)
+        ]
+
     def workstation_history(self, limit: int = 25) -> dict[str, Any]:
         clean_limit = max(1, min(limit, 100))
         chat_sessions = self.list_chat_sessions(limit=clean_limit)
@@ -1362,11 +1635,24 @@ class WorkstationStore:
         rooms = self.list_rooms(limit=clean_limit)
         memories = self.list_memory(limit=clean_limit)
         events = self.list_events(limit=clean_limit)
+        tasks = self.list_tasks(limit=clean_limit)
         return {
             "rooms": rooms,
             "notes": notes,
             "memory": {"items": memories, "count": self.count("memory_entries")},
             "events": events,
+            "producers": self.event_producers(),
+            "tasks": {
+                "items": tasks,
+                "count": self.count("tasks"),
+                "open_count": self.count("tasks", "status = 'open'"),
+                "paused_count": self.count("tasks", "status = 'paused'"),
+                "done_count": self.count("tasks", "status = 'done'"),
+                "canceled_count": self.count("tasks", "status = 'canceled'"),
+                "blocked_count": self.count("tasks", "status = 'blocked'"),
+                "history": self.list_task_history(limit=clean_limit),
+                "execution_enabled": False,
+            },
             "chat": {
                 "sessions": chat_sessions,
                 "sessions_count": self.count("chat_sessions"),
@@ -1541,12 +1827,25 @@ class WorkstationStore:
         notes = self.list_notes(limit=10)
         memories = self.list_memory(limit=10)
         events = self.list_events(limit=20)
+        tasks = self.list_tasks(limit=10)
         return {
             "seats": seats,
             "rooms": rooms,
             "notes": notes,
             "memory": {"items": memories, "count": self.count("memory_entries")},
             "events": events,
+            "producers": self.event_producers(),
+            "tasks": {
+                "items": tasks,
+                "count": self.count("tasks"),
+                "open_count": self.count("tasks", "status = 'open'"),
+                "paused_count": self.count("tasks", "status = 'paused'"),
+                "done_count": self.count("tasks", "status = 'done'"),
+                "canceled_count": self.count("tasks", "status = 'canceled'"),
+                "blocked_count": self.count("tasks", "status = 'blocked'"),
+                "history": self.list_task_history(limit=20),
+                "execution_enabled": False,
+            },
             "chat": {
                 "sessions": self.list_chat_sessions(limit=10),
                 "sessions_count": self.count("chat_sessions"),
@@ -1581,6 +1880,14 @@ class WorkstationStore:
             "roundtable_assignments_count": self.count("roundtable_assignments"),
             "roundtable_summaries_count": self.count("roundtable_summaries"),
             "pending_confirmations": self.count("action_confirmations", "status = 'pending'"),
+            "tasks_count": self.count("tasks"),
+            "open_tasks_count": self.count("tasks", "status = 'open'"),
+            "paused_tasks_count": self.count("tasks", "status = 'paused'"),
+            "done_tasks_count": self.count("tasks", "status = 'done'"),
+            "canceled_tasks_count": self.count("tasks", "status = 'canceled'"),
+            "blocked_tasks_count": self.count("tasks", "status = 'blocked'"),
+            "task_history_count": self.count("task_history"),
+            "task_execution_enabled": False,
         }
 
     def count(self, table: str, where: str = "") -> int:
@@ -1597,6 +1904,8 @@ class WorkstationStore:
             "roundtable_turns",
             "roundtable_assignments",
             "roundtable_summaries",
+            "tasks",
+            "task_history",
         }
         if table not in allowed:
             raise ValueError("Unsupported table.")
@@ -1674,6 +1983,39 @@ class WorkstationStore:
         params.append(max(1, min(limit, 200)))
         rows = conn.execute(sql, params).fetchall()
         return [self._note(row) for row in rows]
+
+    def _append_task_history_conn(
+        self,
+        conn: sqlite3.Connection,
+        task_id: str,
+        event_type: str,
+        status_from: str,
+        status_to: str,
+        note: str,
+        actor: str,
+        metadata: dict[str, Any],
+        created_at: str,
+    ) -> dict[str, Any]:
+        history_id = str(uuid.uuid4())
+        conn.execute(
+            """
+            INSERT INTO task_history (id, task_id, event_type, status_from, status_to, note, actor, metadata_json, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                history_id,
+                task_id,
+                event_type,
+                status_from,
+                status_to,
+                _redact_sensitive_text(note),
+                actor,
+                _json_dumps(_sanitize_payload(metadata)),
+                created_at,
+            ),
+        )
+        row = conn.execute("SELECT * FROM task_history WHERE id = ?", (history_id,)).fetchone()
+        return self._task_history(row)
 
     def _append_event_conn(
         self,
@@ -1966,6 +2308,35 @@ class WorkstationStore:
             "tags": _json_loads(row["tags_json"], []),
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],
+        }
+
+    def _task(self, row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "title": _redact_sensitive_text(row["title"]),
+            "status": row["status"],
+            "notes": _redact_sensitive_text(row["notes"]),
+            "surface": row["surface"],
+            "source_id": row["source_id"],
+            "actor": row["actor"],
+            "tags": _json_loads(row["tags_json"], []),
+            "metadata": _sanitize_payload(_json_loads(row["metadata_json"], {})),
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+            "execution_enabled": False,
+        }
+
+    def _task_history(self, row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "task_id": row["task_id"],
+            "event_type": row["event_type"],
+            "status_from": row["status_from"],
+            "status_to": row["status_to"],
+            "note": _redact_sensitive_text(row["note"]),
+            "actor": row["actor"],
+            "metadata": _sanitize_payload(_json_loads(row["metadata_json"], {})),
+            "created_at": row["created_at"],
         }
 
     def _event(self, row: sqlite3.Row) -> dict[str, Any]:

@@ -5,12 +5,15 @@ import RoundTableRoom from "./RoundTableRoom";
 import {
   createNote,
   createRoom,
+  createTask,
   fetchWorkstationHistory,
   fetchWorkstationState,
+  transitionTask,
   updateNote,
   type WorkstationHistory,
   type WorkstationNote,
-  type WorkstationState
+  type WorkstationState,
+  type WorkstationTask
 } from "../api";
 
 type LoadState = "loading" | "ready" | "error";
@@ -19,6 +22,11 @@ type NoteEditDraft = {
   id: string;
   title: string;
   body: string;
+};
+
+type TaskDraft = {
+  title: string;
+  notes: string;
 };
 
 function routeText(provider: string, model: string): string {
@@ -37,6 +45,10 @@ function sourceLabel(note: WorkstationNote): string {
   return note.surface || "workstation";
 }
 
+function taskSourceLabel(task: WorkstationTask): string {
+  return task.source_id ? `${task.surface}:${shortId(task.source_id)}` : task.surface || "workstation";
+}
+
 export default function WorkstationFloor() {
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [workstation, setWorkstation] = useState<WorkstationState | null>(null);
@@ -44,6 +56,7 @@ export default function WorkstationFloor() {
   const [roomDraft, setRoomDraft] = useState({ title: "Planning Room", goal: "" });
   const [noteDraft, setNoteDraft] = useState("");
   const [noteEdit, setNoteEdit] = useState<NoteEditDraft | null>(null);
+  const [taskDraft, setTaskDraft] = useState<TaskDraft>({ title: "", notes: "" });
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("Loading Workstation floor from shared state...");
   const [error, setError] = useState<string | null>(null);
@@ -132,10 +145,49 @@ export default function WorkstationFloor() {
     }
   }
 
+  async function createTaskRecord(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const title = taskDraft.title.trim();
+    if (!title) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await createTask({
+        title,
+        notes: taskDraft.notes.trim(),
+        surface: "workstation",
+        tags: ["workstation"]
+      });
+      setTaskDraft({ title: "", notes: "" });
+      await loadData();
+      setMessage("Task record saved. No scheduler, tool, or write-mode execution was started.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Task record could not be saved.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function transitionTaskRecord(task: WorkstationTask, operation: "pause" | "resume" | "done" | "cancel") {
+    setBusy(true);
+    setError(null);
+    try {
+      await transitionTask(task.id, operation);
+      await loadData();
+      setMessage(`Task ${operation} saved as state only. No execution was started.`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Task state could not be updated.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const notes = history?.notes || workstation?.notes || [];
   const roundtableSessions = history?.roundtable.sessions || workstation?.roundtable.sessions || [];
   const chatSessions = history?.chat.sessions || workstation?.chat.sessions || [];
   const recentEvents = history?.events || workstation?.events || [];
+  const tasks = history?.tasks.items || workstation?.tasks.items || [];
+  const taskSummary = history?.tasks || workstation?.tasks;
 
   return (
     <section className="workstation-floor" aria-label="Sparkbot Workstation floor">
@@ -172,10 +224,64 @@ export default function WorkstationFloor() {
             <div><dt>Memory</dt><dd>{workstation?.dashboard.memory_count ?? 0}</dd></div>
             <div><dt>Notes</dt><dd>{workstation?.dashboard.notes_count ?? 0}</dd></div>
             <div><dt>Events</dt><dd>{workstation?.dashboard.events_count ?? 0}</dd></div>
+            <div><dt>Tasks</dt><dd>{workstation?.dashboard.tasks_count ?? 0}</dd></div>
+            <div><dt>Open tasks</dt><dd>{workstation?.dashboard.open_tasks_count ?? 0}</dd></div>
             <div><dt>Chat turns</dt><dd>{workstation?.dashboard.chat_messages_count ?? 0}</dd></div>
             <div><dt>Round Table</dt><dd>{workstation?.dashboard.roundtable_sessions_count ?? 0}</dd></div>
             <div><dt>Pending confirmations</dt><dd>{workstation?.dashboard.pending_confirmations ?? 0}</dd></div>
           </dl>
+        </article>
+      </section>
+
+      <section className="command-grid" aria-label="Task records and dashboard state">
+        <article className="command-panel command-panel-wide">
+          <div className="command-panel-heading">
+            <p className="eyebrow">Tasks</p>
+            <h3>Manual task records</h3>
+            <p>Task records persist in the shared backend store. Run and write-mode execution remain disabled.</p>
+          </div>
+          <form className="work-item-form" onSubmit={createTaskRecord}>
+            <label>
+              <span>Task title</span>
+              <input value={taskDraft.title} onChange={(event) => setTaskDraft((draft) => ({ ...draft, title: event.target.value }))} />
+            </label>
+            <label>
+              <span>Task notes</span>
+              <textarea rows={3} value={taskDraft.notes} onChange={(event) => setTaskDraft((draft) => ({ ...draft, notes: event.target.value }))} />
+            </label>
+            <button type="submit" disabled={busy || !taskDraft.title.trim()}>Create task</button>
+          </form>
+          <dl className="mini-metrics work-metrics">
+            <div><dt>Open</dt><dd>{taskSummary?.open_count ?? 0}</dd></div>
+            <div><dt>Paused</dt><dd>{taskSummary?.paused_count ?? 0}</dd></div>
+            <div><dt>Done</dt><dd>{taskSummary?.done_count ?? 0}</dd></div>
+            <div><dt>Canceled</dt><dd>{taskSummary?.canceled_count ?? 0}</dd></div>
+          </dl>
+          <div className="work-item-list">
+            {tasks.slice(0, 8).map((task) => (
+              <div className="work-item-row" key={task.id}>
+                <div className="work-item-top">
+                  <strong>{task.title}</strong>
+                  <span>{task.status}</span>
+                </div>
+                <p>{task.notes || "No notes saved."}</p>
+                <div className="metadata-row">
+                  <span>{taskSourceLabel(task)}</span>
+                  <span>{task.tags.join(", ") || "untagged"}</span>
+                  <span>Updated {new Date(task.updated_at).toLocaleString()}</span>
+                </div>
+                <div className="work-item-actions">
+                  {task.status === "paused" ? <button type="button" onClick={() => transitionTaskRecord(task, "resume")} disabled={busy}>Resume</button> : null}
+                  {task.status === "open" ? <button type="button" onClick={() => transitionTaskRecord(task, "pause")} disabled={busy}>Pause</button> : null}
+                  {task.status !== "done" && task.status !== "canceled" ? <button type="button" onClick={() => transitionTaskRecord(task, "done")} disabled={busy}>Mark done</button> : null}
+                  {task.status !== "canceled" ? <button type="button" onClick={() => transitionTaskRecord(task, "cancel")} disabled={busy}>Cancel</button> : null}
+                  <button type="button" disabled title="Task execution is disabled in this public Workstation branch.">Run</button>
+                  <button type="button" disabled title="Write mode is disabled in this public Workstation branch.">Write mode</button>
+                </div>
+              </div>
+            ))}
+            {tasks.length ? null : <p>No task records yet.</p>}
+          </div>
         </article>
       </section>
 

@@ -182,12 +182,12 @@ def test_workstation_history_links_notes_sessions_and_safe_events(tmp_path, monk
 
     chat_response = client.post(
         "/api/chat/messages",
-        json={"content": "Capture this history note. api_key=raw-chat-secret"},
+        json={"content": "Capture this history note. api_key=chat-marker"},
     )
     assert chat_response.status_code == 201
     chat_payload = chat_response.json()
     chat_session_id = chat_payload["session"]["id"]
-    assert "raw-chat-secret" not in str(chat_payload)
+    assert "chat-marker" not in str(chat_payload)
 
     note_response = client.post(
         "/api/notes",
@@ -208,11 +208,11 @@ def test_workstation_history_links_notes_sessions_and_safe_events(tmp_path, monk
 
     update_note = client.patch(
         f"/api/notes/{note['id']}",
-        json={"body": "Updated note body. token raw-note-secret"},
+        json={"body": "Updated note body. token note-marker"},
     )
     assert update_note.status_code == 200
     assert update_note.json()["body"] == "Updated note body. token [redacted]"
-    assert "raw-note-secret" not in str(update_note.json())
+    assert "note-marker" not in str(update_note.json())
 
     roundtable_create = client.post(
         "/api/roundtable/sessions",
@@ -245,7 +245,7 @@ def test_workstation_history_links_notes_sessions_and_safe_events(tmp_path, monk
                 "messages": [{"role": "user", "content": "raw message"}],
                 "output": "raw model output",
                 "headers": {"Authorization": "Bearer raw-token"},
-                "api_key": "raw-event-secret",
+                "api_key": "event-marker",
             },
         },
     )
@@ -284,11 +284,11 @@ def test_workstation_history_links_notes_sessions_and_safe_events(tmp_path, monk
     assert roundtable_history["summaries"][0]["note_id"] == roundtable_history["notes"][0]["id"]
 
     history_text = str(history)
-    assert "raw-chat-secret" not in history_text
-    assert "raw-note-secret" not in history_text
+    assert "chat-marker" not in history_text
+    assert "note-marker" not in history_text
     assert "raw prompt should not appear" not in history_text
     assert "raw model output" not in history_text
-    assert "raw-event-secret" not in history_text
+    assert "event-marker" not in history_text
 
     second_client = TestClient(app)
     persisted_history = second_client.get("/api/workstation/history?limit=25")
@@ -296,3 +296,121 @@ def test_workstation_history_links_notes_sessions_and_safe_events(tmp_path, monk
     persisted_roundtable = persisted_history.json()["roundtable"]["sessions"][0]
     assert persisted_roundtable["turn_count"] == 16
     assert len(persisted_roundtable["notes"]) == 1
+
+
+def test_task_records_dashboard_spine_and_execution_fail_closed(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
+    client = TestClient(app)
+
+    create_response = client.post(
+        "/api/tasks",
+        json={
+            "title": "Prepare dashboard parity",
+            "notes": "Track the local dashboard task. credential work-marker",
+            "surface": "room",
+            "source_id": "room-1",
+            "tags": ["dashboard", "directive"],
+            "metadata": {
+                "prompt": "raw task prompt",
+                "headers": {"Authorization": "Bearer example"},
+                "safe": True,
+            },
+        },
+    )
+    assert create_response.status_code == 201
+    task = create_response.json()
+    task_id = task["id"]
+    assert task["status"] == "open"
+    assert task["notes"] == "Track the local dashboard task. credential [redacted]"
+    assert task["metadata"]["prompt"] == "[redacted]"
+    assert task["metadata"]["headers"] == "[redacted]"
+    assert task["execution_enabled"] is False
+    assert len(task["history"]) == 1
+    assert "work-marker" not in str(task)
+    assert "raw task prompt" not in str(task)
+
+    list_response = client.get("/api/tasks?status=open")
+    assert list_response.status_code == 200
+    assert list_response.json()["count"] == 1
+    assert list_response.json()["execution_enabled"] is False
+
+    pause_response = client.post(f"/api/tasks/{task_id}/pause", json={})
+    assert pause_response.status_code == 200
+    assert pause_response.json()["status"] == "paused"
+
+    resume_response = client.post(f"/api/tasks/{task_id}/resume", json={})
+    assert resume_response.status_code == 200
+    assert resume_response.json()["status"] == "open"
+
+    done_response = client.post(f"/api/tasks/{task_id}/done", json={})
+    assert done_response.status_code == 200
+    assert done_response.json()["status"] == "done"
+
+    cancel_task = client.post("/api/tasks", json={"title": "Cancel this task", "notes": "Manual state only."})
+    assert cancel_task.status_code == 201
+    cancel_response = client.post(f"/api/tasks/{cancel_task.json()['id']}/cancel", json={})
+    assert cancel_response.status_code == 200
+    assert cancel_response.json()["status"] == "canceled"
+
+    run_response = client.post(f"/api/tasks/{task_id}/run", json={})
+    assert run_response.status_code == 403
+    assert "disabled" in run_response.json()["detail"]
+
+    write_response = client.post(f"/api/tasks/{task_id}/write-mode", json={})
+    assert write_response.status_code == 403
+
+    read_response = client.get(f"/api/tasks/{task_id}")
+    assert read_response.status_code == 200
+    history = read_response.json()["history"]
+    event_types = [entry["event_type"] for entry in history]
+    assert "task.created" in event_types
+    assert "task.paused" in event_types
+    assert "task.resumed" in event_types
+    assert "task.done" in event_types
+    assert event_types.count("task.execution_blocked") == 2
+
+    task_history = client.get(f"/api/tasks/{task_id}/history")
+    assert task_history.status_code == 200
+    assert task_history.json()["count"] == len(history)
+
+    dashboard = client.get("/api/v1/chat/dashboard/summary")
+    assert dashboard.status_code == 200
+    summary = dashboard.json()["summary"]
+    assert summary["tasks_count"] == 2
+    assert summary["open_tasks"] == 0
+    assert summary["done_tasks_count"] == 1
+    assert summary["canceled_tasks_count"] == 1
+    assert summary["task_execution_enabled"] is False
+
+    spine = client.get("/api/v1/chat/spine/operator/overview")
+    assert spine.status_code == 200
+    spine_payload = spine.json()
+    assert spine_payload["task_execution_enabled"] is False
+    assert len(spine_payload["completed_queue"]) == 1
+    assert len(spine_payload["blocked_queue"]) == 1
+
+    producers = client.get("/api/events/producers")
+    assert producers.status_code == 200
+    producer_names = {producer["subsystem"] for producer in producers.json()["producers"]}
+    assert "tasks" in producer_names
+
+    task_events = client.get(f"/api/events?surface=tasks&source_id={task_id}")
+    assert task_events.status_code == 200
+    event_text = str(task_events.json())
+    assert "work-marker" not in event_text
+    assert "raw task prompt" not in event_text
+    assert "Task execution request was not executed." in event_text
+
+    history_response = client.get("/api/workstation/history?limit=25")
+    assert history_response.status_code == 200
+    workstation_history = history_response.json()
+    assert workstation_history["tasks"]["count"] == 2
+    assert workstation_history["tasks"]["execution_enabled"] is False
+    assert workstation_history["dashboard"]["tasks_count"] == 2
+    assert "work-marker" not in str(workstation_history)
+    assert "raw task prompt" not in str(workstation_history)
+
+    second_client = TestClient(app)
+    persisted = second_client.get(f"/api/tasks/{task_id}")
+    assert persisted.status_code == 200
+    assert persisted.json()["status"] == "done"

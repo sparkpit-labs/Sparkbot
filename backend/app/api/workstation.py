@@ -107,6 +107,32 @@ class ConfirmationDecision(BaseModel):
     actor: str = Field(default="operator", max_length=80)
 
 
+class TaskCreate(BaseModel):
+    title: str = Field(default="Workstation task", min_length=1, max_length=200)
+    notes: str = Field(default="", max_length=12000)
+    status: str = Field(default="open", max_length=40)
+    surface: str = Field(default="workstation", max_length=80)
+    source_id: str = Field(default="", max_length=160)
+    actor: str = Field(default="operator", max_length=80)
+    tags: list[str] = Field(default_factory=list, max_length=20)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class TaskUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=200)
+    notes: str | None = Field(default=None, max_length=12000)
+    status: str | None = Field(default=None, max_length=40)
+    surface: str | None = Field(default=None, max_length=80)
+    source_id: str | None = Field(default=None, max_length=160)
+    actor: str = Field(default="operator", max_length=80)
+    tags: list[str] | None = Field(default=None, max_length=20)
+    metadata: dict[str, Any] | None = None
+
+
+class TaskOperationRequest(BaseModel):
+    actor: str = Field(default="operator", max_length=80)
+
+
 class ChatSessionCreate(BaseModel):
     title: str = Field(default="Sparkbot chat", max_length=160)
     active_room_id: str = Field(default="", max_length=160)
@@ -1009,6 +1035,102 @@ async def update_note(note_id: str, body: NoteUpdate) -> dict[str, Any]:
     return note
 
 
+@router.get("/api/tasks")
+async def list_tasks(
+    limit: int = Query(default=50, ge=1, le=200),
+    status: str | None = None,
+) -> dict[str, Any]:
+    try:
+        tasks = get_store().list_tasks(limit=limit, status=status)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"tasks": tasks, "count": len(tasks), "execution_enabled": False}
+
+
+@router.post("/api/tasks", status_code=201)
+async def create_task(body: TaskCreate) -> dict[str, Any]:
+    try:
+        return get_store().create_task(body.model_dump(exclude={"actor"}), actor=body.actor)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/api/tasks/{task_id}")
+async def get_task(task_id: str) -> dict[str, Any]:
+    task = get_store().get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found.")
+    return task
+
+
+@router.patch("/api/tasks/{task_id}")
+async def update_task(task_id: str, body: TaskUpdate) -> dict[str, Any]:
+    try:
+        task = get_store().update_task(task_id, {key: value for key, value in body.model_dump(exclude={"actor"}).items() if value is not None}, actor=body.actor)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found.")
+    return task
+
+
+@router.get("/api/tasks/{task_id}/history")
+async def get_task_history(task_id: str, limit: int = Query(default=100, ge=1, le=500)) -> dict[str, Any]:
+    if not get_store().get_task(task_id):
+        raise HTTPException(status_code=404, detail="Task not found.")
+    history = get_store().list_task_history(task_id=task_id, limit=limit)
+    return {"history": history, "count": len(history)}
+
+
+async def _task_state_operation(task_id: str, operation: str, body: TaskOperationRequest | None = None) -> dict[str, Any]:
+    actor = body.actor if body else "operator"
+    try:
+        task = get_store().transition_task(task_id, operation, actor=actor)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found.")
+    return task
+
+
+@router.post("/api/tasks/{task_id}/pause")
+async def pause_task(task_id: str, body: TaskOperationRequest | None = None) -> dict[str, Any]:
+    return await _task_state_operation(task_id, "pause", body)
+
+
+@router.post("/api/tasks/{task_id}/resume")
+async def resume_task(task_id: str, body: TaskOperationRequest | None = None) -> dict[str, Any]:
+    return await _task_state_operation(task_id, "resume", body)
+
+
+@router.post("/api/tasks/{task_id}/done")
+async def complete_task(task_id: str, body: TaskOperationRequest | None = None) -> dict[str, Any]:
+    return await _task_state_operation(task_id, "done", body)
+
+
+@router.post("/api/tasks/{task_id}/cancel")
+async def cancel_task(task_id: str, body: TaskOperationRequest | None = None) -> dict[str, Any]:
+    return await _task_state_operation(task_id, "cancel", body)
+
+
+async def _blocked_task_execution(task_id: str, operation: str, body: TaskOperationRequest | None = None) -> dict[str, Any]:
+    actor = body.actor if body else "operator"
+    task = get_store().block_task_execution(task_id, operation, actor=actor)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found.")
+    raise HTTPException(status_code=403, detail="Task execution is disabled in the public Workstation boundary.")
+
+
+@router.post("/api/tasks/{task_id}/run")
+async def run_task(task_id: str, body: TaskOperationRequest | None = None) -> dict[str, Any]:
+    return await _blocked_task_execution(task_id, "run", body)
+
+
+@router.post("/api/tasks/{task_id}/write-mode")
+async def task_write_mode(task_id: str, body: TaskOperationRequest | None = None) -> dict[str, Any]:
+    return await _blocked_task_execution(task_id, "write_mode", body)
+
+
 @router.get("/api/memory")
 async def list_memory(
     limit: int = Query(default=100, ge=1, le=500),
@@ -1068,6 +1190,12 @@ async def delete_memory(
     if not deleted:
         raise HTTPException(status_code=404, detail="Memory not found.")
     return {"deleted": memory_id}
+
+
+@router.get("/api/events/producers")
+async def list_event_producers() -> dict[str, Any]:
+    producers = get_store().event_producers()
+    return {"producers": producers, "count": len(producers)}
 
 
 @router.get("/api/events")

@@ -870,10 +870,10 @@ async def dashboard_summary() -> dict[str, Any]:
     return {
         "summary": {
             "rooms_count": store_summary["rooms_count"],
-            "open_tasks": 0,
+            "open_tasks": store_summary["open_tasks_count"],
             "pending_reminders": 0,
             "pending_approvals": store_summary["pending_confirmations"],
-            "guardian_jobs": store_summary["notes_count"],
+            "guardian_jobs": store_summary["tasks_count"],
             "guardian_jobs_enabled": 0,
             "task_guardian_enabled": False,
             "token_guardian_mode": config.get("token_guardian_mode", "shadow"),
@@ -882,6 +882,12 @@ async def dashboard_summary() -> dict[str, Any]:
             "memory_count": store_summary["memory_count"],
             "events_count": store_summary["events_count"],
             "seat_count": store_summary["seat_count"],
+            "tasks_count": store_summary["tasks_count"],
+            "paused_tasks_count": store_summary["paused_tasks_count"],
+            "done_tasks_count": store_summary["done_tasks_count"],
+            "canceled_tasks_count": store_summary["canceled_tasks_count"],
+            "blocked_tasks_count": store_summary["blocked_tasks_count"],
+            "task_execution_enabled": False,
         },
         "today": {"meeting_artifacts": [], "inbox": {"summary_text": "Connectors are not configured in this public port."}},
     }
@@ -889,22 +895,30 @@ async def dashboard_summary() -> dict[str, Any]:
 
 @router.get("/api/v1/chat/spine/operator/overview")
 async def spine_overview() -> dict[str, Any]:
-    empty: list[Any] = []
-    store_summary = get_store().dashboard_summary()
+    store = get_store()
+    store_summary = store.dashboard_summary()
+    open_tasks = store.list_tasks(status="open", limit=50)
+    paused_tasks = store.list_tasks(status="paused", limit=50)
+    blocked_tasks = store.list_tasks(status="blocked", limit=50)
+    done_tasks = store.list_tasks(status="done", limit=25)
+    canceled_tasks = store.list_tasks(status="canceled", limit=25)
+    pending_confirmations = store.list_confirmations(limit=50, status="pending")
     return {
-        "open_queue": empty,
-        "blocked_queue": empty,
-        "approval_waiting_queue": empty,
-        "stale_queue": empty,
-        "orphan_queue": empty,
-        "missing_source_queue": empty,
-        "missing_project_queue": empty,
-        "recently_resurfaced_queue": empty,
-        "assignment_ready_queue": empty,
-        "executive_directives_queue": empty,
+        "open_queue": open_tasks,
+        "blocked_queue": blocked_tasks + canceled_tasks,
+        "approval_waiting_queue": pending_confirmations,
+        "stale_queue": [],
+        "orphan_queue": [],
+        "missing_source_queue": [task for task in open_tasks if not task.get("source_id")],
+        "missing_project_queue": [],
+        "recently_resurfaced_queue": paused_tasks,
+        "assignment_ready_queue": open_tasks,
+        "executive_directives_queue": [task for task in open_tasks if "directive" in task.get("tags", [])],
+        "completed_queue": done_tasks,
         "status": "available",
-        "note": "Spine inspection route is backed by shared Workstation state; full task queues are a follow-up port.",
+        "note": "Spine task queues are backed by public-safe local task records. Task execution and write mode remain disabled.",
         "workstation_counts": store_summary,
+        "task_execution_enabled": False,
     }
 
 
@@ -916,10 +930,7 @@ async def spine_events() -> dict[str, Any]:
 
 @router.get("/api/v1/chat/spine/operator/producers")
 async def spine_producers() -> dict[str, Any]:
-    producers = [
-        {"subsystem": "workstation", "description": "Shared local Workstation state", "event_types": ["room.created", "note.saved", "memory.saved", "seat.updated"]},
-        {"subsystem": "command_center", "description": "Command Center configuration changes", "event_types": ["command_center.config_updated", "model.default_updated", "agent.created"]},
-    ]
+    producers = get_store().event_producers()
     return {"producers": producers, "count": len(producers)}
 
 

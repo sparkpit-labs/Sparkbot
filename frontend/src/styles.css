@@ -1041,6 +1041,64 @@ textarea {
   font-weight: 800;
 }
 
+
+.work-item-form {
+  align-items: end;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(180px, 1fr) minmax(220px, 2fr) auto;
+}
+
+.work-metrics {
+  margin-top: 12px;
+}
+
+.work-item-list,
+.producer-grid {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.work-item-list.compact {
+  margin-top: 14px;
+}
+
+.work-item-row,
+.producer-item {
+  background: #f8fafc;
+  border: 1px solid #d7dce3;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.work-item-row p,
+.producer-item p {
+  margin: 0;
+}
+
+.work-item-top,
+.work-item-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.work-item-top span,
+.work-item-row > span,
+.producer-item span {
+  color: #4b5b6c;
+  font-size: 0.86rem;
+}
+
+.work-item-actions {
+  justify-content: flex-start;
+}
+
 @media (max-width: 880px) {
   .app-topbar,
   .command-header {
@@ -1051,7 +1109,8 @@ textarea {
   .command-grid-setup,
   .two-columns,
   .four-columns,
-  .agent-row {
+  .agent-row,
+  .work-item-form {
     grid-template-columns: 1fr;
   }
 }

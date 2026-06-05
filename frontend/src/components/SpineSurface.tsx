@@ -16,7 +16,8 @@ const queueLabels: Array<[keyof SpineOverview, string]> = [
   ["stale_queue", "Stale"],
   ["orphan_queue", "Orphaned"],
   ["assignment_ready_queue", "Assignment ready"],
-  ["executive_directives_queue", "Directives"]
+  ["executive_directives_queue", "Directives"],
+  ["completed_queue", "Completed"]
 ];
 
 function shortId(value: string): string {
@@ -28,6 +29,7 @@ function eventGroup(eventType: string): string {
   if (eventType.startsWith("memory.")) return "Memory";
   if (eventType.startsWith("note.")) return "Notes";
   if (eventType.startsWith("roundtable.")) return "Round Table";
+  if (eventType.startsWith("task.")) return "Tasks";
   if (eventType.startsWith("chat.")) return "Chat";
   if (eventType.startsWith("guardian.")) return "Guardian";
   if (eventType.startsWith("room.")) return "Rooms";
@@ -95,6 +97,8 @@ export default function SpineSurface() {
             <div><dt>Rooms</dt><dd>{history?.dashboard.rooms_count ?? 0}</dd></div>
             <div><dt>Memory</dt><dd>{history?.dashboard.memory_count ?? 0}</dd></div>
             <div><dt>Notes</dt><dd>{history?.dashboard.notes_count ?? 0}</dd></div>
+            <div><dt>Tasks</dt><dd>{history?.dashboard.tasks_count ?? 0}</dd></div>
+            <div><dt>Open tasks</dt><dd>{history?.dashboard.open_tasks_count ?? 0}</dd></div>
             <div><dt>Chat turns</dt><dd>{history?.dashboard.chat_messages_count ?? 0}</dd></div>
             <div><dt>Round Table</dt><dd>{history?.dashboard.roundtable_sessions_count ?? 0}</dd></div>
             <div><dt>Pending confirmations</dt><dd>{history?.dashboard.pending_confirmations ?? 0}</dd></div>
@@ -154,8 +158,8 @@ export default function SpineSurface() {
         <article className="command-panel">
           <div className="command-panel-heading">
             <p className="eyebrow">Queues</p>
-            <h3>Task/project queues</h3>
-            <p>Visible empty-state queues are honest placeholders. They do not schedule or execute work.</p>
+            <h3>Task queues</h3>
+            <p>Queues reflect local task records and Guardian confirmations only. They do not schedule or execute work.</p>
           </div>
           <div className="spine-stats">
             {queueLabels.map(([key, label]) => (
@@ -164,6 +168,19 @@ export default function SpineSurface() {
                 <strong>{Array.isArray(spine?.[key]) ? (spine?.[key] as unknown[]).length : 0}</strong>
               </div>
             ))}
+          </div>
+          <div className="work-item-list compact">
+            {(history?.tasks.items || []).slice(0, 6).map((task) => (
+              <div className="work-item-row" key={task.id}>
+                <div className="work-item-top">
+                  <strong>{task.title}</strong>
+                  <span>{task.status}</span>
+                </div>
+                <p>{task.notes || "No notes saved."}</p>
+                <span>{task.surface}:{shortId(task.source_id)}</span>
+              </div>
+            ))}
+            {history?.tasks.items.length ? null : <p>No task records yet.</p>}
           </div>
         </article>
 
@@ -183,6 +200,27 @@ export default function SpineSurface() {
               </div>
             ))}
             {history?.events.length ? null : <p>No events yet.</p>}
+          </div>
+        </article>
+      </section>
+
+      <section className="command-grid" aria-label="Spine producers">
+        <article className="command-panel command-panel-wide">
+          <div className="command-panel-heading">
+            <p className="eyebrow">Producers</p>
+            <h3>Event producers</h3>
+            <p>Producer metadata shows safe subsystem names, event types, counts, and last event timestamps.</p>
+          </div>
+          <div className="producer-grid">
+            {(history?.producers || []).map((producer) => (
+              <div className="producer-item" key={producer.subsystem}>
+                <strong>{producer.subsystem}</strong>
+                <span>{producer.description}</span>
+                <span>{producer.event_count} event(s)</span>
+                <span>{producer.event_types.slice(0, 5).join(", ") || "No events yet"}</span>
+              </div>
+            ))}
+            {history?.producers.length ? null : <p>No producer metadata yet.</p>}
           </div>
         </article>
       </section>

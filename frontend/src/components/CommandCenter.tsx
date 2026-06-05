@@ -104,7 +104,8 @@ const queueLabels: Array<[keyof SpineOverview, string]> = [
   ["stale_queue", "Stale"],
   ["orphan_queue", "Orphaned"],
   ["assignment_ready_queue", "Ready"],
-  ["executive_directives_queue", "Directives"]
+  ["executive_directives_queue", "Directives"],
+  ["completed_queue", "Completed"]
 ];
 
 function getFallbackSeats(agents: AgentInfo[]): SeatState[] {
@@ -860,6 +861,8 @@ export default function CommandCenter() {
             <div><dt>Notes</dt><dd>{workstation?.dashboard.notes_count ?? 0}</dd></div>
             <div><dt>Memory</dt><dd>{workstation?.dashboard.memory_count ?? 0}</dd></div>
             <div><dt>Events</dt><dd>{workstation?.dashboard.events_count ?? 0}</dd></div>
+            <div><dt>Tasks</dt><dd>{workstation?.dashboard.tasks_count ?? dashboard?.summary.tasks_count ?? 0}</dd></div>
+            <div><dt>Open tasks</dt><dd>{workstation?.dashboard.open_tasks_count ?? dashboard?.summary.open_tasks ?? 0}</dd></div>
           </dl>
         </article>
 
@@ -884,11 +887,13 @@ export default function CommandCenter() {
             <p>Route status is visible; scheduler and job mutation remain blocked until a public backend gate exists.</p>
           </div>
           <dl className="mini-metrics">
-            <div><dt>Jobs</dt><dd>{dashboard?.summary.guardian_jobs ?? 0}</dd></div>
-            <div><dt>Enabled</dt><dd>{dashboard?.summary.guardian_jobs_enabled ?? 0}</dd></div>
-            <div><dt>Status</dt><dd>{guardian?.task_guardian_enabled ? "enabled" : "blocked in this branch"}</dd></div>
+            <div><dt>Records</dt><dd>{workstation?.dashboard.tasks_count ?? dashboard?.summary.tasks_count ?? 0}</dd></div>
+            <div><dt>Open</dt><dd>{workstation?.dashboard.open_tasks_count ?? dashboard?.summary.open_tasks ?? 0}</dd></div>
+            <div><dt>Paused</dt><dd>{workstation?.dashboard.paused_tasks_count ?? dashboard?.summary.paused_tasks_count ?? 0}</dd></div>
+            <div><dt>Status</dt><dd>{guardian?.task_guardian_enabled ? "visible only" : "state only"}</dd></div>
           </dl>
-          <button type="button" disabled title="Task scheduler backend is deferred.">Run now</button>
+          <button type="button" disabled title="Task scheduler execution is disabled in this public branch.">Run now</button>
+          <button type="button" disabled title="Task Guardian write mode is disabled in this public branch.">Write mode</button>
         </article>
       </section>
 
@@ -906,6 +911,12 @@ export default function CommandCenter() {
                 <strong>{Array.isArray(spine?.[key]) ? (spine?.[key] as unknown[]).length : 0}</strong>
               </div>
             ))}
+          </div>
+          <div className="context-list">
+            {(workstation?.tasks.items || []).slice(0, 4).map((task) => (
+              <p key={task.id}><strong>{task.title}</strong> {task.status} / {task.surface}</p>
+            ))}
+            {workstation?.tasks.items.length ? null : <p>No task records yet.</p>}
           </div>
           <div className="connector-grid">
             {["Overview", "Queues", "Projects", "Events", "Producers", "Security", "Vault", "Task Guardian", "Improvement"].map((tab) => (

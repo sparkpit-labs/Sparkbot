@@ -155,6 +155,8 @@ describe("App", () => {
   it("renders backend history and edits notes without browser storage", async () => {
     const storageSpy = vi.spyOn(Storage.prototype, "setItem");
     let noteBody = "Original backend note.";
+    let taskCreated = false;
+    let taskStatus = "open";
 
     const note = () => ({
       id: "note-1",
@@ -166,6 +168,22 @@ describe("App", () => {
       tags: ["roundtable", "summary"],
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z"
+    });
+
+    const task = () => ({
+      id: "tsk1",
+      title: taskCreated ? "Created backend task" : "Backend task",
+      status: taskStatus,
+      notes: taskCreated ? "Created through Workstation." : "Manual task record.",
+      surface: "workstation",
+      source_id: "",
+      actor: "operator",
+      tags: ["workstation"],
+      metadata: {},
+      created_at: "2026-01-01T00:00:00Z",
+      updated_at: "2026-01-01T00:00:00Z",
+      execution_enabled: false,
+      history: []
     });
 
     const roundtableSession = () => ({
@@ -212,6 +230,8 @@ describe("App", () => {
       notes: [note()],
       memory: { items: [], count: 0 },
       events: [{ id: "event-1", event_type: "roundtable.summary.created", surface: "roundtable", source_id: "rt-1", actor: "operator", summary: "Round Table manager summary created.", payload: { note_id: "note-1" }, created_at: "2026-01-01T00:00:00Z" }],
+      producers: [{ subsystem: "tasks", description: "Manual task records", event_types: ["task.created"], event_count: taskCreated ? 1 : 0, last_event_at: taskCreated ? "2026-01-01T00:00:00Z" : null }],
+      tasks: { items: [task()], count: 1, open_count: taskStatus === "open" ? 1 : 0, paused_count: taskStatus === "paused" ? 1 : 0, done_count: taskStatus === "done" ? 1 : 0, canceled_count: 0, blocked_count: 0, history: [], execution_enabled: false },
       guardian: { pending_confirmations: [], recent_confirmations: [] },
       chat: { sessions: [{ id: "chat-1", title: "Backend chat", status: "open", active_room_id: "", metadata: {}, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z", message_count: 2, last_message: null }], sessions_count: 1, messages_count: 2 },
       roundtable: { sessions: [roundtableSession()], sessions_count: 1, turns_count: 1, assignments_count: 0, summaries_count: 1 },
@@ -227,7 +247,15 @@ describe("App", () => {
         roundtable_turns_count: 1,
         roundtable_assignments_count: 0,
         roundtable_summaries_count: 1,
-        pending_confirmations: 0
+        pending_confirmations: 0,
+        tasks_count: 1,
+        open_tasks_count: taskStatus === "open" ? 1 : 0,
+        paused_tasks_count: taskStatus === "paused" ? 1 : 0,
+        done_tasks_count: taskStatus === "done" ? 1 : 0,
+        canceled_tasks_count: 0,
+        blocked_tasks_count: 0,
+        task_history_count: 0,
+        task_execution_enabled: false
       },
       storage: { type: "sqlite", path: "local-workstation-store" }
     });
@@ -238,6 +266,14 @@ describe("App", () => {
         const body = JSON.parse(String(init.body || "{}")) as { body?: string };
         noteBody = body.body || noteBody;
         return new Response(JSON.stringify(note()), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      if (url.endsWith("/api/tasks") && init?.method === "POST") {
+        taskCreated = true;
+        return new Response(JSON.stringify(task()), { status: 201, headers: { "Content-Type": "application/json" } });
+      }
+      if (url.includes("/api/tasks/tsk1/pause") && init?.method === "POST") {
+        taskStatus = "paused";
+        return new Response(JSON.stringify(task()), { status: 200, headers: { "Content-Type": "application/json" } });
       }
       if (url.includes("/api/workstation/state") || url.includes("/api/workstation/history")) {
         return new Response(JSON.stringify(workstationState()), { status: 200, headers: { "Content-Type": "application/json" } });
@@ -255,13 +291,25 @@ describe("App", () => {
       expect(await screen.findAllByText(/Original backend note/)).toBeDefined();
       expect(screen.getAllByText("Backend Round Table").length).toBeGreaterThan(0);
       expect(screen.getAllByText("Backend chat").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("Backend task").length).toBeGreaterThan(0);
       expect(screen.queryByText("raw-ui-secret")).toBeNull();
+      expect((screen.getAllByRole("button", { name: "Run" })[0] as HTMLButtonElement).disabled).toBe(true);
+      expect((screen.getAllByRole("button", { name: "Write mode" })[0] as HTMLButtonElement).disabled).toBe(true);
+
+      fireEvent.change(screen.getByLabelText("Task title"), { target: { value: "Created backend task" } });
+      fireEvent.change(screen.getByLabelText("Task notes"), { target: { value: "Created through Workstation." } });
+      fireEvent.click(screen.getByRole("button", { name: "Create task" }));
+      await waitFor(() => expect(screen.getAllByText("Created backend task").length).toBeGreaterThan(0));
+      fireEvent.click(screen.getAllByRole("button", { name: "Pause" })[0]);
+      await waitFor(() => expect(screen.getAllByText("paused").length).toBeGreaterThan(0));
 
       fireEvent.click(screen.getAllByRole("button", { name: "Edit note" })[0]);
       fireEvent.change(screen.getByLabelText("Body"), { target: { value: "Edited backend note." } });
       fireEvent.click(screen.getByRole("button", { name: "Save edit" }));
 
       await waitFor(() => expect(screen.getAllByText(/Edited backend note/).length).toBeGreaterThan(0));
+      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/tasks"), expect.objectContaining({ method: "POST" }));
+      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/tasks/tsk1/pause"), expect.objectContaining({ method: "POST" }));
       expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/notes/note-1"), expect.objectContaining({ method: "PATCH" }));
       expect(storageSpy).not.toHaveBeenCalled();
     } finally {
