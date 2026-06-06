@@ -122,8 +122,12 @@ function getFallbackSeats(agents: AgentInfo[]): SeatState[] {
   });
 }
 
-function statusLabel(value: boolean): string {
-  return value ? "Ready" : "Needs setup";
+function providerStatusLabel(provider: ControlsConfig["providers"][number]): string {
+  if (provider.configured) return "Credential saved";
+  if (provider.id === "ollama") return provider.reachable ? "Reachable" : "Needs local";
+  if (provider.auth_modes.includes("subscription")) return "Disabled";
+  if (provider.models_available) return "Models listed";
+  return "Needs setup";
 }
 
 function modelLabel(config: ControlsConfig, modelId: string): string {
@@ -240,6 +244,15 @@ export default function CommandCenter() {
     setSeats((current) => current.length ? current : getFallbackSeats(nextConfig.available_agents));
   }
 
+  function syncOpenRouterModels(result: { models: OpenRouterModel[]; controls?: ControlsConfig }) {
+    const rows = result.models || [];
+    setOpenRouterModels(rows);
+    if (result.controls) applyConfig(result.controls);
+    if (selectedProvider === "openrouter" && rows.length > 0) {
+      setSelectedModel((current) => rows.some((model) => model.id === current) ? current : rows[0].id);
+    }
+  }
+
   useEffect(() => {
     void refreshAll();
   }, []);
@@ -273,6 +286,20 @@ export default function CommandCenter() {
       const next = await saveControlsConfig({ providers: { [field]: value } });
       setProviderDrafts((drafts) => ({ ...drafts, [selectedProvider]: "" }));
       applyConfig(next);
+      if (selectedProvider === "openrouter") {
+        setRefreshingModels(true);
+        try {
+          const result = await fetchOpenRouterModels();
+          syncOpenRouterModels(result);
+          setMessage(`OpenRouter credential saved server-side and model list refreshed: ${result.models.length} models available.`);
+        } catch (caught) {
+          setError(caught instanceof Error ? `Credential saved, but OpenRouter models could not be refreshed: ${caught.message}` : "Credential saved, but OpenRouter models could not be refreshed.");
+          setMessage("OpenRouter credential saved server-side. The browser did not retain the value.");
+        } finally {
+          setRefreshingModels(false);
+        }
+        return;
+      }
       setMessage("Credential saved server-side. The browser did not retain the value.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Credential could not be saved.");
@@ -284,7 +311,7 @@ export default function CommandCenter() {
     setError(null);
     try {
       const result = await fetchOpenRouterModels();
-      setOpenRouterModels(result.models);
+      syncOpenRouterModels(result);
       setMessage(`OpenRouter model list refreshed: ${result.models.length} models available.`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "OpenRouter models could not be refreshed.");
@@ -551,7 +578,7 @@ export default function CommandCenter() {
                 }}
               >
                 <span>{item.label}</span>
-                <strong>{statusLabel(item.configured || item.models_available)}</strong>
+                <strong>{providerStatusLabel(item)}</strong>
               </button>
             ))}
           </div>

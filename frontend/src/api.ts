@@ -219,8 +219,8 @@ export function saveControlsConfig(payload: unknown): Promise<ControlsConfig> {
   });
 }
 
-export function fetchOpenRouterModels(): Promise<{ models: OpenRouterModel[] }> {
-  return fetchJson<{ models: OpenRouterModel[] }>("/api/v1/chat/openrouter/models");
+export function fetchOpenRouterModels(): Promise<{ models: OpenRouterModel[]; controls?: ControlsConfig }> {
+  return fetchJson<{ models: OpenRouterModel[]; controls?: ControlsConfig }>("/api/v1/chat/openrouter/models");
 }
 
 export function fetchLocalModelStatus(): Promise<LocalModelStatus> {

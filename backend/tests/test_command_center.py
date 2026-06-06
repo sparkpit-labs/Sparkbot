@@ -35,6 +35,103 @@ def test_provider_credential_is_saved_server_side_without_echo(tmp_path, monkeyp
     assert (tmp_path / "secrets.json").exists()
 
 
+def test_openrouter_model_refresh_persists_catalog_without_credential_echo(tmp_path, monkeypatch) -> None:
+    from app.api import command_center
+
+    monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    client = TestClient(app)
+    credential = "unit-test-credential-value"
+
+    class FakeResponse:
+        def __init__(self, payload: dict) -> None:
+            self._payload = payload
+
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict:
+            return self._payload
+
+    class FakeClient:
+        def __init__(self, timeout: float | None = None) -> None:
+            self.timeout = timeout
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        async def get(self, url: str, headers: dict | None = None) -> FakeResponse:
+            if url.endswith("/api/tags"):
+                return FakeResponse({"models": []})
+            assert url == "https://openrouter.ai/api/v1/models"
+            assert (headers or {}).get("Authorization") == f"Bearer {credential}"
+            return FakeResponse(
+                {
+                    "data": [
+                        {
+                            "id": "test/fresh-paid-model",
+                            "name": "Fresh Paid Model",
+                            "context_length": 8192,
+                            "pricing": {"prompt": "0.0001", "completion": "0.0002"},
+                        },
+                        {
+                            "id": "test/fresh-free-model:free",
+                            "name": "Fresh Free Model",
+                            "context_length": 4096,
+                            "pricing": {"prompt": "0", "completion": "0"},
+                        },
+                    ]
+                }
+            )
+
+    monkeypatch.setattr(command_center.httpx, "AsyncClient", FakeClient)
+
+    save_response = client.post(
+        "/api/v1/chat/models/config",
+        json={"providers": {"openrouter_api_key": credential}},
+    )
+    assert save_response.status_code == 200
+    assert credential not in str(save_response.json())
+
+    refresh_response = client.get("/api/v1/chat/openrouter/models")
+
+    assert refresh_response.status_code == 200
+    refresh_payload = refresh_response.json()
+    refreshed_ids = [model["id"] for model in refresh_payload["models"]]
+    assert refreshed_ids == ["openrouter/test/fresh-free-model:free", "openrouter/test/fresh-paid-model"]
+    assert credential not in str(refresh_payload)
+
+    controls = refresh_payload["controls"]
+    openrouter = next(provider for provider in controls["providers"] if provider["id"] == "openrouter")
+    assert openrouter["configured"] is True
+    assert openrouter["models"] == refreshed_ids
+    assert controls["model_labels"]["openrouter/test/fresh-free-model:free"] == "Fresh Free Model"
+
+    readback = client.get("/api/v1/chat/models/config").json()
+    readback_openrouter = next(provider for provider in readback["providers"] if provider["id"] == "openrouter")
+    assert readback_openrouter["models"] == refreshed_ids
+    assert readback["model_labels"]["openrouter/test/fresh-paid-model"] == "Fresh Paid Model"
+    assert credential not in str(readback)
+
+    select_response = client.post(
+        "/api/v1/chat/models/config",
+        json={"default_selection": {"provider": "openrouter", "model": "openrouter/test/fresh-free-model:free"}},
+    )
+    assert select_response.status_code == 200
+    assert select_response.json()["default_selection"] == {
+        "provider": "openrouter",
+        "model": "openrouter/test/fresh-free-model:free",
+        "label": "Fresh Free Model",
+    }
+
+    events = client.get("/api/events").json()["events"]
+    assert "provider.model_catalog.refreshed" in {event["event_type"] for event in events}
+    assert credential not in str(events)
+
+
 def test_default_model_provider_must_match(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("SPARKBOT_DATA_DIR", str(tmp_path))
     client = TestClient(app)

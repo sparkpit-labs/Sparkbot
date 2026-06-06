@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import secrets
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -206,6 +207,7 @@ def _default_config() -> dict[str, Any]:
         "routing_policy": {"cross_provider_fallback": False},
         "agent_overrides": {},
         "invite_routes": {},
+        "provider_model_catalog": {},
         "custom_agents": [],
         "token_guardian_mode": "shadow",
         "security_guardrails_enabled": False,
@@ -379,6 +381,58 @@ def _valid_model(model: str) -> bool:
     return normalized.startswith("openrouter/") or normalized.startswith("ollama/")
 
 
+def _openrouter_catalog_rows(config: dict[str, Any]) -> list[dict[str, Any]]:
+    catalog = config.get("provider_model_catalog") if isinstance(config.get("provider_model_catalog"), dict) else {}
+    openrouter = catalog.get("openrouter") if isinstance(catalog.get("openrouter"), dict) else {}
+    rows = openrouter.get("models") if isinstance(openrouter.get("models"), list) else []
+    cleaned: list[dict[str, Any]] = []
+    for item in rows:
+        if not isinstance(item, dict):
+            continue
+        model_id = str(item.get("id") or "").strip()
+        if not model_id.startswith("openrouter/"):
+            continue
+        raw_id = str(item.get("raw_id") or model_id.removeprefix("openrouter/")).strip()
+        label = str(item.get("label") or raw_id or model_id).strip()
+        cleaned.append(
+            {
+                "id": model_id,
+                "raw_id": raw_id,
+                "label": label,
+                "context_length": item.get("context_length"),
+                "pricing": item.get("pricing") if isinstance(item.get("pricing"), dict) else {},
+                "is_free": bool(item.get("is_free")),
+            }
+        )
+    return cleaned
+
+
+def _provider_models(provider_id: str, config: dict[str, Any]) -> list[str]:
+    if provider_id == "openrouter":
+        dynamic = [row["id"] for row in _openrouter_catalog_rows(config)]
+        if dynamic:
+            return dynamic
+    return list(PROVIDER_MODELS.get(provider_id, []))
+
+
+def _model_labels(config: dict[str, Any]) -> dict[str, str]:
+    labels = dict(MODEL_LABELS)
+    for row in _openrouter_catalog_rows(config):
+        labels[row["id"]] = row["label"]
+    return labels
+
+
+def _persist_openrouter_catalog(rows: list[dict[str, Any]]) -> None:
+    config = _read_config()
+    catalog = config.get("provider_model_catalog") if isinstance(config.get("provider_model_catalog"), dict) else {}
+    catalog["openrouter"] = {
+        "models": rows,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    config["provider_model_catalog"] = catalog
+    _write_config(config)
+
+
 def _configured_provider(provider_id: str, secrets_payload: dict[str, str]) -> bool:
     if provider_id == "ollama":
         return True
@@ -446,14 +500,15 @@ def _provider_catalog(config: dict[str, Any], secrets_payload: dict[str, str], o
     providers: list[dict[str, Any]] = []
     for item in PROVIDERS:
         provider_id = str(item["id"])
+        provider_models = _provider_models(provider_id, config)
         row = {
             "id": provider_id,
             "label": item["label"],
             "configured": _configured_provider(provider_id, secrets_payload),
             "auth_modes": item["auth_modes"],
-            "models": PROVIDER_MODELS.get(provider_id, []),
-            "models_available": bool(PROVIDER_MODELS.get(provider_id)),
-            "available_models": PROVIDER_MODELS.get(provider_id, []),
+            "models": provider_models,
+            "models_available": bool(provider_models),
+            "available_models": provider_models,
         }
         if provider_id == "ollama":
             row.update(
@@ -477,19 +532,20 @@ async def _build_controls_config(notices: list[str] | None = None) -> dict[str, 
     invite_routes = _invite_route_records(config, secrets_payload)
     agents = _attach_invite_routes_to_agents(DEFAULT_AGENTS + _custom_agent_records(config), invite_routes)
     default_model = str(config["default_selection"].get("model") or DEFAULT_MODEL)
+    labels = _model_labels(config)
     return {
         "active_model": default_model,
         "default_selection": {
             "provider": config["default_selection"].get("provider") or _provider_for_model(default_model) or DEFAULT_PROVIDER,
             "model": default_model,
-            "label": MODEL_LABELS.get(default_model, default_model),
+            "label": labels.get(default_model, default_model),
         },
         "stack": config["stack"],
         "local_runtime": config["local_runtime"],
         "routing_policy": config["routing_policy"],
         "agent_overrides": config.get("agent_overrides") or {},
         "available_agents": agents,
-        "model_labels": MODEL_LABELS,
+        "model_labels": labels,
         "providers": _provider_catalog(config, secrets_payload, ollama),
         "ollama_status": ollama,
         "token_guardian_mode": config.get("token_guardian_mode", "shadow"),
@@ -636,7 +692,7 @@ async def set_model(body: ModelSelectionInput) -> dict[str, Any]:
         "summary": "Default model updated.",
         "payload": {"model": model, "provider": provider},
     })
-    return {"model": model, "provider": provider, "label": MODEL_LABELS.get(model, model)}
+    return {"model": model, "provider": provider, "label": _model_labels(config).get(model, model)}
 
 
 @router.get("/api/v1/chat/ollama/status")
@@ -679,7 +735,15 @@ async def openrouter_models() -> dict[str, Any]:
             }
         )
     rows.sort(key=lambda row: (not bool(row["is_free"]), str(row["label"]).lower()))
-    return {"models": rows}
+    _persist_openrouter_catalog(rows)
+    get_store().append_event({
+        "event_type": "provider.model_catalog.refreshed",
+        "surface": "command_center",
+        "summary": "OpenRouter model catalog refreshed.",
+        "payload": {"provider": "openrouter", "model_count": len(rows)},
+    })
+    controls = await _build_controls_config(notices=[f"OpenRouter model catalog refreshed: {len(rows)} models."])
+    return {"models": rows, "controls": controls}
 
 
 @router.get("/api/v1/chat/agents")
