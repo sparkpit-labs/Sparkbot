@@ -48,6 +48,12 @@ bash scripts/start-backend-dev.sh
 
 The backend development server binds to `127.0.0.1:8000` and exposes local health, Command Center, Chat, Workstation, memory, notes, events, rooms, seats, and Guardian confirmation routes.
 
+### Local Data Paths
+
+Non-secret Command Center config and the shared Workstation store use `SPARKBOT_DATA_DIR` when set. The default development path remains `data/command-center` under the checkout.
+
+Provider credentials and operator auth metadata use `SPARKBOT_SECRETS_DIR` when set. Without that override, they are stored outside the checkout at `$XDG_DATA_HOME/sparkbot/command-center` when `XDG_DATA_HOME` is set, otherwise `~/.local/share/sparkbot/command-center`. This keeps local credential saves from creating `secrets.json` under the repository during normal review.
+
 ## Frontend local workflow
 
 Install frontend development dependencies:

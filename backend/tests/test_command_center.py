@@ -35,6 +35,56 @@ def test_provider_credential_is_saved_server_side_without_echo(tmp_path, monkeyp
     assert (tmp_path / "secrets.json").exists()
 
 
+def test_default_sensitive_storage_stays_outside_checkout_after_credential_save(tmp_path, monkeypatch) -> None:
+    from app.api import command_center
+
+    checkout = tmp_path / "checkout"
+    checkout.mkdir()
+    xdg_data = tmp_path / "xdg-data"
+    monkeypatch.chdir(checkout)
+    monkeypatch.delenv("SPARKBOT_DATA_DIR", raising=False)
+    monkeypatch.delenv("SPARKBOT_SECRETS_DIR", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.setenv("XDG_DATA_HOME", str(xdg_data))
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/v1/chat/models/config",
+        json={"providers": {"openrouter_api_key": "outside-checkout-secret"}},
+    )
+
+    assert response.status_code == 200
+    assert "outside-checkout-secret" not in str(response.json())
+    expected_secret_path = xdg_data / "sparkbot" / "command-center" / "secrets.json"
+    assert command_center._secrets_path() == expected_secret_path
+    assert expected_secret_path.exists()
+    assert (checkout / "data" / "command-center" / "config.json").exists()
+    assert not (checkout / "data" / "command-center" / "secrets.json").exists()
+
+
+def test_sensitive_storage_override_can_be_separate_from_data_dir(tmp_path, monkeypatch) -> None:
+    config_dir = tmp_path / "config"
+    sensitive_dir = tmp_path / "sensitive"
+    monkeypatch.setenv("SPARKBOT_DATA_DIR", str(config_dir))
+    monkeypatch.setenv("SPARKBOT_SECRETS_DIR", str(sensitive_dir))
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/v1/chat/models/config",
+        json={"providers": {"openrouter_api_key": "override-secret-value"}},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    openrouter = next(provider for provider in payload["providers"] if provider["id"] == "openrouter")
+    assert openrouter["configured"] is True
+    assert "override-secret-value" not in str(payload)
+    assert (config_dir / "config.json").exists()
+    assert (sensitive_dir / "secrets.json").exists()
+    assert not (config_dir / "secrets.json").exists()
+
+
 def test_openrouter_model_refresh_persists_catalog_without_credential_echo(tmp_path, monkeypatch) -> None:
     from app.api import command_center
 

@@ -5,7 +5,7 @@ This guide is for hands-on internal review of the current local Sparkbot Worksta
 ## What This MVP Supports
 
 - Local backend health, Command Center, Workstation, Chat, Round Table, Spine, and Controls routes.
-- Backend-backed provider/model configuration with server-side credential storage.
+- Backend-backed provider/model configuration with server-side credential storage outside the checkout by default.
 - Chat sessions using the selected supported provider/model route for text work the model can perform, or a safe unconfigured response when no route is ready.
 - Round Table meetings with fixed phases, Seat 1 Meeting Manager, assignments, manager summary, wrap-up note, provider-backed text turns when configured, and deterministic fallback.
 - Agents Wing create/edit behavior, persistent agent identity/instructions, invite routes, and seat assignment.
@@ -98,6 +98,8 @@ bash scripts/smoke-check-local.sh
 
 Provider credentials should be disposable/test credentials for review. Do not commit provider credentials, paste them into docs, or print them in logs.
 
+Saved Command Center credentials are server-side only. By default, Sparkbot stores provider credentials and operator auth metadata outside the checkout at `$XDG_DATA_HOME/sparkbot/command-center` when `XDG_DATA_HOME` is set, otherwise `~/.local/share/sparkbot/command-center`. Set `SPARKBOT_SECRETS_DIR` to choose another local sensitive data directory. `SPARKBOT_DATA_DIR` remains available for non-secret local config/store redirection and test isolation.
+
 ### OpenRouter Or OpenAI-Style Test Key Path
 
 1. Start backend and frontend.
@@ -170,6 +172,7 @@ Backend tests cover mocked/local-safe provider execution for Chat and Round Tabl
 - Full private Guardian/Vault internals are not included.
 - Richer memory lifecycle behavior is deferred.
 - Browser-click end-to-end automation has not been added; current smoke coverage uses HTTP/API checks plus backend and frontend tests.
+- If an older checkout already contains `backend/data/command-center/secrets.json` from a prior local run, move it out of the repository before running public safety scans. New normal credential saves use the outside-checkout sensitive store by default.
 
 ## Review Recommendation
 

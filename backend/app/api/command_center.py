@@ -21,6 +21,7 @@ DEFAULT_PROVIDER = "openrouter"
 DEFAULT_MODEL = "openrouter/openai/gpt-4o-mini"
 LOCAL_DEFAULT_MODEL = "ollama/phi4-mini"
 DATA_DIR_ENV = "SPARKBOT_DATA_DIR"
+SECRETS_DIR_ENV = "SPARKBOT_SECRETS_DIR"
 
 
 PROVIDER_ENV_KEYS: dict[str, str] = {
@@ -158,8 +159,26 @@ class AgentInviteRouteInput(BaseModel):
 
 
 def _data_dir() -> Path:
-    configured = os.getenv(DATA_DIR_ENV)
+    configured = os.getenv(DATA_DIR_ENV, "").strip()
     base = Path(configured) if configured else Path("data") / "command-center"
+    base.mkdir(parents=True, exist_ok=True)
+    return base
+
+
+def _default_sensitive_data_dir() -> Path:
+    xdg_data_home = os.getenv("XDG_DATA_HOME", "").strip()
+    base = Path(xdg_data_home) if xdg_data_home else Path.home() / ".local" / "share"
+    return base / "sparkbot" / "command-center"
+
+
+def _sensitive_data_dir() -> Path:
+    configured = os.getenv(SECRETS_DIR_ENV, "").strip()
+    if configured:
+        base = Path(configured)
+    elif os.getenv(DATA_DIR_ENV, "").strip():
+        base = _data_dir()
+    else:
+        base = _default_sensitive_data_dir()
     base.mkdir(parents=True, exist_ok=True)
     return base
 
@@ -169,11 +188,11 @@ def _config_path() -> Path:
 
 
 def _secrets_path() -> Path:
-    return _data_dir() / "secrets.json"
+    return _sensitive_data_dir() / "secrets.json"
 
 
 def _pin_path() -> Path:
-    return _data_dir() / "operator_pin.json"
+    return _sensitive_data_dir() / "operator_pin.json"
 
 
 def _read_json(path: Path, default: dict[str, Any]) -> dict[str, Any]:
