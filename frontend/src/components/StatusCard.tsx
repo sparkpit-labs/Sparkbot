@@ -1,5 +1,5 @@
 import type { WorkstreamStatus } from "../workstation/workstationStatus";
-import StatusPill from "./StatusPill";
+import { formatShellStatus } from "./ShellNavigation";
 
 type StatusCardProps = {
   name: string;
@@ -12,7 +12,7 @@ export default function StatusCard({ name, status, summary }: StatusCardProps) {
     <article className="status-card">
       <div className="status-card-top">
         <h3>{name}</h3>
-        <StatusPill status={status} />
+        <span className={`status-badge status-${status}`}>{formatShellStatus(status)}</span>
       </div>
       <p>{summary}</p>
     </article>

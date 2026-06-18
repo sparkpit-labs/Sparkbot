@@ -41,54 +41,6 @@ CAPABILITIES: list[Capability] = [
         "notes": "Public shell interface.",
     },
     {
-        "id": "local-workstation-store",
-        "label": "Local Workstation store",
-        "status": "available",
-        "notes": "Local SQLite storage for Workstation data.",
-    },
-    {
-        "id": "local-chat-drafts",
-        "label": "Local chat drafts",
-        "status": "available",
-        "notes": "Stores operator and note messages locally without model calls.",
-    },
-    {
-        "id": "local-memory-notes",
-        "label": "Local memory notes",
-        "status": "available",
-        "notes": "Stores local notes and supports explicit per-prompt selection without automatic retrieval or model memory.",
-    },
-    {
-        "id": "local-work-lane-cards",
-        "label": "Local work lane cards",
-        "status": "available",
-        "notes": "Stores local planning cards and optional local chat-session links without scheduler or task execution.",
-    },
-    {
-        "id": "local-data-export",
-        "label": "Local data export",
-        "status": "available",
-        "notes": "Downloads a read-only JSON backup of local Workstation data without import, sync, or upload.",
-    },
-    {
-        "id": "local-runtime-settings",
-        "label": "Local runtime settings",
-        "status": "available",
-        "notes": "Shows env-driven local runtime paths and Ollama settings without credential fields or save actions.",
-    },
-    {
-        "id": "local-model-adapter",
-        "label": "Local model adapter",
-        "status": "disabled-by-default",
-        "notes": "Localhost-only Ollama adapter; prompt calls require explicit operator enablement.",
-    },
-    {
-        "id": "local-ollama",
-        "label": "Local Ollama",
-        "status": "disabled-by-default",
-        "notes": "Uses only localhost or 127.0.0.1 and no credentials or cloud providers.",
-    },
-    {
         "id": "workstation",
         "label": "Workstation shell",
         "status": "preview",
@@ -99,6 +51,12 @@ CAPABILITIES: list[Capability] = [
         "label": "Chat shell",
         "status": "preview",
         "notes": "No model calls or message persistence.",
+    },
+    {
+        "id": "work-page",
+        "label": "Work Page shell",
+        "status": "preview",
+        "notes": "No file reads, file writes, connector calls, or worker execution.",
     },
     {
         "id": "round-table",
@@ -113,16 +71,10 @@ CAPABILITIES: list[Capability] = [
         "notes": "No credential storage or provider calls.",
     },
     {
-        "id": "model-seats",
-        "label": "Model Seat preview",
+        "id": "local-ai-settings",
+        "label": "Local AI Settings shell",
         "status": "preview",
-        "notes": "No model assignment, routing, calls, credentials, or seat persistence.",
-    },
-    {
-        "id": "work-lanes",
-        "label": "Task Lane preview",
-        "status": "preview",
-        "notes": "No scheduler, background jobs, task execution, notifications, or task persistence.",
+        "notes": "No credentials, endpoint checks, provider calls, or model routing.",
     },
     {
         "id": "guardian-controls",
@@ -144,9 +96,9 @@ CAPABILITIES: list[Capability] = [
     },
     {
         "id": "model-calls",
-        "label": "Cloud model calls",
+        "label": "Model calls",
         "status": "guarded-future",
-        "notes": "No cloud provider runtime or production model routing.",
+        "notes": "No provider runtime or model routing.",
     },
     {
         "id": "credential-storage",
