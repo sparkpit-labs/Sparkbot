@@ -41,3 +41,7 @@ Define the Windows/local desktop path, smoke tests, release artifacts, and fresh
 ## Phase 8: Plugins and future runtime integration
 
 Expand toward plugins, skills, and deeper runtime integration after the public v1.0.0 foundation is stable.
+
+## Contract gate before runtime expansion
+
+Future runtime branches must satisfy the public capability, connector, provider configuration, and Guardian policy contracts before they can move beyond preview or planned status. This applies to model calls, credential handling, connector calls, external sends, message persistence, tool execution, and sensitive local mutations.

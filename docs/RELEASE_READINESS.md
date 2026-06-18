@@ -42,6 +42,15 @@ This checkpoint does not broaden release readiness beyond the early public shell
 
 The `public-v1-capabilities-status-0` checkpoint adds a read-only `GET /capabilities` backend endpoint and frontend capability status display with local fallback. It does not add model calls, provider credential handling, chat runtime, Guardian enforcement, connector sends, or desktop installer behavior.
 
+## Capability safety contracts checkpoint
+
+The public capability safety contracts define review gates for future runtime work. They do not add runtime behavior. Future branches that introduce provider setup, model calls, credential handling, connector actions, tool execution, persistence, or Guardian enforcement must satisfy these contracts before public merge:
+
+- `docs/PUBLIC_CAPABILITY_CONTRACTS.md`
+- `docs/CONNECTOR_SAFETY_CONTRACT.md`
+- `docs/PROVIDER_CONFIG_CONTRACT.md`
+- `docs/GUARDIAN_POLICY_CONTRACT.md`
+
 ## Desktop packaging status
 
 Desktop packaging is planned but not implemented. The current repository contains planning notes and release gates only. No installer, desktop binary, auto-update path, or code signing configuration is present.

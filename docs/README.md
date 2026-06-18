@@ -26,6 +26,13 @@ This index groups the public Sparkbot documentation for first-time visitors, loc
 - [Release Standards](RELEASE_STANDARDS.md): public publishing identity and release standards.
 - [Public v1 Clean Baseline Release Notes](RELEASE_NOTES_PUBLIC_V1_CLEAN_BASELINE.md): first published shell baseline notes.
 
+## Public contracts
+
+- [Public Capability Contracts](PUBLIC_CAPABILITY_CONTRACTS.md): capability status definitions and promotion gates.
+- [Connector Safety Contract](CONNECTOR_SAFETY_CONTRACT.md): disabled-by-default connector rules and future live-action gates.
+- [Provider Configuration Contract](PROVIDER_CONFIG_CONTRACT.md): provider setup, credential boundary, and model-call gates.
+- [Guardian Policy Contract](GUARDIAN_POLICY_CONTRACT.md): future sensitive-action policy and approval gates.
+
 ## Roadmap and plans
 
 - [Roadmap](ROADMAP.md): staged public v1.0.0 direction.
@@ -34,4 +41,4 @@ This index groups the public Sparkbot documentation for first-time visitors, loc
 
 ## Current boundary
 
-The current public shell baseline is safe for review and local validation. It does not include model calls, provider credentials, credential storage, chat runtime, Round Table meeting runtime, Guardian policy enforcement, tool execution, connector calls, desktop packaging, or deployment workflows.
+The current public shell baseline is safe for review and local validation. It does not include model calls, provider credentials, credential storage, chat runtime, Round Table meeting runtime, Guardian policy enforcement, tool execution, connector calls, desktop packaging, or deployment workflows. The public contracts define the gates future branches must satisfy before any of those behaviors can be promoted.

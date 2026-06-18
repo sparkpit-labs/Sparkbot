@@ -6,6 +6,7 @@ This changelog tracks public Sparkbot repository baselines and release-facing do
 
 ### Added
 
+- Public capability, connector safety, provider configuration, and Guardian policy contracts for future implementation gates.
 - Read-only backend `GET /capabilities` endpoint and frontend capability status display with local fallback.
 - Full public validation GitHub Action for pushes to `main` and pull requests.
 - Release notes for the `public-v1-frontend-audit-fix-0` dependency hygiene checkpoint.
@@ -20,7 +21,7 @@ This changelog tracks public Sparkbot repository baselines and release-facing do
 
 ### Not Included
 
-- No real chat runtime, message persistence, model calls, provider credentials, backend chat endpoint, desktop app, installer, auto-update path, or code signing setup.
+- No real chat runtime, message persistence, model calls, provider credentials, backend chat endpoint, connector runtime, Guardian enforcement runtime, desktop app, installer, auto-update path, or code signing setup.
 
 ## public-v1-frontend-audit-fix-0 - 2026-06-18
 

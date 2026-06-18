@@ -146,6 +146,10 @@ Key docs:
 - `docs/VALIDATION.md` for validation commands.
 - `docs/LOCAL_DEVELOPMENT.md` for local runner scripts.
 - `docs/LOCAL_SMOKE_TEST.md` for alternate-port local smoke testing.
+- `docs/PUBLIC_CAPABILITY_CONTRACTS.md` for capability status definitions and promotion gates.
+- `docs/CONNECTOR_SAFETY_CONTRACT.md` for future connector safety gates.
+- `docs/PROVIDER_CONFIG_CONTRACT.md` for future provider setup and model-call gates.
+- `docs/GUARDIAN_POLICY_CONTRACT.md` for future sensitive-action policy gates.
 - `docs/ROADMAP.md` for staged product direction.
 - `docs/RELEASE_READINESS.md` for current release-readiness boundaries.
 - `docs/PUBLIC_ARTIFACT_MANIFEST.md` for included and excluded public artifacts.
@@ -154,6 +158,8 @@ Key docs:
 ## Security and privacy posture
 
 Current validation does not require secrets. The repository does not accept provider credentials, store credentials, call models, execute tools, run connectors, or send data to external services. Product surfaces beyond the backend health endpoint and frontend shell are previews until explicit public contracts and runtime gates are added.
+
+Future provider, connector, model-call, credential, and Guardian runtime work must satisfy the public contracts in `docs/` before implementation branches can claim active behavior.
 
 ## Repository standards
 
