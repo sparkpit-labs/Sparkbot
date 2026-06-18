@@ -1,7 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { API_BASE_URL, fetchBackendHealth, type HealthPayload } from "./api";
+import { API_BASE_URL, fetchBackendHealth, fetchPublicCapabilities, type HealthPayload } from "./api";
 import WorkstationShell from "./components/WorkstationShell";
+import {
+  capabilityToStatusItem,
+  workstationStatusItems,
+  type WorkstationStatusItem
+} from "./workstation/workstationStatus";
 
 type HealthState =
   | { phase: "idle"; message: string; payload: null }
@@ -9,14 +14,45 @@ type HealthState =
   | { phase: "online"; message: string; payload: HealthPayload }
   | { phase: "offline"; message: string; payload: null };
 
+type CapabilitiesState = {
+  items: WorkstationStatusItem[];
+  sourceLabel: string;
+};
+
 const initialHealthState: HealthState = {
   phase: "idle",
   message: "Backend health has not been checked yet.",
   payload: null
 };
 
+const fallbackCapabilitiesState: CapabilitiesState = {
+  items: workstationStatusItems,
+  sourceLabel: "Using local fallback status list."
+};
+
 export default function App() {
   const [healthState, setHealthState] = useState<HealthState>(initialHealthState);
+  const [capabilitiesState, setCapabilitiesState] = useState<CapabilitiesState>(fallbackCapabilitiesState);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    fetchPublicCapabilities(controller.signal)
+      .then((payload) => {
+        setCapabilitiesState({
+          items: payload.capabilities.map(capabilityToStatusItem),
+          sourceLabel: "Using backend capabilities status."
+        });
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+        setCapabilitiesState(fallbackCapabilitiesState);
+      });
+
+    return () => controller.abort();
+  }, []);
 
   const runHealthCheck = async () => {
     setHealthState({
@@ -48,7 +84,7 @@ export default function App() {
         <p className="intro">Sparkbot is an early local-first AI workstation shell from SparkPit Labs.</p>
       </header>
 
-      <WorkstationShell />
+      <WorkstationShell statusItems={capabilitiesState.items} statusSourceLabel={capabilitiesState.sourceLabel} />
 
       <section className="health-panel">
         <div className="health-header">

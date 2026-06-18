@@ -4,8 +4,8 @@ This document tracks public shell readiness for review and phased release decisi
 
 ## Current baseline
 
-- Backend: local read-only health endpoint is present and validated.
-- Frontend: static shell previews are present and validated.
+- Backend: local read-only health and capabilities endpoints are present and validated.
+- Frontend: static shell previews are present and can display backend capability statuses with local fallback.
 - Workstation, Round Table, Provider Setup, and Guardian Controls are preview or skeleton surfaces.
 
 ## Not yet in scope
@@ -37,6 +37,10 @@ The `public-v1-frontend-audit-fix-0` tag records a lockfile-only frontend audit 
 - Known non-blocking warnings: Starlette/FastAPI `httpx` deprecation warning during backend tests; `whatwg-encoding` npm deprecation warning during frontend install.
 
 This checkpoint does not broaden release readiness beyond the early public shell review baseline.
+
+## Capabilities status checkpoint
+
+The `public-v1-capabilities-status-0` checkpoint adds a read-only `GET /capabilities` backend endpoint and frontend capability status display with local fallback. It does not add model calls, provider credential handling, chat runtime, Guardian enforcement, connector sends, or desktop installer behavior.
 
 ## Desktop packaging status
 

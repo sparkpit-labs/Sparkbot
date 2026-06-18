@@ -6,6 +6,8 @@ This changelog tracks public Sparkbot repository baselines and release-facing do
 
 ### Added
 
+- Read-only backend `GET /capabilities` endpoint and frontend capability status display with local fallback.
+- Full public validation GitHub Action for pushes to `main` and pull requests.
 - Release notes for the `public-v1-frontend-audit-fix-0` dependency hygiene checkpoint.
 - Local smoke readiness checkpoint with alternate localhost ports and confirmed manual browser smoke.
 - Chat Shell preview with disabled read-only planned composer and no send action.

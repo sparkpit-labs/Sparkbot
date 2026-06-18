@@ -59,9 +59,13 @@ npm run build
 cd ..
 ```
 
+## Public validation workflow
+
+The `.github/workflows/validate-public-shell.yml` workflow runs on pull requests and pushes to `main`. It uses Python 3.12 and Node 20.19.0, then runs the public safety scan and full public shell validation without secrets, deployment, containers, or production assumptions.
+
 ## Local smoke check
 
-After starting local development servers, verify them with:
+After starting local development servers, verify `/health`, `/capabilities`, and the frontend URL with:
 
 ```bash
 SPARKBOT_BACKEND_URL=http://127.0.0.1:18000 \

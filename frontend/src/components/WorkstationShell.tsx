@@ -7,9 +7,17 @@ import RoadmapCard from "./RoadmapCard";
 import RoundTablePreview from "./RoundTablePreview";
 import ShellNavigation from "./ShellNavigation";
 import StatusCard from "./StatusCard";
-import { workstationRoadmapItems, workstationStatusItems } from "../workstation/workstationStatus";
+import { workstationRoadmapItems, workstationStatusItems, type WorkstationStatusItem } from "../workstation/workstationStatus";
 
-export default function WorkstationShell() {
+type WorkstationShellProps = {
+  statusItems?: WorkstationStatusItem[];
+  statusSourceLabel?: string;
+};
+
+export default function WorkstationShell({
+  statusItems = workstationStatusItems,
+  statusSourceLabel = "Using local fallback status list."
+}: WorkstationShellProps) {
   const [activeSectionId, setActiveSectionId] = useState("workstation-overview");
 
   return (
@@ -31,11 +39,12 @@ export default function WorkstationShell() {
               <p className="eyebrow">Works Today</p>
               <h2 id="workstation-overview-heading">Workstation Overview</h2>
               <p>Current public shell status across the visible surfaces.</p>
+              <p className="capabilities-source">{statusSourceLabel}</p>
             </div>
 
             <div className="status-grid">
-              {workstationStatusItems.map((item) => (
-                <StatusCard key={item.name} name={item.name} status={item.status} summary={item.summary} />
+              {statusItems.map((item) => (
+                <StatusCard key={item.id} name={item.name} status={item.status} summary={item.summary} />
               ))}
             </div>
           </section>
