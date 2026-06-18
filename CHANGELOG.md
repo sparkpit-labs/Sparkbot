@@ -6,6 +6,7 @@ This changelog tracks public Sparkbot repository baselines and release-facing do
 
 ### Added
 
+- Release notes for the `public-v1-frontend-audit-fix-0` dependency hygiene checkpoint.
 - Local smoke readiness checkpoint with alternate localhost ports and confirmed manual browser smoke.
 - Chat Shell preview with disabled read-only planned composer and no send action.
 - Chat Shell documentation describing the public skeleton boundary.
@@ -18,6 +19,29 @@ This changelog tracks public Sparkbot repository baselines and release-facing do
 ### Not Included
 
 - No real chat runtime, message persistence, model calls, provider credentials, backend chat endpoint, desktop app, installer, auto-update path, or code signing setup.
+
+## public-v1-frontend-audit-fix-0 - 2026-06-18
+
+This tag is a dependency hygiene checkpoint for the public shell baseline. It restores the frontend npm audit clean state after high-severity advisories without changing runtime behavior.
+
+### Changed
+
+- Updated `frontend/package-lock.json` only.
+- Resolved `form-data` to `4.0.6`.
+- Resolved `vite` to `8.0.16`.
+
+### Validation
+
+- `npm audit --audit-level=moderate`: 0 vulnerabilities.
+- Frontend tests and production build: pass.
+- Backend compile and tests: pass.
+- `bash scripts/check-public-safety.sh`: pass.
+- `bash scripts/validate-public-shell.sh`: pass.
+
+### Known Non-Blocking Warnings
+
+- Starlette/FastAPI `httpx` deprecation warning during backend tests.
+- `whatwg-encoding` npm deprecation warning during frontend install.
 
 ## public-v1-clean-baseline-0 - 2026-05-30
 

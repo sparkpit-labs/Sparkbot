@@ -25,6 +25,19 @@ This repository is suitable for professional public review as an early shell bas
 
 This repository does not claim production readiness or complete product functionality.
 
+## Dependency hygiene checkpoint
+
+The `public-v1-frontend-audit-fix-0` tag records a lockfile-only frontend audit advisory fix.
+
+- Purpose: restore npm audit clean state after high-severity advisories.
+- Scope: `frontend/package-lock.json` only.
+- Runtime behavior: unchanged.
+- Resolved packages: `form-data` to `4.0.6`, `vite` to `8.0.16`.
+- Validation: npm audit, frontend tests/build, backend compile/tests, public safety scan, and full public shell validation passed.
+- Known non-blocking warnings: Starlette/FastAPI `httpx` deprecation warning during backend tests; `whatwg-encoding` npm deprecation warning during frontend install.
+
+This checkpoint does not broaden release readiness beyond the early public shell review baseline.
+
 ## Desktop packaging status
 
 Desktop packaging is planned but not implemented. The current repository contains planning notes and release gates only. No installer, desktop binary, auto-update path, or code signing configuration is present.
