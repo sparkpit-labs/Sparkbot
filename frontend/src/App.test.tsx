@@ -188,10 +188,22 @@ describe("App", () => {
     expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(4);
   });
 
+  it("keeps fallback statuses on the public capability contract vocabulary", () => {
+    render(<App />);
+
+    expect(screen.getAllByText("Available").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("Preview").length).toBeGreaterThanOrEqual(5);
+    expect(screen.getAllByText("Planned").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Disabled by default").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(4);
+  });
+
   it("keeps provider, chat, and guardian surfaces inert", () => {
     render(<App />);
 
-    expect(screen.queryByPlaceholderText(/api key/i)).toBeNull();
+    expect(screen.queryByPlaceholderText(/api key|password|token/i)).toBeNull();
+    expect(screen.queryByLabelText(/api key|password|token/i)).toBeNull();
+    expect(document.querySelectorAll('input[type="password"]').length).toBe(0);
     expect(screen.queryByRole("button", { name: /save|test connection|connect/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /approve|execute|enforce|allow|deny/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /start|join|send|run/i })).toBeNull();

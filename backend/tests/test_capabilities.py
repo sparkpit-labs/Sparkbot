@@ -97,9 +97,15 @@ def test_capability_statuses_use_contract_values() -> None:
     client = TestClient(app)
     payload = client.get("/capabilities").json()
 
+    assert ALLOWED_CAPABILITY_STATUSES == {
+        "available",
+        "preview",
+        "planned",
+        "disabled-by-default",
+        "guarded-future",
+    }
     statuses = {item["status"] for item in payload["capabilities"]}
     assert statuses <= ALLOWED_CAPABILITY_STATUSES
-    assert "disabled-by-default" in ALLOWED_CAPABILITY_STATUSES
     assert "guarded-future" in statuses
 
 
@@ -123,3 +129,24 @@ def test_guarded_future_capabilities_are_present_and_inactive() -> None:
         capabilities["credential-storage"]["status"],
         capabilities["tool-execution"]["status"],
     }
+
+
+def test_preview_shell_capabilities_do_not_claim_runtime_operation() -> None:
+    client = TestClient(app)
+    payload = client.get("/capabilities").json()
+    capabilities = _capability_by_id(payload)
+
+    preview_expectations = {
+        "chat": ["no model calls", "message persistence"],
+        "round-table": ["no meeting engine", "agent orchestration"],
+        "provider-setup": ["no credential storage", "provider calls"],
+        "guardian-controls": ["no policy enforcement runtime"],
+    }
+
+    for capability_id, expected_note_fragments in preview_expectations.items():
+        capability = capabilities[capability_id]
+        assert capability["status"] == "preview"
+        assert capability["status"] != "available"
+        notes = capability["notes"].lower()
+        for fragment in expected_note_fragments:
+            assert fragment in notes

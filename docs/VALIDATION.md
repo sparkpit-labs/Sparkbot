@@ -19,7 +19,7 @@ This script performs:
 - frontend tests
 - frontend production build
 
-It does not start long-running development servers and does not require secrets.
+It does not start long-running development servers and does not require secrets. Backend and frontend tests include capability contract checks that keep guarded-future surfaces from being promoted accidentally.
 
 ## Public safety scan
 
@@ -65,7 +65,7 @@ The `.github/workflows/validate-public-shell.yml` workflow runs on pull requests
 
 ## Local smoke check
 
-After starting local development servers, verify `/health`, `/capabilities`, and the frontend URL with. The capabilities response must use the public contract statuses `available`, `preview`, `planned`, `disabled-by-default`, and `guarded-future`:
+After starting local development servers, verify `/health`, `/capabilities`, and the frontend URL. The capabilities response must use the public contract statuses `available`, `preview`, `planned`, `disabled-by-default`, and `guarded-future`:
 
 ```bash
 SPARKBOT_BACKEND_URL=http://127.0.0.1:18000 \
