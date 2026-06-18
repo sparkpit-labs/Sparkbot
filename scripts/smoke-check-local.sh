@@ -6,6 +6,7 @@ SPARKBOT_FRONTEND_URL="${SPARKBOT_FRONTEND_URL:-http://127.0.0.1:5173}"
 
 backend_health_url="${SPARKBOT_BACKEND_URL%/}/health"
 capabilities_url="${SPARKBOT_BACKEND_URL%/}/capabilities"
+provider_config_status_url="${SPARKBOT_BACKEND_URL%/}/provider-config/status"
 
 echo "Checking backend health at ${backend_health_url}"
 backend_response="$(curl -fsS "${backend_health_url}")"
@@ -38,6 +39,28 @@ case "${capabilities_response}" in
     ;;
   *)
     echo "Capabilities response did not include capabilities." >&2
+    exit 1
+    ;;
+esac
+
+echo "Checking provider config status at ${provider_config_status_url}"
+provider_config_status_response="$(curl -fsS "${provider_config_status_url}")"
+printf "%s\n" "${provider_config_status_response}"
+
+case "${provider_config_status_response}" in
+  *\"credential_storage\":\"not-implemented\"*|*\"credential_storage\":\ \"not-implemented\"*)
+    ;;
+  *)
+    echo "Provider config status response did not report credential storage as not implemented." >&2
+    exit 1
+    ;;
+esac
+
+case "${provider_config_status_response}" in
+  *\"provider_calls\":\"not-implemented\"*|*\"provider_calls\":\ \"not-implemented\"*)
+    ;;
+  *)
+    echo "Provider config status response did not report provider calls as not implemented." >&2
     exit 1
     ;;
 esac

@@ -35,7 +35,7 @@ A capability may move to a more active status only when all of the following are
 | Workstation shell | `preview` | Product shell preview only. |
 | Chat shell | `preview` | No send action, model call, or message persistence. |
 | Round Table shell | `preview` | No meeting engine or agent orchestration. |
-| Provider Setup shell | `preview` | No credential entry, storage, test call, or provider call. |
+| Provider Setup shell | `preview` | Read-only provider status is allowed. No credential entry, storage, test call, or provider call. |
 | Guardian Controls shell | `preview` | No runtime approval or enforcement path. |
 | Desktop packaging | `planned` | No installer, desktop binary, signing, or auto-update path. |
 | Connectors | `guarded-future` | Must satisfy `CONNECTOR_SAFETY_CONTRACT.md` before any runtime behavior. |

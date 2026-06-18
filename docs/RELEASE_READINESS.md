@@ -4,7 +4,7 @@ This document tracks public shell readiness for review and phased release decisi
 
 ## Current baseline
 
-- Backend: local read-only health and capabilities endpoints are present and validated.
+- Backend: local read-only health, capabilities, and provider configuration status endpoints are present and validated.
 - Frontend: static shell previews are present and can display backend capability statuses with local fallback.
 - Workstation, Round Table, Provider Setup, and Guardian Controls are preview or skeleton surfaces.
 

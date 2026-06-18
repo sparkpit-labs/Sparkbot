@@ -4,7 +4,7 @@ This contract defines the minimum safety requirements for future provider setup,
 
 ## Current Boundary
 
-Provider Setup is a `preview` capability. It may describe planned provider categories and local-first setup direction, but it must not include credential entry, credential storage, provider test calls, model calls, or model routing.
+Provider Setup is a `preview` capability. It may describe planned provider categories and local-first setup direction, and may expose read-only status through `GET /provider-config/status`, but it must not include credential entry, credential storage, provider test calls, model calls, or model routing.
 
 ## Provider Setup Rules
 

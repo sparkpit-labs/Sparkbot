@@ -410,6 +410,7 @@ h3 {
   color: #4b5b6c;
 }
 
+.provider-status-grid,
 .provider-layout {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));

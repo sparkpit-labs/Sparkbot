@@ -88,6 +88,73 @@ const capabilitiesPayload = {
   ]
 };
 
+
+const providerConfigStatusPayload = {
+  service: "sparkbot-server",
+  mode: "local",
+  status: "preview",
+  credential_storage: "not-implemented",
+  provider_calls: "not-implemented",
+  model_routing: "not-implemented",
+  providers: [
+    {
+      id: "local",
+      label: "Local provider",
+      status: "planned",
+      notes: "Local provider configuration is planned. No runtime provider calls are made."
+    },
+    {
+      id: "openai-compatible",
+      label: "OpenAI-compatible provider",
+      status: "guarded-future",
+      notes: "Cloud provider configuration will require explicit setup and safety gates."
+    },
+    {
+      id: "anthropic-compatible",
+      label: "Anthropic-compatible provider",
+      status: "guarded-future",
+      notes: "Cloud provider configuration will require explicit setup and safety gates."
+    },
+    {
+      id: "google-compatible",
+      label: "Google-compatible provider",
+      status: "guarded-future",
+      notes: "Cloud provider configuration will require explicit setup and safety gates."
+    },
+    {
+      id: "custom-endpoint",
+      label: "Custom endpoint",
+      status: "guarded-future",
+      notes: "Custom endpoints are planned for future guarded configuration."
+    }
+  ]
+};
+
+function mockJsonResponse(payload: unknown) {
+  return Promise.resolve(
+    new Response(JSON.stringify(payload), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
+    })
+  );
+}
+
+function mockBackendStatusFetch() {
+  return vi.fn((input: RequestInfo | URL) => {
+    const url = input.toString();
+
+    if (url.includes("/provider-config/status")) {
+      return mockJsonResponse(providerConfigStatusPayload);
+    }
+
+    if (url.includes("/capabilities")) {
+      return mockJsonResponse(capabilitiesPayload);
+    }
+
+    return Promise.reject(new Error(`Unexpected fetch ${url}`));
+  });
+}
+
 describe("App", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("capabilities unavailable")));
@@ -141,13 +208,18 @@ describe("App", () => {
     expect(screen.getByText(/does not start meetings, call models, run a turn engine/i)).toBeDefined();
     expect(screen.getAllByText("Preview").length).toBeGreaterThanOrEqual(5);
     expect(screen.getByRole("heading", { name: "Provider Setup Preview" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Local model provider" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Local provider" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "OpenAI-compatible provider" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Anthropic-compatible provider" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Google-compatible provider" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Custom endpoint" })).toBeDefined();
-    expect(screen.getByText(/provider configuration is planned for later slices/i)).toBeDefined();
-    expect(screen.getByText(/no API key fields, no save actions, and no test-connection actions/i)).toBeDefined();
+    expect(screen.getByText(/provider configuration status is read-only/i)).toBeDefined();
+    expect(screen.getByText("Using local provider status fallback.")).toBeDefined();
+    expect(screen.getAllByText("Credential storage").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Provider calls")).toBeDefined();
+    expect(screen.getByText("Model routing")).toBeDefined();
+    expect(screen.getAllByText("not implemented").length).toBeGreaterThanOrEqual(3);
+    expect(screen.getByText(/no API key fields, no password or token fields/i)).toBeDefined();
     expect(screen.getByRole("heading", { name: "Provider Setup shell" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Guardian Controls shell" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Guardian Controls Preview" })).toBeDefined();
@@ -164,15 +236,7 @@ describe("App", () => {
   });
 
   it("renders backend capability statuses when the capabilities API responds", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(
-        new Response(JSON.stringify(capabilitiesPayload), {
-          status: 200,
-          headers: { "Content-Type": "application/json" }
-        })
-      )
-    );
+    vi.stubGlobal("fetch", mockBackendStatusFetch());
 
     render(<App />);
 
@@ -185,6 +249,25 @@ describe("App", () => {
     expect(screen.getByText("No terminal, tool, or automation execution.")).toBeDefined();
     expect(screen.getByText("Future local action")).toBeDefined();
     expect(screen.getAllByText("Disabled by default").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(8);
+  });
+
+  it("renders backend provider configuration status when the status API responds", async () => {
+    vi.stubGlobal("fetch", mockBackendStatusFetch());
+
+    render(<App />);
+
+    expect(await screen.findByText("Using backend provider configuration status.")).toBeDefined();
+    expect(screen.getAllByText("Credential storage").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Provider calls")).toBeDefined();
+    expect(screen.getByText("Model routing")).toBeDefined();
+    expect(screen.getAllByText("not implemented").length).toBeGreaterThanOrEqual(3);
+    expect(screen.getByRole("heading", { name: "Local provider" })).toBeDefined();
+    expect(screen.getByText("Local provider configuration is planned. No runtime provider calls are made.")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "OpenAI-compatible provider" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Anthropic-compatible provider" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Google-compatible provider" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Custom endpoint" })).toBeDefined();
     expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(4);
   });
 
@@ -203,6 +286,8 @@ describe("App", () => {
 
     expect(screen.queryByPlaceholderText(/api key|password|token/i)).toBeNull();
     expect(screen.queryByLabelText(/api key|password|token/i)).toBeNull();
+    expect(document.querySelectorAll('input').length).toBe(0);
+    expect(document.querySelectorAll('textarea').length).toBe(1);
     expect(document.querySelectorAll('input[type="password"]').length).toBe(0);
     expect(screen.queryByRole("button", { name: /save|test connection|connect/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /approve|execute|enforce|allow|deny/i })).toBeNull();

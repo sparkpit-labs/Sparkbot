@@ -21,7 +21,7 @@ The current repository is a validated shell baseline. It is useful for review, l
 | Workstation shell | Preview | Read-only product layout. |
 | Chat shell | Preview | Disabled planned composer; no send action. |
 | Round Table | Preview | Inert planned seats for future collaboration. |
-| Provider Setup | Preview | No API key fields, save action, or provider calls. |
+| Provider Setup | Preview | Read-only provider status surface; no API key fields, save action, or provider calls. |
 | Guardian Controls | Preview | No approvals, enforcement, or sensitive actions. |
 | Desktop packaging | Planned | No installer or desktop binary exists yet. |
 | Connectors | Guarded future | No connector calls or external sends. |
@@ -31,7 +31,7 @@ The current repository is a validated shell baseline. It is useful for review, l
 
 ## Release and checkpoint status
 
-The latest public checkpoint tag on `main` is `public-v1-capabilities-contract-alignment-0`.
+The latest public checkpoint tag on `main` is `public-v1-provider-config-status-0`.
 
 The GitHub pre-release `public-v1-shell-baseline-0` remains the first published shell baseline release. Development continues on `main` through checkpoint tags, so `main` may include newer docs and planning checkpoints than the first pre-release page.
 
@@ -81,6 +81,12 @@ Expected backend capabilities URL:
 
 ```text
 http://127.0.0.1:8000/capabilities
+```
+
+Expected provider configuration status URL:
+
+```text
+http://127.0.0.1:8000/provider-config/status
 ```
 
 ### 4. Start the frontend in terminal 2

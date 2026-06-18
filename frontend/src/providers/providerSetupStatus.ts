@@ -1,40 +1,49 @@
-import type { ShellSectionStatus } from "../workstation/shellSections";
+import type { ProviderConfigStatusPayload, ProviderStatusItem } from "../api";
 
-export type ProviderPreviewStatus = Extract<ShellSectionStatus, "preview" | "planned">;
-
-export type ProviderPreviewItem = {
-  name: string;
-  status: ProviderPreviewStatus;
-  summary: string;
-};
+export type ProviderPreviewItem = ProviderStatusItem;
 
 export const providerPreviewItems: ProviderPreviewItem[] = [
   {
-    name: "Local model provider",
+    id: "local",
+    label: "Local provider",
     status: "planned",
-    summary: "Planned local model configuration surface. Runtime configuration is not active in this branch."
+    notes: "Local provider configuration is planned. No runtime provider calls are made."
   },
   {
-    name: "OpenAI-compatible provider",
-    status: "planned",
-    summary: "Planned compatibility surface for OpenAI-style APIs. No credential or network behavior is active."
+    id: "openai-compatible",
+    label: "OpenAI-compatible provider",
+    status: "guarded-future",
+    notes: "Cloud provider configuration will require explicit setup and safety gates."
   },
   {
-    name: "Anthropic-compatible provider",
-    status: "planned",
-    summary: "Planned compatibility surface for Anthropic-style APIs. No credential or network behavior is active."
+    id: "anthropic-compatible",
+    label: "Anthropic-compatible provider",
+    status: "guarded-future",
+    notes: "Cloud provider configuration will require explicit setup and safety gates."
   },
   {
-    name: "Google-compatible provider",
-    status: "planned",
-    summary: "Planned compatibility surface for Google-style APIs. No credential or network behavior is active."
+    id: "google-compatible",
+    label: "Google-compatible provider",
+    status: "guarded-future",
+    notes: "Cloud provider configuration will require explicit setup and safety gates."
   },
   {
-    name: "Custom endpoint",
-    status: "planned",
-    summary: "Planned custom endpoint profile. No endpoint input, save, or connection testing is active."
+    id: "custom-endpoint",
+    label: "Custom endpoint",
+    status: "guarded-future",
+    notes: "Custom endpoints are planned for future guarded configuration."
   }
 ];
 
+export const fallbackProviderConfigStatus: ProviderConfigStatusPayload = {
+  service: "sparkbot-server",
+  mode: "local",
+  status: "preview",
+  credential_storage: "not-implemented",
+  provider_calls: "not-implemented",
+  model_routing: "not-implemented",
+  providers: providerPreviewItems
+};
+
 export const providerPreviewSummary =
-  "Provider configuration is planned for later slices. This preview is read-only and does not accept, store, or transmit credentials.";
+  "Provider configuration status is read-only. Credentials are not handled, provider calls are not made, and model routing is not implemented.";
