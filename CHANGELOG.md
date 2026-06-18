@@ -7,6 +7,7 @@ This changelog tracks public Sparkbot repository baselines and release-facing do
 ### Added
 
 - Public capability, connector safety, provider configuration, and Guardian policy contracts for future implementation gates.
+- Capabilities endpoint and frontend status model alignment with public contract statuses, including guarded-future capability entries.
 - Read-only backend `GET /capabilities` endpoint and frontend capability status display with local fallback.
 - Full public validation GitHub Action for pushes to `main` and pull requests.
 - Release notes for the `public-v1-frontend-audit-fix-0` dependency hygiene checkpoint.

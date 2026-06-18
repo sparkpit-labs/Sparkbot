@@ -35,8 +35,8 @@ export default function ShellNavigation({ activeSectionId, onSelectSection }: Sh
 
       <dl className="status-legend" aria-label="Status label meanings">
         <div>
-          <dt>Works Today</dt>
-          <dd>Visible shell surface or local read-only utility exists now.</dd>
+          <dt>Available</dt>
+          <dd>Implemented in the public repo, validated, documented, and safe by default.</dd>
         </div>
         <div>
           <dt>Preview</dt>
@@ -47,8 +47,12 @@ export default function ShellNavigation({ activeSectionId, onSelectSection }: Sh
           <dd>Public direction is shown without input handling or integrations.</dd>
         </div>
         <div>
-          <dt>Not Implemented</dt>
-          <dd>No public runtime capability is active in this shell slice.</dd>
+          <dt>Disabled by default</dt>
+          <dd>Future active behavior must stay off until explicitly enabled and tested.</dd>
+        </div>
+        <div>
+          <dt>Guarded future</dt>
+          <dd>Not implemented; future runtime work requires contract gates and review.</dd>
         </div>
       </dl>
     </aside>

@@ -22,7 +22,7 @@ A capability may move to a more active status only when all of the following are
 - `bash scripts/validate-public-shell.sh` passes.
 - The implementation avoids secrets in source files, logs, fixtures, and browser output.
 - The default state is safe for a fresh clone.
-- The backend `GET /capabilities` response represents the status before frontend UI claims are made.
+- The backend `GET /capabilities` response uses only these status values and represents the status before frontend UI claims are made.
 - Any sensitive action has an applicable connector, provider, or Guardian contract before runtime work is merged.
 
 ## Current Public Capabilities

@@ -15,22 +15,23 @@ The current repository is a validated shell baseline. It is useful for review, l
 
 | Area | Current status | Notes |
 | --- | --- | --- |
-| Backend health endpoint | Works | FastAPI exposes local `GET /health`. |
-| Backend capabilities endpoint | Works | FastAPI exposes static read-only `GET /capabilities`. |
-| Frontend shell | Works | React/Vite shell builds and tests successfully. |
+| Backend health endpoint | Available | FastAPI exposes local `GET /health`. |
+| Backend capabilities endpoint | Available | FastAPI exposes static read-only `GET /capabilities`. |
+| Frontend shell | Available | React/Vite shell builds and tests successfully. |
 | Workstation shell | Preview | Read-only product layout. |
 | Chat shell | Preview | Disabled planned composer; no send action. |
 | Round Table | Preview | Inert planned seats for future collaboration. |
-| Provider Setup | Preview only | No API key fields, save action, or provider calls. |
-| Guardian Controls | Preview only | No approvals, enforcement, or sensitive actions. |
-| Desktop packaging | Planning only | No installer or desktop binary exists yet. |
-| Model calls | Not implemented | No model routing or provider runtime is active. |
-| Credential storage | Not implemented | No secrets are accepted, stored, or transmitted. |
-| Tool execution | Not implemented | No terminal, tool execution, connector calls, or external sends. |
+| Provider Setup | Preview | No API key fields, save action, or provider calls. |
+| Guardian Controls | Preview | No approvals, enforcement, or sensitive actions. |
+| Desktop packaging | Planned | No installer or desktop binary exists yet. |
+| Connectors | Guarded future | No connector calls or external sends. |
+| Model calls | Guarded future | No model routing or provider runtime is active. |
+| Credential storage | Guarded future | No secrets are accepted, stored, or transmitted. |
+| Tool execution | Guarded future | No terminal, tool execution, connector calls, or external sends. |
 
 ## Release and checkpoint status
 
-The latest public checkpoint tag on `main` is `public-v1-capabilities-status-0`.
+The latest public checkpoint tag on `main` is `public-v1-capabilities-contract-alignment-0`.
 
 The GitHub pre-release `public-v1-shell-baseline-0` remains the first published shell baseline release. Development continues on `main` through checkpoint tags, so `main` may include newer docs and planning checkpoints than the first pre-release page.
 

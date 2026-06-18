@@ -5,7 +5,7 @@ The current public shell baseline includes a local Workstation shell skeleton fo
 ## What Exists
 
 - Read-only Workstation shell layout in the frontend.
-- Structured status cards for Works Today, Preview, Planned, and Not Implemented product areas.
+- Structured status cards using the public contract statuses: Available, Preview, Planned, Disabled by default, and Guarded future.
 - Read-only section selector for Workstation, Chat, Round Table, Provider Setup, and Guardian Controls surfaces.
 - Planned follow-up roadmap card for next product slices.
 - Static Chat Shell preview with a disabled read-only planned composer and no send action.
@@ -16,9 +16,9 @@ The current public shell baseline includes a local Workstation shell skeleton fo
 
 ## Current Status Model
 
-- Server baseline: Works Today
-- Frontend shell: Works Today
-- Workstation shell: Works Today
+- Backend health endpoint: Available
+- Frontend shell: Available
+- Workstation shell: Preview
 - Chat shell: Preview
 - Round Table: Preview
 - Provider setup: Planned
@@ -26,10 +26,10 @@ The current public shell baseline includes a local Workstation shell skeleton fo
 
 Status labels in the UI mean:
 
-- Works Today: visible shell surface or local read-only utility exists now.
+- Available: implemented in the public repo, validated, documented, and safe by default.
 - Preview: shape is visible, but runtime behavior is intentionally inactive.
 - Planned: public direction is shown without input handling or integrations.
-- Not Implemented: no public runtime capability is active in this shell slice.
+- Guarded future: not implemented; future runtime work requires contract gates and review.
 
 ## What Is Intentionally Excluded
 

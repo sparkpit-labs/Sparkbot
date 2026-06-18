@@ -4,7 +4,7 @@ export type HealthPayload = {
   mode: string;
 };
 
-export type PublicCapabilityStatus = "available" | "preview" | "planned";
+export type PublicCapabilityStatus = "available" | "preview" | "planned" | "disabled-by-default" | "guarded-future";
 
 export type PublicCapability = {
   id: string;
@@ -20,7 +20,7 @@ export type CapabilitiesPayload = {
 };
 
 const DEFAULT_API_BASE_URL = "http://127.0.0.1:8000";
-const publicCapabilityStatuses = new Set(["available", "preview", "planned"]);
+const publicCapabilityStatuses = new Set(["available", "preview", "planned", "disabled-by-default", "guarded-future"]);
 
 export const API_BASE_URL =
   import.meta.env.VITE_SPARKBOT_API_BASE_URL?.trim() || DEFAULT_API_BASE_URL;

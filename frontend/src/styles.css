@@ -217,7 +217,7 @@ h3 {
   font-weight: 600;
 }
 
-.status-worksToday,
+.status-available,
 .status-implemented {
   background: #e7f6ec;
   color: #1f6a3c;
@@ -231,13 +231,14 @@ h3 {
   border-color: #b7dadd;
 }
 
-.status-planned {
+.status-planned,
+.status-disabled-by-default {
   background: #edf0f5;
   color: #455568;
   border-color: #d0d6e0;
 }
 
-.status-notImplemented {
+.status-guarded-future {
   background: #f8e8e8;
   color: #8a2f2f;
   border-color: #e2bcbc;

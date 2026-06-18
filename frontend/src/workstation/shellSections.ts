@@ -1,4 +1,4 @@
-export type ShellSectionStatus = "worksToday" | "preview" | "planned" | "notImplemented";
+export type ShellSectionStatus = "available" | "preview" | "planned" | "disabled-by-default" | "guarded-future";
 
 export type ShellSection = {
   id: string;
@@ -8,17 +8,18 @@ export type ShellSection = {
 };
 
 export const shellStatusLabels: Record<ShellSectionStatus, string> = {
-  worksToday: "Works Today",
+  available: "Available",
   preview: "Preview",
   planned: "Planned",
-  notImplemented: "Not Implemented"
+  "disabled-by-default": "Disabled by default",
+  "guarded-future": "Guarded future"
 };
 
 export const shellSections: ShellSection[] = [
   {
     id: "workstation-overview",
     label: "Workstation",
-    status: "worksToday",
+    status: "preview",
     summary: "Read-only shell map, status cards, and local health check surface."
   },
   {
@@ -36,13 +37,13 @@ export const shellSections: ShellSection[] = [
   {
     id: "provider-setup",
     label: "Provider Setup",
-    status: "planned",
+    status: "preview",
     summary: "Read-only provider planning cards with credentials inactive."
   },
   {
     id: "guardian-controls",
     label: "Guardian Controls",
-    status: "planned",
+    status: "preview",
     summary: "Read-only control categories remain inactive in this preview."
   }
 ];

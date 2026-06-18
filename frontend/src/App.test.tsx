@@ -22,7 +22,7 @@ const capabilitiesPayload = {
     {
       id: "workstation",
       label: "Workstation shell",
-      status: "available",
+      status: "preview",
       notes: "Navigation and product shell preview."
     },
     {
@@ -39,13 +39,13 @@ const capabilitiesPayload = {
     },
     {
       id: "provider-setup",
-      label: "Provider Setup",
+      label: "Provider Setup shell",
       status: "preview",
       notes: "No credential storage or provider calls."
     },
     {
       id: "guardian-controls",
-      label: "Guardian Controls",
+      label: "Guardian Controls shell",
       status: "preview",
       notes: "No policy enforcement runtime."
     },
@@ -54,6 +54,36 @@ const capabilitiesPayload = {
       label: "Desktop packaging",
       status: "planned",
       notes: "No installer or desktop binary yet."
+    },
+    {
+      id: "connectors",
+      label: "Connectors",
+      status: "guarded-future",
+      notes: "No connector calls or external sends."
+    },
+    {
+      id: "model-calls",
+      label: "Model calls",
+      status: "guarded-future",
+      notes: "No provider runtime or model routing."
+    },
+    {
+      id: "credential-storage",
+      label: "Credential storage",
+      status: "guarded-future",
+      notes: "No credential entry or storage path."
+    },
+    {
+      id: "tool-execution",
+      label: "Tool execution",
+      status: "guarded-future",
+      notes: "No terminal, tool, or automation execution."
+    },
+    {
+      id: "future-local-action",
+      label: "Future local action",
+      status: "disabled-by-default",
+      notes: "Requires explicit enablement before any action exists."
     }
   ]
 };
@@ -75,14 +105,23 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Shell Sections" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Workstation Overview" })).toBeDefined();
     expect(screen.getByText("Using local fallback status list.")).toBeDefined();
-    expect(screen.getByRole("button", { name: /Workstation.*Works Today/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Workstation.*Preview/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Chat.*Preview/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Round Table.*Preview/i })).toBeDefined();
-    expect(screen.getByRole("button", { name: /Provider Setup.*Planned/i })).toBeDefined();
-    expect(screen.getByRole("button", { name: /Guardian Controls.*Planned/i })).toBeDefined();
-    expect(screen.getByText("Not Implemented")).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Server baseline" })).toBeDefined();
-    expect(screen.getByText(/section selector, and status model exist as a read-only baseline/i)).toBeDefined();
+    expect(screen.getByRole("button", { name: /Provider Setup.*Preview/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Guardian Controls.*Preview/i })).toBeDefined();
+    expect(screen.getAllByText("Available").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByRole("heading", { name: "Backend health endpoint" })).toBeDefined();
+    expect(screen.getByText("Read-only local health check.")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Connectors" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Model calls" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Credential storage" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Tool execution" })).toBeDefined();
+    expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(4);
+    expect(screen.getByText("No connector calls or external sends.")).toBeDefined();
+    expect(screen.getByText("No provider runtime or model routing.")).toBeDefined();
+    expect(screen.getByText("No credential entry or storage path.")).toBeDefined();
+    expect(screen.getByText("No terminal, tool, or automation execution.")).toBeDefined();
     expect(screen.getByRole("heading", { name: "Chat shell" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Chat Shell Preview" })).toBeDefined();
     expect(screen.getByText(/chat runtime is planned for later slices/i)).toBeDefined();
@@ -100,7 +139,7 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Reviewer seat" })).toBeDefined();
     expect(screen.getByText(/multi-agent collaboration is planned/i)).toBeDefined();
     expect(screen.getByText(/does not start meetings, call models, run a turn engine/i)).toBeDefined();
-    expect(screen.getAllByText("Preview").length).toBeGreaterThanOrEqual(3);
+    expect(screen.getAllByText("Preview").length).toBeGreaterThanOrEqual(5);
     expect(screen.getByRole("heading", { name: "Provider Setup Preview" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Local model provider" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "OpenAI-compatible provider" })).toBeDefined();
@@ -109,8 +148,8 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Custom endpoint" })).toBeDefined();
     expect(screen.getByText(/provider configuration is planned for later slices/i)).toBeDefined();
     expect(screen.getByText(/no API key fields, no save actions, and no test-connection actions/i)).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Provider setup" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Guardian-gated controls" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Provider Setup shell" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Guardian Controls shell" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Guardian Controls Preview" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Local actions" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Provider access" })).toBeDefined();
@@ -120,8 +159,6 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Audit trail" })).toBeDefined();
     expect(screen.getByText(/Guardian-gated controls are planned for later slices/i)).toBeDefined();
     expect(screen.getByText(/no approval buttons, no execution controls, no save actions/i)).toBeDefined();
-    expect(screen.getAllByText("Works Today").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getAllByText("Planned").length).toBeGreaterThanOrEqual(3);
     expect(screen.getByRole("heading", { name: "Backend Health" })).toBeDefined();
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/capabilities"), expect.any(Object)));
   });
@@ -142,9 +179,13 @@ describe("App", () => {
     expect(await screen.findByText("Using backend capabilities status.")).toBeDefined();
     expect(screen.getByRole("heading", { name: "Backend health endpoint" })).toBeDefined();
     expect(screen.getByText("Read-only local health check.")).toBeDefined();
-    expect(screen.getByText("No credential storage or provider calls.")).toBeDefined();
-    expect(screen.getByText("No policy enforcement runtime.")).toBeDefined();
-    expect(screen.getByText("No installer or desktop binary yet.")).toBeDefined();
+    expect(screen.getByText("No connector calls or external sends.")).toBeDefined();
+    expect(screen.getByText("No provider runtime or model routing.")).toBeDefined();
+    expect(screen.getByText("No credential entry or storage path.")).toBeDefined();
+    expect(screen.getByText("No terminal, tool, or automation execution.")).toBeDefined();
+    expect(screen.getByText("Future local action")).toBeDefined();
+    expect(screen.getAllByText("Disabled by default").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(4);
   });
 
   it("keeps provider, chat, and guardian surfaces inert", () => {

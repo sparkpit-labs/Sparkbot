@@ -25,8 +25,8 @@ export default function WorkstationShell({
       <div className="workstation-shell-header">
         <h2>Workstation Shell</h2>
         <p>
-          A read-only map of the current public shell surfaces. It shows what works today, what is only previewed, and
-          what remains planned without enabling orchestration, chat runtime, model execution, or tool actions.
+          A read-only map of the current public shell surfaces. It shows what is available, what is previewed, and
+          what remains guarded without enabling orchestration, chat runtime, model execution, or tool actions.
         </p>
       </div>
 
@@ -36,7 +36,7 @@ export default function WorkstationShell({
         <div className="workstation-content">
           <section className="section-panel" id="workstation-overview" aria-labelledby="workstation-overview-heading">
             <div className="section-panel-heading">
-              <p className="eyebrow">Works Today</p>
+              <p className="eyebrow">Capability status</p>
               <h2 id="workstation-overview-heading">Workstation Overview</h2>
               <p>Current public shell status across the visible surfaces.</p>
               <p className="capabilities-source">{statusSourceLabel}</p>

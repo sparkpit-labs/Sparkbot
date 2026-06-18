@@ -44,7 +44,7 @@ The `public-v1-capabilities-status-0` checkpoint adds a read-only `GET /capabili
 
 ## Capability safety contracts checkpoint
 
-The public capability safety contracts define review gates for future runtime work. They do not add runtime behavior. Future branches that introduce provider setup, model calls, credential handling, connector actions, tool execution, persistence, or Guardian enforcement must satisfy these contracts before public merge:
+The public capability safety contracts define review gates for future runtime work. They do not add runtime behavior. The backend capabilities endpoint and frontend fallback status model are expected to use the same contract statuses. Future branches that introduce provider setup, model calls, credential handling, connector actions, tool execution, persistence, or Guardian enforcement must satisfy these contracts before public merge:
 
 - `docs/PUBLIC_CAPABILITY_CONTRACTS.md`
 - `docs/CONNECTOR_SAFETY_CONTRACT.md`

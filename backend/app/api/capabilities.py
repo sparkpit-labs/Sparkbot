@@ -4,7 +4,14 @@ from fastapi import APIRouter
 
 router = APIRouter()
 
-CapabilityStatus = Literal["available", "preview", "planned"]
+CapabilityStatus = Literal["available", "preview", "planned", "disabled-by-default", "guarded-future"]
+ALLOWED_CAPABILITY_STATUSES: set[str] = {
+    "available",
+    "preview",
+    "planned",
+    "disabled-by-default",
+    "guarded-future",
+}
 
 
 class Capability(TypedDict):
@@ -36,7 +43,7 @@ CAPABILITIES: list[Capability] = [
     {
         "id": "workstation",
         "label": "Workstation shell",
-        "status": "available",
+        "status": "preview",
         "notes": "Navigation and product shell preview.",
     },
     {
@@ -53,13 +60,13 @@ CAPABILITIES: list[Capability] = [
     },
     {
         "id": "provider-setup",
-        "label": "Provider Setup",
+        "label": "Provider Setup shell",
         "status": "preview",
         "notes": "No credential storage or provider calls.",
     },
     {
         "id": "guardian-controls",
-        "label": "Guardian Controls",
+        "label": "Guardian Controls shell",
         "status": "preview",
         "notes": "No policy enforcement runtime.",
     },
@@ -68,6 +75,30 @@ CAPABILITIES: list[Capability] = [
         "label": "Desktop packaging",
         "status": "planned",
         "notes": "No installer or desktop binary yet.",
+    },
+    {
+        "id": "connectors",
+        "label": "Connectors",
+        "status": "guarded-future",
+        "notes": "No connector calls or external sends.",
+    },
+    {
+        "id": "model-calls",
+        "label": "Model calls",
+        "status": "guarded-future",
+        "notes": "No provider runtime or model routing.",
+    },
+    {
+        "id": "credential-storage",
+        "label": "Credential storage",
+        "status": "guarded-future",
+        "notes": "No credential entry or storage path.",
+    },
+    {
+        "id": "tool-execution",
+        "label": "Tool execution",
+        "status": "guarded-future",
+        "notes": "No terminal, tool, or automation execution.",
     },
 ]
 
