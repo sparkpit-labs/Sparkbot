@@ -1,21 +1,14 @@
 import { useState } from "react";
 
 import ChatShellPreview from "./ChatShellPreview";
-import ConnectorStatusPreview from "./ConnectorStatusPreview";
 import GuardianControlsPreview from "./GuardianControlsPreview";
-import LocalChatPanel from "./LocalChatPanel";
-import LocalDataExportPanel from "./LocalDataExportPanel";
-import LocalMemoryNotesPanel from "./LocalMemoryNotesPanel";
-import LocalModelPanel from "./LocalModelPanel";
-import LocalRuntimeSettingsPanel from "./LocalRuntimeSettingsPanel";
-import LocalWorkLaneCardsPanel from "./LocalWorkLaneCardsPanel";
-import ModelSeatPreview from "./ModelSeatPreview";
+import LocalAiSettingsPreview from "./LocalAiSettingsPreview";
 import ProviderSetupPreview from "./ProviderSetupPreview";
 import RoadmapCard from "./RoadmapCard";
 import RoundTablePreview from "./RoundTablePreview";
 import ShellNavigation from "./ShellNavigation";
 import StatusCard from "./StatusCard";
-import TaskLanePreview from "./TaskLanePreview";
+import WorkPagePreview from "./WorkPagePreview";
 import { workstationRoadmapItems, workstationStatusItems, type WorkstationStatusItem } from "../workstation/workstationStatus";
 
 type WorkstationShellProps = {
@@ -34,8 +27,8 @@ export default function WorkstationShell({
       <div className="workstation-shell-header">
         <h2>Workstation Shell</h2>
         <p>
-          A local-first operating floor for the public shell. It keeps available checks, preview rooms, setup surfaces,
-          and guarded future work visible without enabling model execution, connectors, external sends, or tool actions.
+          A read-only map of the current public shell surfaces. It shows what is available, what is previewed, and
+          what remains guarded without enabling orchestration, chat runtime, model execution, or tool actions.
         </p>
       </div>
 
@@ -47,62 +40,22 @@ export default function WorkstationShell({
             <div className="section-panel-heading">
               <p className="eyebrow">Capability status</p>
               <h2 id="workstation-overview-heading">Workstation Overview</h2>
-              <p>Current public shell status across the visible surfaces, grouped for quick review.</p>
+              <p>Current public shell status across the visible surfaces.</p>
               <p className="capabilities-source">{statusSourceLabel}</p>
             </div>
 
-            <div className="workstation-lane-grid" aria-label="Workstation capability lanes">
-              <article className="workstation-lane">
-                <h3>Available today</h3>
-                <p>Read-only public surfaces that are implemented and validated.</p>
-                <div className="status-grid">
-                  {statusItems
-                    .filter((item) => item.status === "available")
-                    .map((item) => (
-                      <StatusCard key={item.id} name={item.name} status={item.status} summary={item.summary} />
-                    ))}
-                </div>
-              </article>
-
-              <article className="workstation-lane">
-                <h3>Preview workspace</h3>
-                <p>Visible product rooms and setup surfaces with runtime behavior intentionally inactive.</p>
-                <div className="status-grid">
-                  {statusItems
-                    .filter((item) => item.status === "preview")
-                    .map((item) => (
-                      <StatusCard key={item.id} name={item.name} status={item.status} summary={item.summary} />
-                    ))}
-                </div>
-              </article>
-
-              <article className="workstation-lane">
-                <h3>Planned and guarded</h3>
-                <p>Future work remains planned, disabled by default, or guarded until public contracts are satisfied.</p>
-                <div className="status-grid">
-                  {statusItems
-                    .filter((item) => item.status !== "available" && item.status !== "preview")
-                    .map((item) => (
-                      <StatusCard key={item.id} name={item.name} status={item.status} summary={item.summary} />
-                    ))}
-                </div>
-              </article>
+            <div className="status-grid">
+              {statusItems.map((item) => (
+                <StatusCard key={item.id} name={item.name} status={item.status} summary={item.summary} />
+              ))}
             </div>
           </section>
 
-          <LocalChatPanel />
-          <LocalMemoryNotesPanel />
-          <LocalWorkLaneCardsPanel />
-          <LocalDataExportPanel />
-          <LocalRuntimeSettingsPanel />
-          <LocalModelPanel />
-
           <ChatShellPreview />
           <RoundTablePreview />
-          <ModelSeatPreview />
-          <TaskLanePreview />
+          <WorkPagePreview />
+          <LocalAiSettingsPreview />
           <ProviderSetupPreview />
-          <ConnectorStatusPreview />
           <GuardianControlsPreview />
 
           <div className="roadmap-grid">

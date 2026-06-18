@@ -9,17 +9,16 @@ This index groups the public Sparkbot documentation for first-time visitors, loc
 - [Development](DEVELOPMENT.md): prerequisites, backend workflow, frontend workflow, and current limitations.
 - [Local Development](LOCAL_DEVELOPMENT.md): local runner scripts and what they do not enable.
 - [Local Smoke Test](LOCAL_SMOKE_TEST.md): alternate-port local smoke testing without touching existing services.
-- [Desktop Smoke Readiness](DESKTOP_SMOKE_READINESS.md): one-command local smoke path and packaging boundary.
-- [Local Data Export](LOCAL_DATA_EXPORT.md): read-only Workstation JSON export for backup and testing.
-- [Local Runtime Settings](LOCAL_RUNTIME_SETTINGS.md): read-only local data path and Ollama configuration status.
 - [Validation](VALIDATION.md): full validation, safety scans, backend checks, and frontend checks.
 
 ## Product shell previews
 
 - [Workstation Shell](WORKSTATION_SHELL.md): current read-only workstation layout and status model.
 - [Chat Shell](CHAT_SHELL.md): static chat preview and excluded runtime behavior.
+- [Work Page Shell](WORK_PAGE_SHELL.md): static work-program and workspace preview with no file actions.
 - [Round Table Shell](ROUND_TABLE_SHELL.md): inert planned seats for future multi-agent collaboration.
 - [Provider Setup Shell](PROVIDER_SETUP_SHELL.md): provider setup preview with no credential handling.
+- [Local AI Settings Shell](LOCAL_AI_SETTINGS_SHELL.md): static local model setup preview with no endpoint checks.
 - [Guardian Controls Shell](GUARDIAN_CONTROLS_SHELL.md): planned control categories with no active enforcement.
 
 ## Release and readiness
@@ -27,8 +26,6 @@ This index groups the public Sparkbot documentation for first-time visitors, loc
 - [Release Readiness](RELEASE_READINESS.md): current readiness position and out-of-scope runtime features.
 - [Public Artifact Manifest](PUBLIC_ARTIFACT_MANIFEST.md): files included in the public baseline and excluded artifact types.
 - [Release Standards](RELEASE_STANDARDS.md): public publishing identity and release standards.
-- [Branch Hygiene](BRANCH_HYGIENE.md): public remote branch expectations and release-manager checks.
-- [Public v1.0.0 Release Notes](RELEASE_NOTES_V1_0_0.md): final public V1.0.0 shell baseline notes.
 - [Public v1 Clean Baseline Release Notes](RELEASE_NOTES_PUBLIC_V1_CLEAN_BASELINE.md): first published shell baseline notes.
 
 ## Public contracts
@@ -46,4 +43,4 @@ This index groups the public Sparkbot documentation for first-time visitors, loc
 
 ## Current boundary
 
-The current public shell baseline is safe for review and local validation. It does not include model calls, provider credentials, credential storage, chat runtime, Round Table meeting runtime, Guardian policy enforcement, tool execution, connector calls, desktop packaging, or deployment workflows. The public contracts define the gates future branches must satisfy before any of those behaviors can be promoted.
+The current public shell baseline is safe for review and local validation. It does not include model calls, provider credentials, credential storage, endpoint checks, chat runtime, Round Table meeting runtime, Guardian policy enforcement, file mutation, tool execution, connector calls, desktop packaging, or deployment workflows. The public contracts define the gates future branches must satisfy before any of those behaviors can be promoted.

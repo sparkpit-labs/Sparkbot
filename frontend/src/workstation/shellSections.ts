@@ -23,46 +23,16 @@ export const shellSections: ShellSection[] = [
     summary: "Read-only shell map, status cards, and local health check surface."
   },
   {
-    id: "local-chat",
-    label: "Local Chat",
-    status: "available",
-    summary: "Local operator and note messages stored in SQLite."
-  },
-  {
-    id: "local-memory-notes",
-    label: "Memory Notes",
-    status: "available",
-    summary: "Local notes stored without cloud sync or model memory."
-  },
-  {
-    id: "local-work-lane-cards",
-    label: "Work Cards",
-    status: "available",
-    summary: "Local planning cards with no scheduler or execution path."
-  },
-  {
-    id: "local-data-export",
-    label: "Export",
-    status: "available",
-    summary: "Read-only JSON download for local Workstation data."
-  },
-  {
-    id: "local-runtime-settings",
-    label: "Settings",
-    status: "available",
-    summary: "Read-only local paths and env-driven Ollama configuration."
-  },
-  {
-    id: "local-models",
-    label: "Local Models",
-    status: "disabled-by-default",
-    summary: "Localhost-only Ollama prompt adapter disabled until operator enabled."
-  },
-  {
     id: "chat-shell",
     label: "Chat",
     status: "preview",
     summary: "Static chat preview with message actions inactive."
+  },
+  {
+    id: "work-page",
+    label: "Work Page",
+    status: "preview",
+    summary: "Static work-program and workspace planning surface with actions inactive."
   },
   {
     id: "round-table",
@@ -71,22 +41,16 @@ export const shellSections: ShellSection[] = [
     summary: "Static seat layout for future multi-participant work."
   },
   {
-    id: "model-seats",
-    label: "Model Seats",
-    status: "preview",
-    summary: "Read-only model seat plan with routing and calls inactive."
-  },
-  {
-    id: "work-lanes",
-    label: "Task Lanes",
-    status: "preview",
-    summary: "Read-only lane plan with scheduling and execution inactive."
-  },
-  {
     id: "provider-setup",
     label: "Provider Setup",
     status: "preview",
     summary: "Read-only provider planning cards with credentials inactive."
+  },
+  {
+    id: "local-ai-settings",
+    label: "Local AI Settings",
+    status: "preview",
+    summary: "Read-only local model setup route with endpoint checks inactive."
   },
   {
     id: "guardian-controls",

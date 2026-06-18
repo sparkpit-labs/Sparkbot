@@ -4,46 +4,10 @@ This changelog tracks public Sparkbot repository baselines and release-facing do
 
 ## Unreleased
 
-No changes yet.
-
-## v1.0.0 - 2026-06-21
-
-This tag finalizes the public V1.0.0 shell baseline after the `v1.0.0-rc0` audit checkpoint. It is a final validation and release-notes checkpoint only; it does not add runtime feature behavior beyond the existing public checkpoints.
-
-### Changed
-
-- Finalized release-facing README, changelog, readiness, artifact manifest, and release notes documentation for `v1.0.0`.
-
-### Validation
-
-- Full public shell validation passed.
-- Frontend npm audit passed with 0 vulnerabilities.
-- Public safety, private reference, private IP, provider-key, and branch hygiene scans passed.
-- One-command local smoke testing passed with Ollama disabled and with local-model enabled offline status verified. A live Ollama prompt smoke was not run because no local Ollama daemon was reachable on `127.0.0.1:11434`.
-
-### Not Included
-
-- No installer, desktop binary, production deployment workflow, cloud provider runtime, credential storage, connector sends, tool execution, or Guardian enforcement runtime was added for the final tag.
-
-## v1.0.0-rc0 - 2026-06-21
-
-This tag is the public V1.0.0 release-candidate audit checkpoint. It freezes the Phase 6 desktop-readiness baseline for final validation and does not add runtime feature behavior beyond the existing public checkpoints.
-
 ### Added
 
-- Disabled-by-default localhost Ollama adapter with local status endpoint and explicit operator-enabled prompt path.
-- Local SQLite Workstation runtime for chat drafts, memory notes, and work lane cards.
-- Read-only Task Lane status endpoint and frontend status display with local fallback.
-- Read-only Model Seat status endpoint and frontend status display with local fallback.
 - Public capability, connector safety, provider configuration, and Guardian policy contracts for future implementation gates.
 - Capabilities endpoint and frontend status model alignment with public contract statuses, including guarded-future capability entries.
-- Workstation dashboard polish with a read-only public baseline status panel and clearer capability grouping.
-- Read-only Chat status endpoint and frontend status display with local fallback.
-- Read-only Guardian policy status endpoint and frontend status display with local fallback.
-- Public branch hygiene check script and documentation for detecting unexpected remote branches.
-- Read-only Round Table status endpoint and frontend status display with local fallback.
-- Read-only connector status endpoint and frontend status display with local fallback.
-- Read-only provider configuration status endpoint and frontend status display with local fallback.
 - Read-only backend `GET /capabilities` endpoint and frontend capability status display with local fallback.
 - Full public validation GitHub Action for pushes to `main` and pull requests.
 - Release notes for the `public-v1-frontend-audit-fix-0` dependency hygiene checkpoint.
@@ -58,18 +22,7 @@ This tag is the public V1.0.0 release-candidate audit checkpoint. It freezes the
 
 ### Not Included
 
-- No cloud model providers, provider SDK dependencies, provider credentials, connector runtime, Guardian enforcement runtime, desktop app, installer, auto-update path, or code signing setup. Local drafts, notes, work cards, and any explicitly enabled localhost Ollama responses remain local-only.
-
-### Validation
-
-- Full public shell validation passed.
-- Frontend npm audit passed with 0 vulnerabilities.
-- Public safety, private reference, private IP, provider-key, and branch hygiene scans passed.
-- One-command local smoke testing passed with Ollama disabled and with local-model enabled offline status verified. A live Ollama prompt smoke was not run because no local Ollama daemon was reachable on `127.0.0.1:11434`.
-
-### Branch Hygiene
-
-- Archived and classified unexpected public remote branches before deletion. The public remote now keeps `main` as the only long-lived branch.
+- No real chat runtime, message persistence, model calls, provider credentials, backend chat endpoint, connector runtime, Guardian enforcement runtime, desktop app, installer, auto-update path, or code signing setup.
 
 ## public-v1-frontend-audit-fix-0 - 2026-06-18
 
@@ -100,8 +53,6 @@ This tag is an early public shell baseline for review, validation, and continued
 
 ### Added
 
-- Disabled-by-default localhost Ollama adapter with local status endpoint and explicit operator-enabled prompt path.
-- Local SQLite Workstation runtime for chat drafts, memory notes, and work lane cards.
 - Backend health endpoint skeleton with a local read-only `GET /health` route.
 - Frontend shell for the public Sparkbot workstation baseline.
 - Workstation preview as a read-only product layout.
