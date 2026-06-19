@@ -20,12 +20,32 @@ export type CapabilitiesPayload = {
 };
 
 export type ProviderImplementationStatus = "not-implemented";
+export type ChatImplementationStatus = "not-implemented";
 export type RoundTableImplementationStatus = "not-implemented";
 export type ConnectorImplementationStatus = "not-implemented";
 export type ConnectorAuditTrailStatus = "planned";
 export type GuardianImplementationStatus = "not-implemented";
 export type GuardianAuditTrailStatus = "planned";
 export type GuardianDefaultPosture = "deny-sensitive-actions";
+
+export type ChatSurfaceStatusItem = {
+  id: string;
+  label: string;
+  status: PublicCapabilityStatus;
+  notes: string;
+};
+
+export type ChatStatusPayload = {
+  service: string;
+  mode: string;
+  status: PublicCapabilityStatus;
+  chat_runtime: ChatImplementationStatus;
+  message_persistence: ChatImplementationStatus;
+  model_calls: ChatImplementationStatus;
+  streaming: ChatImplementationStatus;
+  provider_routing: ChatImplementationStatus;
+  supported_surfaces: ChatSurfaceStatusItem[];
+};
 
 export type RoundTableSeatStatusItem = {
   id: string;
@@ -169,6 +189,69 @@ export async function fetchPublicCapabilities(signal?: AbortSignal): Promise<Cap
     service: payload.service,
     mode: payload.mode,
     capabilities
+  };
+}
+
+export async function fetchChatStatus(signal?: AbortSignal): Promise<ChatStatusPayload> {
+  const endpoint = new URL("/chat/status", API_BASE_URL).toString();
+  const response = await fetch(endpoint, {
+    method: "GET",
+    headers: {
+      Accept: "application/json"
+    },
+    cache: "no-store",
+    signal
+  });
+
+  if (!response.ok) {
+    throw new Error(`Chat status request failed with status ${response.status}`);
+  }
+
+  const payload = (await response.json()) as Partial<ChatStatusPayload>;
+  if (
+    !payload.service ||
+    !payload.mode ||
+    !payload.status ||
+    payload.chat_runtime !== "not-implemented" ||
+    payload.message_persistence !== "not-implemented" ||
+    payload.model_calls !== "not-implemented" ||
+    payload.streaming !== "not-implemented" ||
+    payload.provider_routing !== "not-implemented" ||
+    !Array.isArray(payload.supported_surfaces) ||
+    !publicCapabilityStatuses.has(payload.status)
+  ) {
+    throw new Error("Chat status response is missing required fields");
+  }
+
+  const supportedSurfaces = payload.supported_surfaces.map((surface) => {
+    if (
+      !surface ||
+      !surface.id ||
+      !surface.label ||
+      !surface.notes ||
+      !publicCapabilityStatuses.has(surface.status ?? "")
+    ) {
+      throw new Error("Chat status response includes an invalid surface item");
+    }
+
+    return {
+      id: surface.id,
+      label: surface.label,
+      status: surface.status,
+      notes: surface.notes
+    };
+  });
+
+  return {
+    service: payload.service,
+    mode: payload.mode,
+    status: payload.status,
+    chat_runtime: payload.chat_runtime,
+    message_persistence: payload.message_persistence,
+    model_calls: payload.model_calls,
+    streaming: payload.streaming,
+    provider_routing: payload.provider_routing,
+    supported_surfaces: supportedSurfaces
   };
 }
 

@@ -33,7 +33,7 @@ A capability may move to a more active status only when all of the following are
 | Backend capabilities endpoint | `available` | Local read-only `GET /capabilities`. |
 | Frontend shell | `available` | Buildable React/Vite shell with local status display. |
 | Workstation shell | `preview` | Product shell preview only. |
-| Chat shell | `preview` | No send action, model call, or message persistence. |
+| Chat shell | `preview` | Read-only status may be shown; no send action, chat runtime, model call, streaming, provider routing, or message persistence. |
 | Round Table shell | `preview` | Read-only status may be shown; no meeting engine, agent orchestration, model calls, or turn persistence. |
 | Provider Setup shell | `preview` | Read-only provider status is allowed. No credential entry, storage, test call, or provider call. |
 | Guardian Controls shell | `preview` | Read-only policy status may be shown; no runtime approval or enforcement path. |

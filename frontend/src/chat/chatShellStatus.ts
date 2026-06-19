@@ -1,25 +1,41 @@
-import type { ShellSectionStatus } from "../workstation/shellSections";
+import type { ChatStatusPayload } from "../api";
 
-export type ChatPreviewStatus = Extract<ShellSectionStatus, "preview" | "planned">;
-
-export type ChatPreviewMessage = {
-  speaker: string;
-  status: ChatPreviewStatus;
-  summary: string;
+export const fallbackChatStatus: ChatStatusPayload = {
+  service: "sparkbot-server",
+  mode: "local",
+  status: "preview",
+  chat_runtime: "not-implemented",
+  message_persistence: "not-implemented",
+  model_calls: "not-implemented",
+  streaming: "not-implemented",
+  provider_routing: "not-implemented",
+  supported_surfaces: [
+    {
+      id: "chat-shell",
+      label: "Chat shell",
+      status: "preview",
+      notes: "Static chat shell preview. No messages are sent."
+    },
+    {
+      id: "message-input",
+      label: "Message input",
+      status: "disabled-by-default",
+      notes: "Input remains disabled until chat runtime and safety gates exist."
+    },
+    {
+      id: "model-response",
+      label: "Model response",
+      status: "guarded-future",
+      notes: "No model calls are implemented."
+    },
+    {
+      id: "message-history",
+      label: "Message history",
+      status: "guarded-future",
+      notes: "No message persistence is implemented."
+    }
+  ]
 };
 
-export const chatPreviewMessages: ChatPreviewMessage[] = [
-  {
-    speaker: "Draft prompt",
-    status: "preview",
-    summary: "A future local chat prompt starts here. This preview does not accept, store, or send messages."
-  },
-  {
-    speaker: "Assistant preview",
-    status: "planned",
-    summary: "A future response area will appear here after chat contracts, providers, and validation gates exist."
-  }
-];
-
 export const chatShellSummary =
-  "Chat runtime is planned for later slices. This preview is read-only and keeps the future conversation area understandable without calling models, storing messages, or sending anything.";
+  "Chat status is read-only. The public shell shows the planned conversation area without accepting messages, storing messages, streaming, routing providers, calling models, or sending anything.";

@@ -88,6 +88,43 @@ const capabilitiesPayload = {
   ]
 };
 
+const chatStatusPayload = {
+  service: "sparkbot-server",
+  mode: "local",
+  status: "preview",
+  chat_runtime: "not-implemented",
+  message_persistence: "not-implemented",
+  model_calls: "not-implemented",
+  streaming: "not-implemented",
+  provider_routing: "not-implemented",
+  supported_surfaces: [
+    {
+      id: "chat-shell",
+      label: "Chat shell",
+      status: "preview",
+      notes: "Static chat shell preview. No messages are sent."
+    },
+    {
+      id: "message-input",
+      label: "Message input",
+      status: "disabled-by-default",
+      notes: "Input remains disabled until chat runtime and safety gates exist."
+    },
+    {
+      id: "model-response",
+      label: "Model response",
+      status: "guarded-future",
+      notes: "No model calls are implemented."
+    },
+    {
+      id: "message-history",
+      label: "Message history",
+      status: "guarded-future",
+      notes: "No message persistence is implemented."
+    }
+  ]
+};
+
 const roundTableStatusPayload = {
   service: "sparkbot-server",
   mode: "local",
@@ -269,6 +306,10 @@ function mockBackendStatusFetch() {
   return vi.fn((input: RequestInfo | URL) => {
     const url = input.toString();
 
+    if (url.includes("/chat/status")) {
+      return mockJsonResponse(chatStatusPayload);
+    }
+
     if (url.includes("/round-table/status")) {
       return mockJsonResponse(roundTableStatusPayload);
     }
@@ -327,11 +368,25 @@ describe("App", () => {
     expect(screen.getByText("No provider runtime or model routing.")).toBeDefined();
     expect(screen.getByText("No credential entry or storage path.")).toBeDefined();
     expect(screen.getByText("No terminal, tool, or automation execution.")).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Chat shell" })).toBeDefined();
+    expect(screen.getAllByRole("heading", { name: "Chat shell" }).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("heading", { name: "Chat Shell Preview" })).toBeDefined();
-    expect(screen.getByText(/chat runtime is planned for later slices/i)).toBeDefined();
+    expect(screen.getByText(/Chat status is read-only/i)).toBeDefined();
+    expect(screen.getByText("Using local Chat status fallback.")).toBeDefined();
+    expect(screen.getByText("Chat runtime")).toBeDefined();
+    expect(screen.getByText("Message persistence")).toBeDefined();
+    expect(screen.getAllByText("Model calls").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Streaming")).toBeDefined();
+    expect(screen.getByText("Provider routing")).toBeDefined();
+    expect(screen.getAllByText("not implemented").length).toBeGreaterThanOrEqual(5);
+    expect(screen.getByRole("heading", { name: "Message input" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Model response" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Message history" })).toBeDefined();
+    expect(screen.getByText("Input remains disabled until chat runtime and safety gates exist.")).toBeDefined();
+    expect(screen.getByText("No model calls are implemented.")).toBeDefined();
+    expect(screen.getByText("No message persistence is implemented.")).toBeDefined();
     expect(screen.getByText(/Empty state: chat history will appear here/i)).toBeDefined();
-    expect(screen.getByText(/no enabled send action, no chat endpoint/i)).toBeDefined();
+    expect(screen.getByText(/no enabled send action/i)).toBeDefined();
+    expect(screen.getByText(/no user-entered text handling/i)).toBeDefined();
     const plannedComposer = screen.getByLabelText("Chat message composer planned") as HTMLTextAreaElement;
     expect(plannedComposer.disabled).toBe(true);
     expect(plannedComposer.readOnly).toBe(true);
@@ -416,6 +471,30 @@ describe("App", () => {
     expect(screen.getByText("Future local action")).toBeDefined();
     expect(screen.getAllByText("Disabled by default").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(8);
+  });
+
+  it("renders backend Chat status when the Chat status API responds", async () => {
+    vi.stubGlobal("fetch", mockBackendStatusFetch());
+
+    render(<App />);
+
+    expect(await screen.findByText("Using backend Chat status.")).toBeDefined();
+    expect(screen.getByText("Chat runtime")).toBeDefined();
+    expect(screen.getByText("Message persistence")).toBeDefined();
+    expect(screen.getAllByText("Model calls").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Streaming")).toBeDefined();
+    expect(screen.getByText("Provider routing")).toBeDefined();
+    expect(screen.getAllByText("not implemented").length).toBeGreaterThanOrEqual(5);
+    expect(screen.getAllByRole("heading", { name: "Chat shell" }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Static chat shell preview. No messages are sent.")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Message input" })).toBeDefined();
+    expect(screen.getByText("Input remains disabled until chat runtime and safety gates exist.")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Model response" })).toBeDefined();
+    expect(screen.getByText("No model calls are implemented.")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Message history" })).toBeDefined();
+    expect(screen.getByText("No message persistence is implemented.")).toBeDefined();
+    expect(screen.getAllByText("Disabled by default").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(6);
   });
 
   it("renders backend Round Table status when the Round Table status API responds", async () => {

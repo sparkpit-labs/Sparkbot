@@ -19,7 +19,7 @@ The current repository is a validated shell baseline. It is useful for review, l
 | Backend capabilities endpoint | Available | FastAPI exposes static read-only `GET /capabilities`. |
 | Frontend shell | Available | React/Vite shell builds and tests successfully. |
 | Workstation shell | Preview | Read-only product layout. |
-| Chat shell | Preview | Disabled planned composer; no send action. |
+| Chat shell | Preview | Read-only status surface; no chat runtime, message persistence, model calls, streaming, provider routing, or send action. |
 | Round Table | Preview | Read-only status surface; no meeting engine, agent orchestration, model calls, or turn persistence. |
 | Provider Setup | Preview | Read-only provider status surface; no API key fields, save action, or provider calls. |
 | Guardian Controls | Preview | Read-only Guardian policy status surface; no approvals, enforcement, or sensitive actions. |
@@ -31,7 +31,7 @@ The current repository is a validated shell baseline. It is useful for review, l
 
 ## Release and checkpoint status
 
-The latest public checkpoint tag on `main` is `public-v1-guardian-policy-status-0`.
+The latest public checkpoint tag on `main` is `public-v1-chat-status-0`.
 
 The GitHub pre-release `public-v1-shell-baseline-0` remains the first published shell baseline release. Development continues on `main` through checkpoint tags, so `main` may include newer docs and planning checkpoints than the first pre-release page.
 
@@ -83,6 +83,12 @@ Expected backend capabilities URL:
 http://127.0.0.1:8000/capabilities
 ```
 
+Expected Chat status URL:
+
+```text
+http://127.0.0.1:8000/chat/status
+```
+
 Expected provider configuration status URL:
 
 ```text
@@ -99,6 +105,11 @@ Expected Guardian policy status URL:
 
 ```text
 http://127.0.0.1:8000/guardian/status
+```
+
+Expected Round Table status URL:
+
+```text
 http://127.0.0.1:8000/round-table/status
 ```
 

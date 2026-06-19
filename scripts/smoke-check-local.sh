@@ -6,6 +6,7 @@ SPARKBOT_FRONTEND_URL="${SPARKBOT_FRONTEND_URL:-http://127.0.0.1:5173}"
 
 backend_health_url="${SPARKBOT_BACKEND_URL%/}/health"
 capabilities_url="${SPARKBOT_BACKEND_URL%/}/capabilities"
+chat_status_url="${SPARKBOT_BACKEND_URL%/}/chat/status"
 provider_config_status_url="${SPARKBOT_BACKEND_URL%/}/provider-config/status"
 connector_status_url="${SPARKBOT_BACKEND_URL%/}/connector-status"
 guardian_status_url="${SPARKBOT_BACKEND_URL%/}/guardian/status"
@@ -42,6 +43,28 @@ case "${capabilities_response}" in
     ;;
   *)
     echo "Capabilities response did not include capabilities." >&2
+    exit 1
+    ;;
+esac
+
+echo "Checking Chat status at ${chat_status_url}"
+chat_status_response="$(curl -fsS "${chat_status_url}")"
+printf "%s\n" "${chat_status_response}"
+
+case "${chat_status_response}" in
+  *\"chat_runtime\":\"not-implemented\"*|*\"chat_runtime\":\ \"not-implemented\"*)
+    ;;
+  *)
+    echo "Chat status response did not report chat runtime as not implemented." >&2
+    exit 1
+    ;;
+esac
+
+case "${chat_status_response}" in
+  *\"message_persistence\":\"not-implemented\"*|*\"message_persistence\":\ \"not-implemented\"*)
+    ;;
+  *)
+    echo "Chat status response did not report message persistence as not implemented." >&2
     exit 1
     ;;
 esac
