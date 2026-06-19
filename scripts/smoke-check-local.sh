@@ -9,6 +9,7 @@ capabilities_url="${SPARKBOT_BACKEND_URL%/}/capabilities"
 provider_config_status_url="${SPARKBOT_BACKEND_URL%/}/provider-config/status"
 connector_status_url="${SPARKBOT_BACKEND_URL%/}/connector-status"
 guardian_status_url="${SPARKBOT_BACKEND_URL%/}/guardian/status"
+round_table_status_url="${SPARKBOT_BACKEND_URL%/}/round-table/status"
 
 echo "Checking backend health at ${backend_health_url}"
 backend_response="$(curl -fsS "${backend_health_url}")"
@@ -85,6 +86,28 @@ case "${connector_status_response}" in
     ;;
   *)
     echo "Connector status response did not report outbound actions as not implemented." >&2
+    exit 1
+    ;;
+esac
+
+echo "Checking Round Table status at ${round_table_status_url}"
+round_table_status_response="$(curl -fsS "${round_table_status_url}")"
+printf "%s\n" "${round_table_status_response}"
+
+case "${round_table_status_response}" in
+  *\"meeting_engine\":\"not-implemented\"*|*\"meeting_engine\":\ \"not-implemented\"*)
+    ;;
+  *)
+    echo "Round Table status response did not report meeting engine as not implemented." >&2
+    exit 1
+    ;;
+esac
+
+case "${round_table_status_response}" in
+  *\"agent_orchestration\":\"not-implemented\"*|*\"agent_orchestration\":\ \"not-implemented\"*)
+    ;;
+  *)
+    echo "Round Table status response did not report agent orchestration as not implemented." >&2
     exit 1
     ;;
 esac

@@ -20,7 +20,7 @@ The current repository is a validated shell baseline. It is useful for review, l
 | Frontend shell | Available | React/Vite shell builds and tests successfully. |
 | Workstation shell | Preview | Read-only product layout. |
 | Chat shell | Preview | Disabled planned composer; no send action. |
-| Round Table | Preview | Inert planned seats for future collaboration. |
+| Round Table | Preview | Read-only status surface; no meeting engine, agent orchestration, model calls, or turn persistence. |
 | Provider Setup | Preview | Read-only provider status surface; no API key fields, save action, or provider calls. |
 | Guardian Controls | Preview | Read-only Guardian policy status surface; no approvals, enforcement, or sensitive actions. |
 | Desktop packaging | Planned | No installer or desktop binary exists yet. |
@@ -99,6 +99,7 @@ Expected Guardian policy status URL:
 
 ```text
 http://127.0.0.1:8000/guardian/status
+http://127.0.0.1:8000/round-table/status
 ```
 
 ### 4. Start the frontend in terminal 2

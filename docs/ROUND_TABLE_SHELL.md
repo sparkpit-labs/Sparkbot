@@ -2,7 +2,7 @@
 
 The Round Table shell is a static public preview for future multi-agent collaboration inside Sparkbot.
 
-The current public shell baseline includes a read-only surface in the Workstation shell. It shows the intended seat model without enabling meeting behavior, chat, model calls, turn-taking, orchestration, tool execution, provider setup, or guarded runtime controls.
+The current public shell baseline includes a read-only surface in the Workstation shell. It shows the intended seat model without enabling meeting behavior, chat, model calls, turn-taking, orchestration, tool execution, provider setup, or guarded runtime controls. The backend also exposes `GET /round-table/status` as a static status report for this preview.
 
 ## Preview seats
 

@@ -20,11 +20,30 @@ export type CapabilitiesPayload = {
 };
 
 export type ProviderImplementationStatus = "not-implemented";
+export type RoundTableImplementationStatus = "not-implemented";
 export type ConnectorImplementationStatus = "not-implemented";
 export type ConnectorAuditTrailStatus = "planned";
 export type GuardianImplementationStatus = "not-implemented";
 export type GuardianAuditTrailStatus = "planned";
 export type GuardianDefaultPosture = "deny-sensitive-actions";
+
+export type RoundTableSeatStatusItem = {
+  id: string;
+  label: string;
+  status: PublicCapabilityStatus;
+  notes: string;
+};
+
+export type RoundTableStatusPayload = {
+  service: string;
+  mode: string;
+  status: PublicCapabilityStatus;
+  meeting_engine: RoundTableImplementationStatus;
+  agent_orchestration: RoundTableImplementationStatus;
+  model_calls: RoundTableImplementationStatus;
+  turn_persistence: RoundTableImplementationStatus;
+  seats: RoundTableSeatStatusItem[];
+};
 
 export type ProviderStatusItem = {
   id: string;
@@ -150,6 +169,61 @@ export async function fetchPublicCapabilities(signal?: AbortSignal): Promise<Cap
     service: payload.service,
     mode: payload.mode,
     capabilities
+  };
+}
+
+export async function fetchRoundTableStatus(signal?: AbortSignal): Promise<RoundTableStatusPayload> {
+  const endpoint = new URL("/round-table/status", API_BASE_URL).toString();
+  const response = await fetch(endpoint, {
+    method: "GET",
+    headers: {
+      Accept: "application/json"
+    },
+    cache: "no-store",
+    signal
+  });
+
+  if (!response.ok) {
+    throw new Error(`Round Table status request failed with status ${response.status}`);
+  }
+
+  const payload = (await response.json()) as Partial<RoundTableStatusPayload>;
+  if (
+    !payload.service ||
+    !payload.mode ||
+    !payload.status ||
+    payload.meeting_engine !== "not-implemented" ||
+    payload.agent_orchestration !== "not-implemented" ||
+    payload.model_calls !== "not-implemented" ||
+    payload.turn_persistence !== "not-implemented" ||
+    !Array.isArray(payload.seats) ||
+    !publicCapabilityStatuses.has(payload.status)
+  ) {
+    throw new Error("Round Table status response is missing required fields");
+  }
+
+  const seats = payload.seats.map((seat) => {
+    if (!seat || !seat.id || !seat.label || !seat.notes || !publicCapabilityStatuses.has(seat.status ?? "")) {
+      throw new Error("Round Table status response includes an invalid seat item");
+    }
+
+    return {
+      id: seat.id,
+      label: seat.label,
+      status: seat.status,
+      notes: seat.notes
+    };
+  });
+
+  return {
+    service: payload.service,
+    mode: payload.mode,
+    status: payload.status,
+    meeting_engine: payload.meeting_engine,
+    agent_orchestration: payload.agent_orchestration,
+    model_calls: payload.model_calls,
+    turn_persistence: payload.turn_persistence,
+    seats
   };
 }
 

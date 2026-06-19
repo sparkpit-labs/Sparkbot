@@ -1,44 +1,62 @@
-export type RoundTableSeatStatus = "preview" | "planned";
+import type { RoundTableSeatStatusItem, RoundTableStatusPayload } from "../api";
+import type { ShellSectionStatus } from "../workstation/shellSections";
 
-export type RoundTableSeat = {
-  label: string;
+export type RoundTableSeatStatus = Extract<ShellSectionStatus, "preview" | "planned">;
+
+export type RoundTableSeat = RoundTableSeatStatusItem & {
   role: string;
-  status: RoundTableSeatStatus;
-  description: string;
 };
 
 export const roundTableSeats: RoundTableSeat[] = [
   {
+    id: "operator",
     label: "Operator",
     role: "Human direction",
     status: "preview",
-    description: "Represents the person guiding a future collaborative session."
+    notes: "Human operator role shown as part of the shell preview."
   },
   {
+    id: "assistant",
     label: "Assistant seat",
     role: "General support",
-    status: "planned",
-    description: "Reserved for a future assistant participant. No chat or model behavior is active."
+    status: "preview",
+    notes: "Assistant role preview only. No model calls are made."
   },
   {
+    id: "research",
     label: "Research seat",
     role: "Information review",
     status: "planned",
-    description: "Reserved for future research support after public contracts are defined."
+    notes: "Research role is planned. No agent runtime is implemented."
   },
   {
+    id: "builder",
     label: "Builder seat",
     role: "Implementation planning",
     status: "planned",
-    description: "Reserved for future build-oriented collaboration. It does not run tools or actions."
+    notes: "Builder role is planned. No tool execution is implemented."
   },
   {
+    id: "reviewer",
     label: "Reviewer seat",
     role: "Quality review",
     status: "planned",
-    description: "Reserved for future review support after validation gates are established."
+    notes: "Reviewer role is planned. No review workflow runtime is implemented."
   }
 ];
 
+export const fallbackRoundTableStatus: RoundTableStatusPayload = {
+  service: "sparkbot-server",
+  mode: "local",
+  status: "preview",
+  meeting_engine: "not-implemented",
+  agent_orchestration: "not-implemented",
+  model_calls: "not-implemented",
+  turn_persistence: "not-implemented",
+  seats: roundTableSeats.map(({ id, label, status, notes }) => ({ id, label, status, notes }))
+};
+
+export const roundTableSeatRoles = new Map(roundTableSeats.map((seat) => [seat.id, seat.role]));
+
 export const roundTablePreviewSummary =
-  "Multi-agent collaboration is planned for Sparkbot, but this branch only provides an inert Round Table shell preview.";
+  "Multi-participant collaboration is planned for Sparkbot, but this public surface is a read-only Round Table status preview.";

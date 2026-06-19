@@ -88,6 +88,47 @@ const capabilitiesPayload = {
   ]
 };
 
+const roundTableStatusPayload = {
+  service: "sparkbot-server",
+  mode: "local",
+  status: "preview",
+  meeting_engine: "not-implemented",
+  agent_orchestration: "not-implemented",
+  model_calls: "not-implemented",
+  turn_persistence: "not-implemented",
+  seats: [
+    {
+      id: "operator",
+      label: "Operator",
+      status: "preview",
+      notes: "Human operator role shown as part of the shell preview."
+    },
+    {
+      id: "assistant",
+      label: "Assistant seat",
+      status: "preview",
+      notes: "Assistant role preview only. No model calls are made."
+    },
+    {
+      id: "research",
+      label: "Research seat",
+      status: "planned",
+      notes: "Research role is planned. No agent runtime is implemented."
+    },
+    {
+      id: "builder",
+      label: "Builder seat",
+      status: "planned",
+      notes: "Builder role is planned. No tool execution is implemented."
+    },
+    {
+      id: "reviewer",
+      label: "Reviewer seat",
+      status: "planned",
+      notes: "Reviewer role is planned. No review workflow runtime is implemented."
+    }
+  ]
+};
 
 const providerConfigStatusPayload = {
   service: "sparkbot-server",
@@ -228,6 +269,10 @@ function mockBackendStatusFetch() {
   return vi.fn((input: RequestInfo | URL) => {
     const url = input.toString();
 
+    if (url.includes("/round-table/status")) {
+      return mockJsonResponse(roundTableStatusPayload);
+    }
+
     if (url.includes("/guardian/status")) {
       return mockJsonResponse(guardianStatusPayload);
     }
@@ -292,13 +337,18 @@ describe("App", () => {
     expect(plannedComposer.readOnly).toBe(true);
     expect(screen.getByRole("heading", { name: "Round Table" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Round Table Preview" })).toBeDefined();
+    expect(screen.getByText("Using local Round Table status fallback.")).toBeDefined();
+    expect(screen.getByText("Meeting engine")).toBeDefined();
+    expect(screen.getByText("Agent orchestration")).toBeDefined();
+    expect(screen.getAllByText("Model calls").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Turn persistence")).toBeDefined();
     expect(screen.getByRole("heading", { name: "Operator" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Assistant seat" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Research seat" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Builder seat" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Reviewer seat" })).toBeDefined();
-    expect(screen.getByText(/multi-agent collaboration is planned/i)).toBeDefined();
-    expect(screen.getByText(/does not start meetings, call models, run a turn engine/i)).toBeDefined();
+    expect(screen.getByText(/Multi-participant collaboration is planned/i)).toBeDefined();
+    expect(screen.getByText(/does not start meetings, invite participants, call models/i)).toBeDefined();
     expect(screen.getAllByText("Preview").length).toBeGreaterThanOrEqual(5);
     expect(screen.getByRole("heading", { name: "Provider Setup Preview" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Local provider" })).toBeDefined();
@@ -366,6 +416,31 @@ describe("App", () => {
     expect(screen.getByText("Future local action")).toBeDefined();
     expect(screen.getAllByText("Disabled by default").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(8);
+  });
+
+  it("renders backend Round Table status when the Round Table status API responds", async () => {
+    vi.stubGlobal("fetch", mockBackendStatusFetch());
+
+    render(<App />);
+
+    expect(await screen.findByText("Using backend Round Table status.")).toBeDefined();
+    expect(screen.getByText("Meeting engine")).toBeDefined();
+    expect(screen.getByText("Agent orchestration")).toBeDefined();
+    expect(screen.getAllByText("Model calls").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Turn persistence")).toBeDefined();
+    expect(screen.getAllByText("not implemented").length).toBeGreaterThanOrEqual(7);
+    expect(screen.getByRole("heading", { name: "Operator" })).toBeDefined();
+    expect(screen.getByText("Human operator role shown as part of the shell preview.")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Assistant seat" })).toBeDefined();
+    expect(screen.getByText("Assistant role preview only. No model calls are made.")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Research seat" })).toBeDefined();
+    expect(screen.getByText("Research role is planned. No agent runtime is implemented.")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Builder seat" })).toBeDefined();
+    expect(screen.getByText("Builder role is planned. No tool execution is implemented.")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Reviewer seat" })).toBeDefined();
+    expect(screen.getByText("Reviewer role is planned. No review workflow runtime is implemented.")).toBeDefined();
+    expect(screen.getAllByText("Preview").length).toBeGreaterThanOrEqual(7);
+    expect(screen.getAllByText("Planned").length).toBeGreaterThanOrEqual(3);
   });
 
   it("renders backend provider configuration status when the status API responds", async () => {
@@ -443,7 +518,7 @@ describe("App", () => {
     expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(4);
   });
 
-  it("keeps provider, connector, chat, and guardian surfaces inert", () => {
+  it("keeps provider, connector, chat, Round Table, and guardian surfaces inert", () => {
     render(<App />);
 
     expect(screen.queryByPlaceholderText(/api key|password|token/i)).toBeNull();
@@ -453,9 +528,9 @@ describe("App", () => {
     expect(document.querySelectorAll('textarea').length).toBe(1);
     expect(document.querySelectorAll('input[type="password"]').length).toBe(0);
     expect(screen.queryByRole("button", { name: /save|test connection|connect/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /approve|execute|enforce|allow|deny/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /approve|execute|enforce|allow|deny|assign/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /policy decision|runtime enforcement|approval token/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /start|join|send|run/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /start|join|send|run|invite/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /send|execute|save|test/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /connector call|outbound action|external send/i })).toBeNull();
   });
