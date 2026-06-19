@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import ChatShellPreview from "./ChatShellPreview";
+import ConnectorStatusPreview from "./ConnectorStatusPreview";
 import GuardianControlsPreview from "./GuardianControlsPreview";
 import ProviderSetupPreview from "./ProviderSetupPreview";
 import RoadmapCard from "./RoadmapCard";
@@ -52,6 +53,7 @@ export default function WorkstationShell({
           <ChatShellPreview />
           <RoundTablePreview />
           <ProviderSetupPreview />
+          <ConnectorStatusPreview />
           <GuardianControlsPreview />
 
           <div className="roadmap-grid">

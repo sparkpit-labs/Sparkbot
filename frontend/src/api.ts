@@ -20,6 +20,8 @@ export type CapabilitiesPayload = {
 };
 
 export type ProviderImplementationStatus = "not-implemented";
+export type ConnectorImplementationStatus = "not-implemented";
+export type ConnectorAuditTrailStatus = "planned";
 
 export type ProviderStatusItem = {
   id: string;
@@ -36,6 +38,24 @@ export type ProviderConfigStatusPayload = {
   provider_calls: ProviderImplementationStatus;
   model_routing: ProviderImplementationStatus;
   providers: ProviderStatusItem[];
+};
+
+export type ConnectorStatusItem = {
+  id: string;
+  label: string;
+  status: PublicCapabilityStatus;
+  notes: string;
+};
+
+export type ConnectorStatusPayload = {
+  service: string;
+  mode: string;
+  status: PublicCapabilityStatus;
+  connectors_enabled: boolean;
+  outbound_actions: ConnectorImplementationStatus;
+  credential_storage: ConnectorImplementationStatus;
+  audit_trail: ConnectorAuditTrailStatus;
+  connectors: ConnectorStatusItem[];
 };
 
 const DEFAULT_API_BASE_URL = "http://127.0.0.1:8000";
@@ -167,5 +187,66 @@ export async function fetchProviderConfigStatus(signal?: AbortSignal): Promise<P
     provider_calls: payload.provider_calls,
     model_routing: payload.model_routing,
     providers
+  };
+}
+
+export async function fetchConnectorStatus(signal?: AbortSignal): Promise<ConnectorStatusPayload> {
+  const endpoint = new URL("/connector-status", API_BASE_URL).toString();
+  const response = await fetch(endpoint, {
+    method: "GET",
+    headers: {
+      Accept: "application/json"
+    },
+    cache: "no-store",
+    signal
+  });
+
+  if (!response.ok) {
+    throw new Error(`Connector status request failed with status ${response.status}`);
+  }
+
+  const payload = (await response.json()) as Partial<ConnectorStatusPayload>;
+  if (
+    !payload.service ||
+    !payload.mode ||
+    !payload.status ||
+    payload.connectors_enabled !== false ||
+    payload.outbound_actions !== "not-implemented" ||
+    payload.credential_storage !== "not-implemented" ||
+    payload.audit_trail !== "planned" ||
+    !Array.isArray(payload.connectors) ||
+    !publicCapabilityStatuses.has(payload.status)
+  ) {
+    throw new Error("Connector status response is missing required fields");
+  }
+
+  const connectors = payload.connectors.map((connector) => {
+    if (
+      !connector ||
+      !connector.id ||
+      !connector.label ||
+      !connector.notes ||
+      !publicCapabilityStatuses.has(connector.status ?? "")
+    ) {
+      throw new Error("Connector status response includes an invalid connector item");
+    }
+
+    return {
+      id: connector.id,
+      label: connector.label,
+      status: connector.status,
+      notes: connector.notes
+    };
+  });
+
+  return {
+    service: payload.service,
+    mode: payload.mode,
+    status: payload.status,
+    connectors_enabled: payload.connectors_enabled,
+    outbound_actions: payload.outbound_actions,
+    credential_storage: payload.credential_storage,
+    audit_trail: payload.audit_trail,
+    connectors
   };
 }

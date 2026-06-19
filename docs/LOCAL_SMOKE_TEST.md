@@ -64,7 +64,7 @@ The smoke check script supports:
 - `SPARKBOT_BACKEND_URL`, default `http://127.0.0.1:8000`
 - `SPARKBOT_FRONTEND_URL`, default `http://127.0.0.1:5173`
 
-It verifies backend `/health`, backend `/capabilities`, and the frontend HTTP response.
+It verifies backend `/health`, backend `/capabilities`, backend `/provider-config/status`, backend `/connector-status`, and the frontend HTTP response.
 
 Expected result:
 
@@ -80,7 +80,7 @@ Open:
 http://127.0.0.1:15173
 ```
 
-The page should show the Sparkbot shell with Workstation navigation, preview-only Chat, Round Table, Provider Setup, Guardian Controls, backend capability statuses when available, and the read-only backend health panel.
+The page should show the Sparkbot shell with Workstation navigation, preview-only Chat, Round Table, Provider Setup, Connector Status, Guardian Controls, backend capability statuses when available, and the read-only backend health panel.
 
 ## Cleanup
 

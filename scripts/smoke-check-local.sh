@@ -7,6 +7,7 @@ SPARKBOT_FRONTEND_URL="${SPARKBOT_FRONTEND_URL:-http://127.0.0.1:5173}"
 backend_health_url="${SPARKBOT_BACKEND_URL%/}/health"
 capabilities_url="${SPARKBOT_BACKEND_URL%/}/capabilities"
 provider_config_status_url="${SPARKBOT_BACKEND_URL%/}/provider-config/status"
+connector_status_url="${SPARKBOT_BACKEND_URL%/}/connector-status"
 
 echo "Checking backend health at ${backend_health_url}"
 backend_response="$(curl -fsS "${backend_health_url}")"
@@ -61,6 +62,28 @@ case "${provider_config_status_response}" in
     ;;
   *)
     echo "Provider config status response did not report provider calls as not implemented." >&2
+    exit 1
+    ;;
+esac
+
+echo "Checking connector status at ${connector_status_url}"
+connector_status_response="$(curl -fsS "${connector_status_url}")"
+printf "%s\n" "${connector_status_response}"
+
+case "${connector_status_response}" in
+  *\"connectors_enabled\":false*)
+    ;;
+  *)
+    echo "Connector status response did not report connectors as disabled." >&2
+    exit 1
+    ;;
+esac
+
+case "${connector_status_response}" in
+  *\"outbound_actions\":\"not-implemented\"*|*\"outbound_actions\":\ \"not-implemented\"*)
+    ;;
+  *)
+    echo "Connector status response did not report outbound actions as not implemented." >&2
     exit 1
     ;;
 esac

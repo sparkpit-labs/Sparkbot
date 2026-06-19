@@ -130,6 +130,42 @@ const providerConfigStatusPayload = {
   ]
 };
 
+const connectorStatusPayload = {
+  service: "sparkbot-server",
+  mode: "local",
+  status: "guarded-future",
+  connectors_enabled: false,
+  outbound_actions: "not-implemented",
+  credential_storage: "not-implemented",
+  audit_trail: "planned",
+  connectors: [
+    {
+      id: "messaging",
+      label: "Messaging connectors",
+      status: "guarded-future",
+      notes: "Messaging connectors are planned for future guarded configuration. No outbound sends are implemented."
+    },
+    {
+      id: "calendar",
+      label: "Calendar connectors",
+      status: "guarded-future",
+      notes: "Calendar connectors are planned for future guarded configuration."
+    },
+    {
+      id: "email",
+      label: "Email connectors",
+      status: "guarded-future",
+      notes: "Email connectors are planned for future guarded configuration. No external sends are implemented."
+    },
+    {
+      id: "files",
+      label: "File connectors",
+      status: "guarded-future",
+      notes: "File connectors are planned for future guarded configuration. No file mutation is implemented."
+    }
+  ]
+};
+
 function mockJsonResponse(payload: unknown) {
   return Promise.resolve(
     new Response(JSON.stringify(payload), {
@@ -142,6 +178,10 @@ function mockJsonResponse(payload: unknown) {
 function mockBackendStatusFetch() {
   return vi.fn((input: RequestInfo | URL) => {
     const url = input.toString();
+
+    if (url.includes("/connector-status")) {
+      return mockJsonResponse(connectorStatusPayload);
+    }
 
     if (url.includes("/provider-config/status")) {
       return mockJsonResponse(providerConfigStatusPayload);
@@ -220,6 +260,17 @@ describe("App", () => {
     expect(screen.getByText("Model routing")).toBeDefined();
     expect(screen.getAllByText("not implemented").length).toBeGreaterThanOrEqual(3);
     expect(screen.getByText(/no API key fields, no password or token fields/i)).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Connector Status Preview" })).toBeDefined();
+    expect(screen.getByText("Using local connector status fallback.")).toBeDefined();
+    expect(screen.getByText("Connectors enabled")).toBeDefined();
+    expect(screen.getByText("disabled")).toBeDefined();
+    expect(screen.getByText("Outbound actions")).toBeDefined();
+    expect(screen.getAllByText("Audit trail").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole("heading", { name: "Messaging connectors" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Calendar connectors" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Email connectors" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "File connectors" })).toBeDefined();
+    expect(screen.getByText(/no credential fields, no token fields/i)).toBeDefined();
     expect(screen.getByRole("heading", { name: "Provider Setup shell" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Guardian Controls shell" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Guardian Controls Preview" })).toBeDefined();
@@ -271,6 +322,28 @@ describe("App", () => {
     expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(4);
   });
 
+  it("renders backend connector status when the connector status API responds", async () => {
+    vi.stubGlobal("fetch", mockBackendStatusFetch());
+
+    render(<App />);
+
+    expect(await screen.findByText("Using backend connector status.")).toBeDefined();
+    expect(screen.getByText("Connectors enabled")).toBeDefined();
+    expect(screen.getByText("disabled")).toBeDefined();
+    expect(screen.getByText("Outbound actions")).toBeDefined();
+    expect(screen.getAllByText("Credential storage").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Audit trail").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("not implemented").length).toBeGreaterThanOrEqual(5);
+    expect(screen.getByRole("heading", { name: "Messaging connectors" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Calendar connectors" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Email connectors" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "File connectors" })).toBeDefined();
+    expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(8);
+    expect(screen.getByText(/No outbound sends are implemented/i)).toBeDefined();
+    expect(screen.getByText(/No external sends are implemented/i)).toBeDefined();
+    expect(screen.getByText(/No file mutation is implemented/i)).toBeDefined();
+  });
+
   it("keeps fallback statuses on the public capability contract vocabulary", () => {
     render(<App />);
 
@@ -281,11 +354,12 @@ describe("App", () => {
     expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(4);
   });
 
-  it("keeps provider, chat, and guardian surfaces inert", () => {
+  it("keeps provider, connector, chat, and guardian surfaces inert", () => {
     render(<App />);
 
     expect(screen.queryByPlaceholderText(/api key|password|token/i)).toBeNull();
     expect(screen.queryByLabelText(/api key|password|token/i)).toBeNull();
+    expect(screen.queryByRole("textbox", { name: /api key|password|token/i })).toBeNull();
     expect(document.querySelectorAll('input').length).toBe(0);
     expect(document.querySelectorAll('textarea').length).toBe(1);
     expect(document.querySelectorAll('input[type="password"]').length).toBe(0);
@@ -293,5 +367,6 @@ describe("App", () => {
     expect(screen.queryByRole("button", { name: /approve|execute|enforce|allow|deny/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /start|join|send|run/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /send|execute|save|test/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /connector call|outbound action|external send/i })).toBeNull();
   });
 });

@@ -1,10 +1,10 @@
 # Connector Safety Contract
 
-This contract governs any future connector work in the public Sparkbot repository. Connectors are not implemented in the current public baseline.
+This contract governs any future connector work in the public Sparkbot repository. The current public baseline includes only a read-only connector status surface; connector calls and outbound actions are not implemented.
 
 ## Default Rule
 
-Connectors are `guarded-future` capabilities. They must begin as inert configuration and status surfaces. A connector branch must not introduce live sends, automatic external actions, credential collection, or connector calls until the gates below are satisfied.
+Connectors are `guarded-future` capabilities. They must remain inert configuration and status surfaces until contract gates are satisfied. A connector branch must not introduce live sends, automatic external actions, credential collection, or connector calls until the gates below are satisfied.
 
 ## Public Connector Rules
 
@@ -16,6 +16,7 @@ Connectors are `guarded-future` capabilities. They must begin as inert configura
 - No connector may perform automatic external actions on startup, page load, import, or validation.
 - Messaging connector send behavior is not allowed until the contract gates are implemented and reviewed.
 - Connector work must start with read-only or inert config/status surfaces.
+- `GET /connector-status` may report static read-only guarded status, disabled connectors, and not-implemented outbound actions.
 - Error states must avoid exposing sensitive request data.
 
 ## Live Action Gates
