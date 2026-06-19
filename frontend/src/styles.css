@@ -516,10 +516,16 @@ h3 {
   color: #4b5b6c;
 }
 
+.guardian-status-grid,
+.guardian-sensitive-layout,
 .guardian-layout {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
+}
+
+.guardian-status-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .guardian-card {
@@ -658,6 +664,8 @@ dd {
     grid-template-columns: 1fr;
   }
 
+  .guardian-status-grid,
+  .guardian-sensitive-layout,
   .guardian-layout {
     grid-template-columns: 1fr;
   }

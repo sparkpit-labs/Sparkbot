@@ -166,6 +166,55 @@ const connectorStatusPayload = {
   ]
 };
 
+const guardianStatusPayload = {
+  service: "sparkbot-server",
+  mode: "local",
+  status: "preview",
+  runtime_enforcement: "not-implemented",
+  approval_tokens: "not-implemented",
+  policy_decisions: "not-implemented",
+  audit_trail: "planned",
+  default_posture: "deny-sensitive-actions",
+  sensitive_action_categories: [
+    {
+      id: "external-sends",
+      label: "External sends",
+      status: "guarded-future",
+      notes: "No external sends are implemented."
+    },
+    {
+      id: "connector-calls",
+      label: "Connector calls",
+      status: "guarded-future",
+      notes: "No connector calls are implemented."
+    },
+    {
+      id: "credential-use",
+      label: "Credential use",
+      status: "guarded-future",
+      notes: "No credential use or storage is implemented."
+    },
+    {
+      id: "model-provider-calls",
+      label: "Model provider calls",
+      status: "guarded-future",
+      notes: "No model provider calls are implemented."
+    },
+    {
+      id: "file-writes",
+      label: "File writes",
+      status: "guarded-future",
+      notes: "No file mutation workflow is implemented."
+    },
+    {
+      id: "tool-execution",
+      label: "Tool execution",
+      status: "guarded-future",
+      notes: "No terminal or tool execution is implemented."
+    }
+  ]
+};
+
 function mockJsonResponse(payload: unknown) {
   return Promise.resolve(
     new Response(JSON.stringify(payload), {
@@ -178,6 +227,10 @@ function mockJsonResponse(payload: unknown) {
 function mockBackendStatusFetch() {
   return vi.fn((input: RequestInfo | URL) => {
     const url = input.toString();
+
+    if (url.includes("/guardian/status")) {
+      return mockJsonResponse(guardianStatusPayload);
+    }
 
     if (url.includes("/connector-status")) {
       return mockJsonResponse(connectorStatusPayload);
@@ -223,7 +276,7 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Connectors" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Model calls" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Credential storage" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Tool execution" })).toBeDefined();
+    expect(screen.getAllByRole("heading", { name: "Tool execution" }).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(4);
     expect(screen.getByText("No connector calls or external sends.")).toBeDefined();
     expect(screen.getByText("No provider runtime or model routing.")).toBeDefined();
@@ -274,12 +327,24 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Provider Setup shell" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Guardian Controls shell" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Guardian Controls Preview" })).toBeDefined();
+    expect(screen.getByText("Using local Guardian status fallback.")).toBeDefined();
+    expect(screen.getByText("Runtime enforcement")).toBeDefined();
+    expect(screen.getByText("Approval tokens")).toBeDefined();
+    expect(screen.getByText("Policy decisions")).toBeDefined();
+    expect(screen.getByText("Default posture")).toBeDefined();
+    expect(screen.getByText("deny sensitive actions")).toBeDefined();
     expect(screen.getByRole("heading", { name: "Local actions" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Provider access" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Files and workspace" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "External connections" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Approval checkpoints" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Audit trail" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "External sends" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Connector calls" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Credential use" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Model provider calls" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "File writes" })).toBeDefined();
+    expect(screen.getAllByRole("heading", { name: "Tool execution" }).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/Guardian-gated controls are planned for later slices/i)).toBeDefined();
     expect(screen.getByText(/no approval buttons, no execution controls, no save actions/i)).toBeDefined();
     expect(screen.getByRole("heading", { name: "Backend Health" })).toBeDefined();
@@ -340,8 +405,32 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "File connectors" })).toBeDefined();
     expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(8);
     expect(screen.getByText(/No outbound sends are implemented/i)).toBeDefined();
-    expect(screen.getByText(/No external sends are implemented/i)).toBeDefined();
+    expect(screen.getAllByText(/No external sends are implemented/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/No file mutation is implemented/i)).toBeDefined();
+  });
+
+  it("renders backend Guardian status when the Guardian status API responds", async () => {
+    vi.stubGlobal("fetch", mockBackendStatusFetch());
+
+    render(<App />);
+
+    expect(await screen.findByText("Using backend Guardian status.")).toBeDefined();
+    expect(screen.getByText("Runtime enforcement")).toBeDefined();
+    expect(screen.getByText("Approval tokens")).toBeDefined();
+    expect(screen.getByText("Policy decisions")).toBeDefined();
+    expect(screen.getByText("Default posture")).toBeDefined();
+    expect(screen.getByText("deny sensitive actions")).toBeDefined();
+    expect(screen.getAllByText("not implemented").length).toBeGreaterThanOrEqual(8);
+    expect(screen.getByRole("heading", { name: "External sends" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Connector calls" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Credential use" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Model provider calls" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "File writes" })).toBeDefined();
+    expect(screen.getAllByRole("heading", { name: "Tool execution" }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(14);
+    expect(screen.getByText("No connector calls are implemented.")).toBeDefined();
+    expect(screen.getByText("No model provider calls are implemented.")).toBeDefined();
+    expect(screen.getByText("No terminal or tool execution is implemented.")).toBeDefined();
   });
 
   it("keeps fallback statuses on the public capability contract vocabulary", () => {
@@ -365,6 +454,7 @@ describe("App", () => {
     expect(document.querySelectorAll('input[type="password"]').length).toBe(0);
     expect(screen.queryByRole("button", { name: /save|test connection|connect/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /approve|execute|enforce|allow|deny/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /policy decision|runtime enforcement|approval token/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /start|join|send|run/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /send|execute|save|test/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /connector call|outbound action|external send/i })).toBeNull();

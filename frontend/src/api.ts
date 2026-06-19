@@ -22,6 +22,9 @@ export type CapabilitiesPayload = {
 export type ProviderImplementationStatus = "not-implemented";
 export type ConnectorImplementationStatus = "not-implemented";
 export type ConnectorAuditTrailStatus = "planned";
+export type GuardianImplementationStatus = "not-implemented";
+export type GuardianAuditTrailStatus = "planned";
+export type GuardianDefaultPosture = "deny-sensitive-actions";
 
 export type ProviderStatusItem = {
   id: string;
@@ -56,6 +59,25 @@ export type ConnectorStatusPayload = {
   credential_storage: ConnectorImplementationStatus;
   audit_trail: ConnectorAuditTrailStatus;
   connectors: ConnectorStatusItem[];
+};
+
+export type SensitiveActionCategory = {
+  id: string;
+  label: string;
+  status: PublicCapabilityStatus;
+  notes: string;
+};
+
+export type GuardianStatusPayload = {
+  service: string;
+  mode: string;
+  status: PublicCapabilityStatus;
+  runtime_enforcement: GuardianImplementationStatus;
+  approval_tokens: GuardianImplementationStatus;
+  policy_decisions: GuardianImplementationStatus;
+  audit_trail: GuardianAuditTrailStatus;
+  default_posture: GuardianDefaultPosture;
+  sensitive_action_categories: SensitiveActionCategory[];
 };
 
 const DEFAULT_API_BASE_URL = "http://127.0.0.1:8000";
@@ -248,5 +270,68 @@ export async function fetchConnectorStatus(signal?: AbortSignal): Promise<Connec
     credential_storage: payload.credential_storage,
     audit_trail: payload.audit_trail,
     connectors
+  };
+}
+
+export async function fetchGuardianStatus(signal?: AbortSignal): Promise<GuardianStatusPayload> {
+  const endpoint = new URL("/guardian/status", API_BASE_URL).toString();
+  const response = await fetch(endpoint, {
+    method: "GET",
+    headers: {
+      Accept: "application/json"
+    },
+    cache: "no-store",
+    signal
+  });
+
+  if (!response.ok) {
+    throw new Error(`Guardian status request failed with status ${response.status}`);
+  }
+
+  const payload = (await response.json()) as Partial<GuardianStatusPayload>;
+  if (
+    !payload.service ||
+    !payload.mode ||
+    !payload.status ||
+    payload.runtime_enforcement !== "not-implemented" ||
+    payload.approval_tokens !== "not-implemented" ||
+    payload.policy_decisions !== "not-implemented" ||
+    payload.audit_trail !== "planned" ||
+    payload.default_posture !== "deny-sensitive-actions" ||
+    !Array.isArray(payload.sensitive_action_categories) ||
+    !publicCapabilityStatuses.has(payload.status)
+  ) {
+    throw new Error("Guardian status response is missing required fields");
+  }
+
+  const sensitiveActionCategories = payload.sensitive_action_categories.map((category) => {
+    if (
+      !category ||
+      !category.id ||
+      !category.label ||
+      !category.notes ||
+      !publicCapabilityStatuses.has(category.status ?? "")
+    ) {
+      throw new Error("Guardian status response includes an invalid sensitive action category");
+    }
+
+    return {
+      id: category.id,
+      label: category.label,
+      status: category.status,
+      notes: category.notes
+    };
+  });
+
+  return {
+    service: payload.service,
+    mode: payload.mode,
+    status: payload.status,
+    runtime_enforcement: payload.runtime_enforcement,
+    approval_tokens: payload.approval_tokens,
+    policy_decisions: payload.policy_decisions,
+    audit_trail: payload.audit_trail,
+    default_posture: payload.default_posture,
+    sensitive_action_categories: sensitiveActionCategories
   };
 }

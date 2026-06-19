@@ -22,7 +22,7 @@ The current repository is a validated shell baseline. It is useful for review, l
 | Chat shell | Preview | Disabled planned composer; no send action. |
 | Round Table | Preview | Inert planned seats for future collaboration. |
 | Provider Setup | Preview | Read-only provider status surface; no API key fields, save action, or provider calls. |
-| Guardian Controls | Preview | No approvals, enforcement, or sensitive actions. |
+| Guardian Controls | Preview | Read-only Guardian policy status surface; no approvals, enforcement, or sensitive actions. |
 | Desktop packaging | Planned | No installer or desktop binary exists yet. |
 | Connectors | Guarded future | Read-only connector status surface; no connector calls or external sends. |
 | Model calls | Guarded future | No model routing or provider runtime is active. |
@@ -31,7 +31,7 @@ The current repository is a validated shell baseline. It is useful for review, l
 
 ## Release and checkpoint status
 
-The latest public checkpoint tag on `main` is `public-v1-connector-status-0`.
+The latest public checkpoint tag on `main` is `public-v1-guardian-policy-status-0`.
 
 The GitHub pre-release `public-v1-shell-baseline-0` remains the first published shell baseline release. Development continues on `main` through checkpoint tags, so `main` may include newer docs and planning checkpoints than the first pre-release page.
 
@@ -93,6 +93,12 @@ Expected connector status URL:
 
 ```text
 http://127.0.0.1:8000/connector-status
+```
+
+Expected Guardian policy status URL:
+
+```text
+http://127.0.0.1:8000/guardian/status
 ```
 
 ### 4. Start the frontend in terminal 2

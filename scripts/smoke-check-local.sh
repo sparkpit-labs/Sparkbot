@@ -8,6 +8,7 @@ backend_health_url="${SPARKBOT_BACKEND_URL%/}/health"
 capabilities_url="${SPARKBOT_BACKEND_URL%/}/capabilities"
 provider_config_status_url="${SPARKBOT_BACKEND_URL%/}/provider-config/status"
 connector_status_url="${SPARKBOT_BACKEND_URL%/}/connector-status"
+guardian_status_url="${SPARKBOT_BACKEND_URL%/}/guardian/status"
 
 echo "Checking backend health at ${backend_health_url}"
 backend_response="$(curl -fsS "${backend_health_url}")"
@@ -84,6 +85,28 @@ case "${connector_status_response}" in
     ;;
   *)
     echo "Connector status response did not report outbound actions as not implemented." >&2
+    exit 1
+    ;;
+esac
+
+echo "Checking Guardian status at ${guardian_status_url}"
+guardian_status_response="$(curl -fsS "${guardian_status_url}")"
+printf "%s\n" "${guardian_status_response}"
+
+case "${guardian_status_response}" in
+  *\"runtime_enforcement\":\"not-implemented\"*|*\"runtime_enforcement\":\ \"not-implemented\"*)
+    ;;
+  *)
+    echo "Guardian status response did not report runtime enforcement as not implemented." >&2
+    exit 1
+    ;;
+esac
+
+case "${guardian_status_response}" in
+  *\"policy_decisions\":\"not-implemented\"*|*\"policy_decisions\":\ \"not-implemented\"*)
+    ;;
+  *)
+    echo "Guardian status response did not report policy decisions as not implemented." >&2
     exit 1
     ;;
 esac

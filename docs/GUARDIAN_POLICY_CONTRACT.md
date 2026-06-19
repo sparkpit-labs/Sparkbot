@@ -1,10 +1,12 @@
 # Guardian Policy Contract
 
-This contract defines the public safety boundary for future Guardian behavior. Guardian Controls are currently preview only. The current public baseline does not include runtime policy enforcement, approval execution, sensitive action execution, or audit persistence.
+This contract defines the public safety boundary for future Guardian behavior. Guardian Controls are currently preview only. The current public baseline includes only a read-only Guardian policy status surface. It does not include runtime policy enforcement, approval execution, sensitive action execution, or audit persistence.
 
 ## Current Boundary
 
 The Guardian Controls shell may describe planned categories and blocked future work. It must not imply that policy enforcement is active today.
+
+- `GET /guardian/status` may report static read-only posture, not-implemented runtime enforcement, and guarded-future sensitive action categories.
 
 ## Sensitive Action Classes
 
