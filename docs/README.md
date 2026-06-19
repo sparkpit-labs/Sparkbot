@@ -24,6 +24,7 @@ This index groups the public Sparkbot documentation for first-time visitors, loc
 - [Release Readiness](RELEASE_READINESS.md): current readiness position and out-of-scope runtime features.
 - [Public Artifact Manifest](PUBLIC_ARTIFACT_MANIFEST.md): files included in the public baseline and excluded artifact types.
 - [Release Standards](RELEASE_STANDARDS.md): public publishing identity and release standards.
+- [Branch Hygiene](BRANCH_HYGIENE.md): public remote branch expectations and release-manager checks.
 - [Public v1 Clean Baseline Release Notes](RELEASE_NOTES_PUBLIC_V1_CLEAN_BASELINE.md): first published shell baseline notes.
 
 ## Public contracts

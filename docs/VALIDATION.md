@@ -33,6 +33,14 @@ This script performs:
 - publishing identity scan with the expected release standards line allowed
 - emoji and non-BMP character scan
 
+## Branch hygiene check
+
+```bash
+bash scripts/check-branch-hygiene.sh
+```
+
+This release-manager check verifies that the public remote has only `main` by default. It is intentionally separate from `validate-public-shell.sh` so normal feature-branch and fork review workflows do not fail only because a temporary review branch exists. Use `SPARKBOT_ALLOWED_BRANCH_REGEX` only for intentional active review branches.
+
 ## Manual backend validation
 
 ```bash
