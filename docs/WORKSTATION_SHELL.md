@@ -5,13 +5,16 @@ The current public shell baseline includes a local Workstation shell skeleton fo
 ## What Exists
 
 - Read-only Workstation shell layout in the frontend.
+- Read-only public baseline status panel summarizing health, capability status counts, and local status endpoints.
 - Structured status cards using the public contract statuses: Available, Preview, Planned, Disabled by default, and Guarded future.
+- Grouped capability lanes for available, preview, planned, disabled-by-default, and guarded-future surfaces.
 - Read-only section selector for Workstation, Chat, Round Table, Provider Setup, and Guardian Controls surfaces.
 - Planned follow-up roadmap card for next product slices.
-- Static Chat Shell preview with a disabled read-only planned composer and no send action.
-- Static Round Table preview with inert Operator, Assistant, Research, Builder, and Reviewer seats.
-- Static Provider Setup preview with inert local, compatible provider, and custom endpoint cards.
-- Static Guardian Controls preview with inert local action, provider access, workspace, connection, checkpoint, and audit cards.
+- Read-only Chat status surface with a disabled read-only planned composer and no send action.
+- Read-only Round Table status surface with inert Operator, Assistant, Research, Builder, and Reviewer seats.
+- Read-only Provider Setup status surface with inert local, compatible provider, and custom endpoint cards.
+- Read-only Connector Status surface with connectors disabled and no outbound actions.
+- Read-only Guardian Controls status surface with inert local action, provider access, workspace, connection, checkpoint, and audit cards.
 - Existing backend health panel retained in the same frontend app.
 
 ## Current Status Model
@@ -21,8 +24,11 @@ The current public shell baseline includes a local Workstation shell skeleton fo
 - Workstation shell: Preview
 - Chat shell: Preview
 - Round Table: Preview
-- Provider setup: Planned
-- Guardian-gated controls: Planned
+- Provider setup: Preview
+- Connector status: Guarded future
+- Guardian-gated controls: Preview
+- Desktop packaging: Planned
+- Model calls, credential storage, and tool execution: Guarded future
 
 Status labels in the UI mean:
 
@@ -58,4 +64,4 @@ pytest backend/tests -q
 
 ## Scope Notes
 
-This is a product-direction shell slice only. It does not claim release readiness and does not activate Chat, Round Table, Provider Setup, or Guardian Controls runtime behavior beyond the existing read-only backend health fetch.
+This is a product-direction shell slice only. It does not claim release readiness and does not activate Chat, Round Table, Provider Setup, Connector Status, or Guardian Controls runtime behavior beyond existing read-only local status fetches.

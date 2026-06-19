@@ -18,7 +18,7 @@ The current repository is a validated shell baseline. It is useful for review, l
 | Backend health endpoint | Available | FastAPI exposes local `GET /health`. |
 | Backend capabilities endpoint | Available | FastAPI exposes static read-only `GET /capabilities`. |
 | Frontend shell | Available | React/Vite shell builds and tests successfully. |
-| Workstation shell | Preview | Read-only product layout. |
+| Workstation shell | Preview | Read-only dashboard with public baseline status, capability grouping, and product shell layout. |
 | Chat shell | Preview | Read-only status surface; no chat runtime, message persistence, model calls, streaming, provider routing, or send action. |
 | Round Table | Preview | Read-only status surface; no meeting engine, agent orchestration, model calls, or turn persistence. |
 | Provider Setup | Preview | Read-only provider status surface; no API key fields, save action, or provider calls. |

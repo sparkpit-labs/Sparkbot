@@ -348,9 +348,26 @@ describe("App", () => {
 
     expect(screen.getByRole("heading", { level: 1, name: "Sparkbot" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Workstation Shell" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "System Status" })).toBeDefined();
+    expect(screen.getByText(/Read-only dashboard for the current local shell/i)).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Backend health" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "API base" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Capability source" })).toBeDefined();
+    expect(screen.getByText("Not checked")).toBeDefined();
+    expect(screen.getByText("Local read-only status requests only.")).toBeDefined();
+    expect(screen.getByText("12 public capability entries loaded.")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Health" })).toBeDefined();
+    expect(screen.getByText("GET /health")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Capabilities" })).toBeDefined();
+    expect(screen.getByText("GET /capabilities")).toBeDefined();
+    expect(screen.getByText("GET /chat/status")).toBeDefined();
+    expect(screen.getByText("GET /round-table/status")).toBeDefined();
+    expect(screen.getByText("GET /provider-config/status")).toBeDefined();
+    expect(screen.getByText("GET /connector-status")).toBeDefined();
+    expect(screen.getByText("GET /guardian/status")).toBeDefined();
     expect(screen.getByRole("heading", { name: "Shell Sections" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Workstation Overview" })).toBeDefined();
-    expect(screen.getByText("Using local fallback status list.")).toBeDefined();
+    expect(screen.getAllByText("Using local fallback status list.").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByRole("button", { name: /Workstation.*Preview/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Chat.*Preview/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Round Table.*Preview/i })).toBeDefined();
@@ -390,7 +407,7 @@ describe("App", () => {
     const plannedComposer = screen.getByLabelText("Chat message composer planned") as HTMLTextAreaElement;
     expect(plannedComposer.disabled).toBe(true);
     expect(plannedComposer.readOnly).toBe(true);
-    expect(screen.getByRole("heading", { name: "Round Table" })).toBeDefined();
+    expect(screen.getAllByRole("heading", { name: "Round Table" }).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("heading", { name: "Round Table Preview" })).toBeDefined();
     expect(screen.getByText("Using local Round Table status fallback.")).toBeDefined();
     expect(screen.getByText("Meeting engine")).toBeDefined();
@@ -461,7 +478,7 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(await screen.findByText("Using backend capabilities status.")).toBeDefined();
+    await waitFor(() => expect(screen.getAllByText("Using backend capabilities status.").length).toBeGreaterThanOrEqual(2));
     expect(screen.getByRole("heading", { name: "Backend health endpoint" })).toBeDefined();
     expect(screen.getByText("Read-only local health check.")).toBeDefined();
     expect(screen.getByText("No connector calls or external sends.")).toBeDefined();
@@ -469,6 +486,7 @@ describe("App", () => {
     expect(screen.getByText("No credential entry or storage path.")).toBeDefined();
     expect(screen.getByText("No terminal, tool, or automation execution.")).toBeDefined();
     expect(screen.getByText("Future local action")).toBeDefined();
+    expect(screen.getByText("13 public capability entries loaded.")).toBeDefined();
     expect(screen.getAllByText("Disabled by default").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(8);
   });

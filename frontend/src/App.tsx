@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { API_BASE_URL, fetchBackendHealth, fetchPublicCapabilities, type HealthPayload } from "./api";
+import PublicBaselineStatus from "./components/PublicBaselineStatus";
 import WorkstationShell from "./components/WorkstationShell";
 import {
   capabilityToStatusItem,
@@ -81,8 +82,16 @@ export default function App() {
     <main className="app-shell">
       <header className="shell-header">
         <h1>Sparkbot</h1>
-        <p className="intro">Sparkbot is an early local-first AI workstation shell from SparkPit Labs.</p>
+        <p className="intro">Sparkbot is an early local-first AI workstation shell from Spark Pit Labs Team. This public baseline is a read-only Workstation dashboard for status, preview, and contract surfaces.</p>
       </header>
+
+      <PublicBaselineStatus
+        apiBaseUrl={API_BASE_URL}
+        capabilityItems={capabilitiesState.items}
+        capabilitySourceLabel={capabilitiesState.sourceLabel}
+        healthMessage={healthState.message}
+        healthPhase={healthState.phase}
+      />
 
       <WorkstationShell statusItems={capabilitiesState.items} statusSourceLabel={capabilitiesState.sourceLabel} />
 
