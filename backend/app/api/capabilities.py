@@ -65,6 +65,12 @@ CAPABILITIES: list[Capability] = [
         "notes": "No credential storage or provider calls.",
     },
     {
+        "id": "model-seats",
+        "label": "Model Seat preview",
+        "status": "preview",
+        "notes": "No model assignment, routing, calls, credentials, or seat persistence.",
+    },
+    {
         "id": "guardian-controls",
         "label": "Guardian Controls shell",
         "status": "preview",

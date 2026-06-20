@@ -11,6 +11,7 @@ provider_config_status_url="${SPARKBOT_BACKEND_URL%/}/provider-config/status"
 connector_status_url="${SPARKBOT_BACKEND_URL%/}/connector-status"
 guardian_status_url="${SPARKBOT_BACKEND_URL%/}/guardian/status"
 round_table_status_url="${SPARKBOT_BACKEND_URL%/}/round-table/status"
+model_seats_status_url="${SPARKBOT_BACKEND_URL%/}/model-seats/status"
 
 echo "Checking backend health at ${backend_health_url}"
 backend_response="$(curl -fsS "${backend_health_url}")"
@@ -131,6 +132,29 @@ case "${round_table_status_response}" in
     ;;
   *)
     echo "Round Table status response did not report agent orchestration as not implemented." >&2
+    exit 1
+    ;;
+esac
+
+
+echo "Checking Model Seat status at ${model_seats_status_url}"
+model_seats_status_response="$(curl -fsS "${model_seats_status_url}")"
+printf "%s\n" "${model_seats_status_response}"
+
+case "${model_seats_status_response}" in
+  *\"model_calls\":\"not-implemented\"*|*\"model_calls\":\ \"not-implemented\"*)
+    ;;
+  *)
+    echo "Model Seat status response did not report model calls as not implemented." >&2
+    exit 1
+    ;;
+esac
+
+case "${model_seats_status_response}" in
+  *\"model_routing\":\"not-implemented\"*|*\"model_routing\":\ \"not-implemented\"*)
+    ;;
+  *)
+    echo "Model Seat status response did not report model routing as not implemented." >&2
     exit 1
     ;;
 esac

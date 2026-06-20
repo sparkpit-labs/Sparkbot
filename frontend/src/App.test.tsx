@@ -44,6 +44,12 @@ const capabilitiesPayload = {
       notes: "No credential storage or provider calls."
     },
     {
+      id: "model-seats",
+      label: "Model Seat preview",
+      status: "preview",
+      notes: "No model assignment, routing, calls, credentials, or seat persistence."
+    },
+    {
       id: "guardian-controls",
       label: "Guardian Controls shell",
       status: "preview",
@@ -163,6 +169,42 @@ const roundTableStatusPayload = {
       label: "Reviewer seat",
       status: "planned",
       notes: "Reviewer role is planned. No review workflow runtime is implemented."
+    }
+  ]
+};
+
+const modelSeatsStatusPayload = {
+  service: "sparkbot-server",
+  mode: "local",
+  status: "preview",
+  model_calls: "not-implemented",
+  model_routing: "not-implemented",
+  provider_credentials: "not-implemented",
+  seat_persistence: "not-implemented",
+  seats: [
+    {
+      id: "default-assistant",
+      label: "Default Assistant Seat",
+      status: "preview",
+      notes: "Read-only seat preview. No model is assigned or called."
+    },
+    {
+      id: "research-seat",
+      label: "Research Seat",
+      status: "planned",
+      notes: "Future seat for research workflows. No runtime behavior is implemented."
+    },
+    {
+      id: "builder-seat",
+      label: "Builder Seat",
+      status: "planned",
+      notes: "Future seat for implementation workflows. No tool execution is implemented."
+    },
+    {
+      id: "reviewer-seat",
+      label: "Reviewer Seat",
+      status: "planned",
+      notes: "Future seat for review workflows. No model routing is implemented."
     }
   ]
 };
@@ -314,6 +356,10 @@ function mockBackendStatusFetch() {
       return mockJsonResponse(roundTableStatusPayload);
     }
 
+    if (url.includes("/model-seats/status")) {
+      return mockJsonResponse(modelSeatsStatusPayload);
+    }
+
     if (url.includes("/guardian/status")) {
       return mockJsonResponse(guardianStatusPayload);
     }
@@ -355,13 +401,14 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Capability source" })).toBeDefined();
     expect(screen.getByText("Not checked")).toBeDefined();
     expect(screen.getByText("Local read-only status requests only.")).toBeDefined();
-    expect(screen.getByText("12 public capability entries loaded.")).toBeDefined();
+    expect(screen.getByText("13 public capability entries loaded.")).toBeDefined();
     expect(screen.getByRole("heading", { name: "Health" })).toBeDefined();
     expect(screen.getByText("GET /health")).toBeDefined();
     expect(screen.getByRole("heading", { name: "Capabilities" })).toBeDefined();
     expect(screen.getByText("GET /capabilities")).toBeDefined();
     expect(screen.getByText("GET /chat/status")).toBeDefined();
     expect(screen.getByText("GET /round-table/status")).toBeDefined();
+    expect(screen.getByText("GET /model-seats/status")).toBeDefined();
     expect(screen.getByText("GET /provider-config/status")).toBeDefined();
     expect(screen.getByText("GET /connector-status")).toBeDefined();
     expect(screen.getByText("GET /guardian/status")).toBeDefined();
@@ -371,6 +418,7 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: /Workstation.*Preview/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Chat.*Preview/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Round Table.*Preview/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Model Seats.*Preview/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Provider Setup.*Preview/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Guardian Controls.*Preview/i })).toBeDefined();
     expect(screen.getAllByText("Available").length).toBeGreaterThanOrEqual(2);
@@ -421,7 +469,18 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Reviewer seat" })).toBeDefined();
     expect(screen.getByText(/Multi-participant collaboration is planned/i)).toBeDefined();
     expect(screen.getByText(/does not start meetings, invite participants, call models/i)).toBeDefined();
-    expect(screen.getAllByText("Preview").length).toBeGreaterThanOrEqual(5);
+    expect(screen.getByRole("heading", { name: "Model Seat Preview" })).toBeDefined();
+    expect(screen.getByText("Using local Model Seat status fallback.")).toBeDefined();
+    expect(screen.getByText(/Model seats show the future multi-model workspace direction/i)).toBeDefined();
+    expect(screen.getAllByText("Model routing").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Provider credentials")).toBeDefined();
+    expect(screen.getByText("Seat persistence")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Default Assistant Seat" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Research Seat" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Builder Seat" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Reviewer Seat" })).toBeDefined();
+    expect(screen.getByText(/does not assign models, route requests, collect credentials/i)).toBeDefined();
+    expect(screen.getAllByText("Preview").length).toBeGreaterThanOrEqual(6);
     expect(screen.getByRole("heading", { name: "Provider Setup Preview" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Local provider" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "OpenAI-compatible provider" })).toBeDefined();
@@ -432,7 +491,7 @@ describe("App", () => {
     expect(screen.getByText("Using local provider status fallback.")).toBeDefined();
     expect(screen.getAllByText("Credential storage").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Provider calls")).toBeDefined();
-    expect(screen.getByText("Model routing")).toBeDefined();
+    expect(screen.getAllByText("Model routing").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("not implemented").length).toBeGreaterThanOrEqual(3);
     expect(screen.getByText(/no API key fields, no password or token fields/i)).toBeDefined();
     expect(screen.getByRole("heading", { name: "Connector Status Preview" })).toBeDefined();
@@ -486,7 +545,7 @@ describe("App", () => {
     expect(screen.getByText("No credential entry or storage path.")).toBeDefined();
     expect(screen.getByText("No terminal, tool, or automation execution.")).toBeDefined();
     expect(screen.getByText("Future local action")).toBeDefined();
-    expect(screen.getByText("13 public capability entries loaded.")).toBeDefined();
+    expect(screen.getByText("14 public capability entries loaded.")).toBeDefined();
     expect(screen.getAllByText("Disabled by default").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(8);
   });
@@ -540,6 +599,29 @@ describe("App", () => {
     expect(screen.getAllByText("Planned").length).toBeGreaterThanOrEqual(3);
   });
 
+  it("renders backend Model Seat status when the status API responds", async () => {
+    vi.stubGlobal("fetch", mockBackendStatusFetch());
+
+    render(<App />);
+
+    expect(await screen.findByText("Using backend Model Seat status.")).toBeDefined();
+    expect(screen.getAllByText("Model calls").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Model routing").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Provider credentials")).toBeDefined();
+    expect(screen.getByText("Seat persistence")).toBeDefined();
+    expect(screen.getAllByText("not implemented").length).toBeGreaterThanOrEqual(4);
+    expect(screen.getByRole("heading", { name: "Default Assistant Seat" })).toBeDefined();
+    expect(screen.getByText("Read-only seat preview. No model is assigned or called.")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Research Seat" })).toBeDefined();
+    expect(screen.getByText("Future seat for research workflows. No runtime behavior is implemented.")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Builder Seat" })).toBeDefined();
+    expect(screen.getByText("Future seat for implementation workflows. No tool execution is implemented.")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Reviewer Seat" })).toBeDefined();
+    expect(screen.getByText("Future seat for review workflows. No model routing is implemented.")).toBeDefined();
+    expect(screen.getAllByText("Preview").length).toBeGreaterThanOrEqual(8);
+    expect(screen.getAllByText("Planned").length).toBeGreaterThanOrEqual(4);
+  });
+
   it("renders backend provider configuration status when the status API responds", async () => {
     vi.stubGlobal("fetch", mockBackendStatusFetch());
 
@@ -548,7 +630,7 @@ describe("App", () => {
     expect(await screen.findByText("Using backend provider configuration status.")).toBeDefined();
     expect(screen.getAllByText("Credential storage").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Provider calls")).toBeDefined();
-    expect(screen.getByText("Model routing")).toBeDefined();
+    expect(screen.getAllByText("Model routing").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("not implemented").length).toBeGreaterThanOrEqual(3);
     expect(screen.getByRole("heading", { name: "Local provider" })).toBeDefined();
     expect(screen.getByText("Local provider configuration is planned. No runtime provider calls are made.")).toBeDefined();
@@ -609,7 +691,7 @@ describe("App", () => {
     render(<App />);
 
     expect(screen.getAllByText("Available").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getAllByText("Preview").length).toBeGreaterThanOrEqual(5);
+    expect(screen.getAllByText("Preview").length).toBeGreaterThanOrEqual(6);
     expect(screen.getAllByText("Planned").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Disabled by default").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(4);

@@ -546,6 +546,66 @@ h3 {
   font-size: 0.94rem;
 }
 
+
+.model-seat-preview {
+  border: 1px solid #ccd7df;
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(246, 249, 252, 0.98)),
+    repeating-linear-gradient(135deg, rgba(39, 111, 182, 0.04) 0, rgba(39, 111, 182, 0.04) 1px, transparent 1px, transparent 24px);
+  padding: 18px;
+  display: grid;
+  gap: 16px;
+  box-shadow: 0 12px 26px rgba(12, 18, 25, 0.06);
+}
+
+.model-seat-copy {
+  display: grid;
+  gap: 8px;
+}
+
+.model-seat-copy p,
+.model-seat-card p,
+.model-seat-note {
+  margin: 0;
+  color: #4b5b6c;
+}
+
+.model-seat-status-grid,
+.model-seat-layout {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.model-seat-card {
+  border: 1px solid #d7dce3;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  padding: 12px;
+  min-height: 160px;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.model-seat-card-top {
+  display: grid;
+  gap: 8px;
+}
+
+.model-seat-role {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #283746;
+}
+
+.model-seat-note {
+  border-top: 1px solid #d7dce3;
+  padding-top: 12px;
+  font-size: 0.94rem;
+}
+
 .provider-setup-preview {
   border: 1px solid #ccd7df;
   border-radius: 8px;
@@ -818,7 +878,9 @@ dd {
 
   .chat-status-grid,
   .round-table-status-grid,
-  .round-table-layout {
+  .round-table-layout,
+  .model-seat-status-grid,
+  .model-seat-layout {
     grid-template-columns: 1fr;
   }
 
@@ -857,7 +919,9 @@ dd {
 
   .chat-status-grid,
   .round-table-status-grid,
-  .round-table-layout {
+  .round-table-layout,
+  .model-seat-status-grid,
+  .model-seat-layout {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

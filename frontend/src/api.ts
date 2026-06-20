@@ -22,6 +22,7 @@ export type CapabilitiesPayload = {
 export type ProviderImplementationStatus = "not-implemented";
 export type ChatImplementationStatus = "not-implemented";
 export type RoundTableImplementationStatus = "not-implemented";
+export type ModelSeatImplementationStatus = "not-implemented";
 export type ConnectorImplementationStatus = "not-implemented";
 export type ConnectorAuditTrailStatus = "planned";
 export type GuardianImplementationStatus = "not-implemented";
@@ -63,6 +64,24 @@ export type RoundTableStatusPayload = {
   model_calls: RoundTableImplementationStatus;
   turn_persistence: RoundTableImplementationStatus;
   seats: RoundTableSeatStatusItem[];
+};
+
+export type ModelSeatStatusItem = {
+  id: string;
+  label: string;
+  status: PublicCapabilityStatus;
+  notes: string;
+};
+
+export type ModelSeatsStatusPayload = {
+  service: string;
+  mode: string;
+  status: PublicCapabilityStatus;
+  model_calls: ModelSeatImplementationStatus;
+  model_routing: ModelSeatImplementationStatus;
+  provider_credentials: ModelSeatImplementationStatus;
+  seat_persistence: ModelSeatImplementationStatus;
+  seats: ModelSeatStatusItem[];
 };
 
 export type ProviderStatusItem = {
@@ -306,6 +325,61 @@ export async function fetchRoundTableStatus(signal?: AbortSignal): Promise<Round
     agent_orchestration: payload.agent_orchestration,
     model_calls: payload.model_calls,
     turn_persistence: payload.turn_persistence,
+    seats
+  };
+}
+
+export async function fetchModelSeatsStatus(signal?: AbortSignal): Promise<ModelSeatsStatusPayload> {
+  const endpoint = new URL("/model-seats/status", API_BASE_URL).toString();
+  const response = await fetch(endpoint, {
+    method: "GET",
+    headers: {
+      Accept: "application/json"
+    },
+    cache: "no-store",
+    signal
+  });
+
+  if (!response.ok) {
+    throw new Error(`Model Seat status request failed with status ${response.status}`);
+  }
+
+  const payload = (await response.json()) as Partial<ModelSeatsStatusPayload>;
+  if (
+    !payload.service ||
+    !payload.mode ||
+    !payload.status ||
+    payload.model_calls !== "not-implemented" ||
+    payload.model_routing !== "not-implemented" ||
+    payload.provider_credentials !== "not-implemented" ||
+    payload.seat_persistence !== "not-implemented" ||
+    !Array.isArray(payload.seats) ||
+    !publicCapabilityStatuses.has(payload.status)
+  ) {
+    throw new Error("Model Seat status response is missing required fields");
+  }
+
+  const seats = payload.seats.map((seat) => {
+    if (!seat || !seat.id || !seat.label || !seat.notes || !publicCapabilityStatuses.has(seat.status ?? "")) {
+      throw new Error("Model Seat status response includes an invalid seat item");
+    }
+
+    return {
+      id: seat.id,
+      label: seat.label,
+      status: seat.status,
+      notes: seat.notes
+    };
+  });
+
+  return {
+    service: payload.service,
+    mode: payload.mode,
+    status: payload.status,
+    model_calls: payload.model_calls,
+    model_routing: payload.model_routing,
+    provider_credentials: payload.provider_credentials,
+    seat_persistence: payload.seat_persistence,
     seats
   };
 }

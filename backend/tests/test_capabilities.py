@@ -55,6 +55,12 @@ def test_capabilities_are_static_and_public_safe() -> None:
             "notes": "No credential storage or provider calls.",
         },
         {
+            "id": "model-seats",
+            "label": "Model Seat preview",
+            "status": "preview",
+            "notes": "No model assignment, routing, calls, credentials, or seat persistence.",
+        },
+        {
             "id": "guardian-controls",
             "label": "Guardian Controls shell",
             "status": "preview",
@@ -140,6 +146,7 @@ def test_preview_shell_capabilities_do_not_claim_runtime_operation() -> None:
         "chat": ["no model calls", "message persistence"],
         "round-table": ["no meeting engine", "agent orchestration"],
         "provider-setup": ["no credential storage", "provider calls"],
+        "model-seats": ["no model assignment", "routing", "seat persistence"],
         "guardian-controls": ["no policy enforcement runtime"],
     }
 

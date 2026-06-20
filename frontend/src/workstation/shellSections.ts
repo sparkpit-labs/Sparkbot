@@ -35,6 +35,12 @@ export const shellSections: ShellSection[] = [
     summary: "Static seat layout for future multi-participant work."
   },
   {
+    id: "model-seats",
+    label: "Model Seats",
+    status: "preview",
+    summary: "Read-only model seat plan with routing and calls inactive."
+  },
+  {
     id: "provider-setup",
     label: "Provider Setup",
     status: "preview",

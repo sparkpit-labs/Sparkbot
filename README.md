@@ -21,6 +21,7 @@ The current repository is a validated shell baseline. It is useful for review, l
 | Workstation shell | Preview | Read-only dashboard with public baseline status, capability grouping, and product shell layout. |
 | Chat shell | Preview | Read-only status surface; no chat runtime, message persistence, model calls, streaming, provider routing, or send action. |
 | Round Table | Preview | Read-only status surface; no meeting engine, agent orchestration, model calls, or turn persistence. |
+| Model Seats | Preview | Read-only model seat status surface; no model assignment, routing, calls, credentials, or seat persistence. |
 | Provider Setup | Preview | Read-only provider status surface; no API key fields, save action, or provider calls. |
 | Guardian Controls | Preview | Read-only Guardian policy status surface; no approvals, enforcement, or sensitive actions. |
 | Desktop packaging | Planned | No installer or desktop binary exists yet. |
@@ -31,7 +32,7 @@ The current repository is a validated shell baseline. It is useful for review, l
 
 ## Release and checkpoint status
 
-The latest public checkpoint tag on `main` is `public-v1-chat-status-0`.
+The latest public checkpoint tag on `main` is `public-v1-model-seat-preview-0`.
 
 The GitHub pre-release `public-v1-shell-baseline-0` remains the first published shell baseline release. Development continues on `main` through checkpoint tags, so `main` may include newer docs and planning checkpoints than the first pre-release page.
 
@@ -87,6 +88,12 @@ Expected Chat status URL:
 
 ```text
 http://127.0.0.1:8000/chat/status
+```
+
+Expected Model Seat status URL:
+
+```text
+http://127.0.0.1:8000/model-seats/status
 ```
 
 Expected provider configuration status URL:
@@ -158,6 +165,7 @@ Open `http://127.0.0.1:15173` for the browser check. See `docs/LOCAL_SMOKE_TEST.
 - No desktop installer or desktop binary.
 - No real chat runtime.
 - No model calls or model routing.
+- No model seat assignment or seat persistence.
 - No provider credential setup.
 - No credential storage.
 - No Round Table meeting engine.

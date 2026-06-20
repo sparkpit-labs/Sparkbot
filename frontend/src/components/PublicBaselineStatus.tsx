@@ -48,6 +48,13 @@ const surfaceStatuses: SurfaceStatus[] = [
     summary: "No meeting engine, agent orchestration, model calls, or turn persistence."
   },
   {
+    id: "model-seats",
+    label: "Model Seats",
+    endpoint: "GET /model-seats/status",
+    status: "preview",
+    summary: "No model assignment, routing, calls, credentials, or seat persistence."
+  },
+  {
     id: "provider-config",
     label: "Provider Config",
     endpoint: "GET /provider-config/status",
