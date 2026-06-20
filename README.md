@@ -22,6 +22,7 @@ The current repository is a validated shell baseline. It is useful for review, l
 | Chat shell | Preview | Read-only status surface; no chat runtime, message persistence, model calls, streaming, provider routing, or send action. |
 | Round Table | Preview | Read-only status surface; no meeting engine, agent orchestration, model calls, or turn persistence. |
 | Model Seats | Preview | Read-only model seat status surface; no model assignment, routing, calls, credentials, or seat persistence. |
+| Task Lanes | Preview | Read-only task lane status surface; no scheduler, background jobs, notifications, task execution, or persistence. |
 | Provider Setup | Preview | Read-only provider status surface; no API key fields, save action, or provider calls. |
 | Guardian Controls | Preview | Read-only Guardian policy status surface; no approvals, enforcement, or sensitive actions. |
 | Desktop packaging | Planned | No installer or desktop binary exists yet. |
@@ -94,6 +95,12 @@ Expected Model Seat status URL:
 
 ```text
 http://127.0.0.1:8000/model-seats/status
+```
+
+Expected Task Lane status URL:
+
+```text
+http://127.0.0.1:8000/work-lanes/status
 ```
 
 Expected provider configuration status URL:

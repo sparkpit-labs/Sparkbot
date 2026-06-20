@@ -54,6 +54,12 @@ export const workstationStatusItems: WorkstationStatusItem[] = [
     summary: "No model assignment, routing, calls, credentials, or seat persistence."
   },
   {
+    id: "work-lanes",
+    name: "Task Lane preview",
+    status: "preview",
+    summary: "No scheduler, background jobs, task execution, notifications, or task persistence."
+  },
+  {
     id: "guardian-controls",
     name: "Guardian Controls shell",
     status: "preview",
@@ -106,5 +112,5 @@ export const workstationRoadmapItems: string[] = [
   "Expand Round Table preview surfaces only after public interaction contracts are documented.",
   "Document provider setup contracts before enabling credential or network behavior.",
   "Document Guardian control contracts before enabling approval or enforcement behavior.",
-  "Prepare model seat, provider, and guardrail integration points without runtime activation."
+  "Prepare model seat, task lane, provider, and guardrail integration points without runtime activation."
 ];

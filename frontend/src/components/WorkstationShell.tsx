@@ -9,6 +9,7 @@ import RoadmapCard from "./RoadmapCard";
 import RoundTablePreview from "./RoundTablePreview";
 import ShellNavigation from "./ShellNavigation";
 import StatusCard from "./StatusCard";
+import TaskLanePreview from "./TaskLanePreview";
 import { workstationRoadmapItems, workstationStatusItems, type WorkstationStatusItem } from "../workstation/workstationStatus";
 
 type WorkstationShellProps = {
@@ -86,6 +87,7 @@ export default function WorkstationShell({
           <ChatShellPreview />
           <RoundTablePreview />
           <ModelSeatPreview />
+          <TaskLanePreview />
           <ProviderSetupPreview />
           <ConnectorStatusPreview />
           <GuardianControlsPreview />

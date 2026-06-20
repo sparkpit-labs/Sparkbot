@@ -55,6 +55,13 @@ const surfaceStatuses: SurfaceStatus[] = [
     summary: "No model assignment, routing, calls, credentials, or seat persistence."
   },
   {
+    id: "work-lanes",
+    label: "Task Lanes",
+    endpoint: "GET /work-lanes/status",
+    status: "preview",
+    summary: "No scheduler, background jobs, notifications, task execution, or persistence."
+  },
+  {
     id: "provider-config",
     label: "Provider Config",
     endpoint: "GET /provider-config/status",

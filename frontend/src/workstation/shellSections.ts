@@ -41,6 +41,12 @@ export const shellSections: ShellSection[] = [
     summary: "Read-only model seat plan with routing and calls inactive."
   },
   {
+    id: "work-lanes",
+    label: "Task Lanes",
+    status: "preview",
+    summary: "Read-only lane plan with scheduling and execution inactive."
+  },
+  {
     id: "provider-setup",
     label: "Provider Setup",
     status: "preview",

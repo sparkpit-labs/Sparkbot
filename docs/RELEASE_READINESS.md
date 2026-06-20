@@ -4,7 +4,7 @@ This document tracks public shell readiness for review and phased release decisi
 
 ## Current baseline
 
-- Backend: local read-only health, capabilities, Chat status, provider configuration status, connector status, Guardian policy status, and Round Table status endpoints are present and validated.
+- Backend: local read-only health, capabilities, Chat status, provider configuration status, connector status, Guardian policy status, Round Table status, Model Seat status, and Task Lane status endpoints are present and validated.
 - Frontend: static shell previews are present and can display backend capability and Chat status data with local fallback.
 - Workstation, Chat, Round Table, Provider Setup, and Guardian Controls are preview or status surfaces with runtime behavior disabled.
 

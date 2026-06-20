@@ -12,6 +12,7 @@ connector_status_url="${SPARKBOT_BACKEND_URL%/}/connector-status"
 guardian_status_url="${SPARKBOT_BACKEND_URL%/}/guardian/status"
 round_table_status_url="${SPARKBOT_BACKEND_URL%/}/round-table/status"
 model_seats_status_url="${SPARKBOT_BACKEND_URL%/}/model-seats/status"
+task_lanes_status_url="${SPARKBOT_BACKEND_URL%/}/work-lanes/status"
 
 echo "Checking backend health at ${backend_health_url}"
 backend_response="$(curl -fsS "${backend_health_url}")"
@@ -155,6 +156,28 @@ case "${model_seats_status_response}" in
     ;;
   *)
     echo "Model Seat status response did not report model routing as not implemented." >&2
+    exit 1
+    ;;
+esac
+
+echo "Checking Task Lane status at ${task_lanes_status_url}"
+task_lanes_status_response="$(curl -fsS "${task_lanes_status_url}")"
+printf "%s\n" "${task_lanes_status_response}"
+
+case "${task_lanes_status_response}" in
+  *\"task_runtime\":\"not-implemented\"*|*\"task_runtime\":\ \"not-implemented\"*)
+    ;;
+  *)
+    echo "Task Lane status response did not report task runtime as not implemented." >&2
+    exit 1
+    ;;
+esac
+
+case "${task_lanes_status_response}" in
+  *\"scheduler\":\"not-implemented\"*|*\"scheduler\":\ \"not-implemented\"*)
+    ;;
+  *)
+    echo "Task Lane status response did not report scheduler as not implemented." >&2
     exit 1
     ;;
 esac

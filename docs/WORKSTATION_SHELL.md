@@ -13,6 +13,7 @@ The current public shell baseline includes a local Workstation shell skeleton fo
 - Read-only Chat status surface with a disabled read-only planned composer and no send action.
 - Read-only Round Table status surface with inert Operator, Assistant, Research, Builder, and Reviewer seats.
 - Read-only Model Seat status surface with inert Default Assistant, Research, Builder, and Reviewer seats.
+- Read-only Task Lane status surface with inert Inbox, Planned, Active, and Review lanes.
 - Read-only Provider Setup status surface with inert local, compatible provider, and custom endpoint cards.
 - Read-only Connector Status surface with connectors disabled and no outbound actions.
 - Read-only Guardian Controls status surface with inert local action, provider access, workspace, connection, checkpoint, and audit cards.
@@ -27,6 +28,7 @@ The current public shell baseline includes a local Workstation shell skeleton fo
 - Round Table: Preview
 - Provider setup: Preview
 - Model seats: Preview
+- Task lanes: Preview
 - Connector status: Guarded future
 - Guardian-gated controls: Preview
 - Desktop packaging: Planned
@@ -46,6 +48,7 @@ Status labels in the UI mean:
 - Round Table runtime implementation
 - Model calls
 - Model seat assignment or persistence
+- Task scheduling, persistence, notifications, background jobs, or execution
 - Tool execution
 - Provider setup runtime forms
 - Guardian runtime controls and policy enforcement
@@ -67,4 +70,4 @@ pytest backend/tests -q
 
 ## Scope Notes
 
-This is a product-direction shell slice only. It does not claim release readiness and does not activate Chat, Round Table, Model Seat, Provider Setup, Connector Status, or Guardian Controls runtime behavior beyond existing read-only local status fetches.
+This is a product-direction shell slice only. It does not claim release readiness and does not activate Chat, Round Table, Model Seat, Task Lane, Provider Setup, Connector Status, or Guardian Controls runtime behavior beyond existing read-only local status fetches.

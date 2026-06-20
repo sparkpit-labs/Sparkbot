@@ -50,6 +50,12 @@ const capabilitiesPayload = {
       notes: "No model assignment, routing, calls, credentials, or seat persistence."
     },
     {
+      id: "work-lanes",
+      label: "Task Lane preview",
+      status: "preview",
+      notes: "No scheduler, background jobs, task execution, notifications, or task persistence."
+    },
+    {
       id: "guardian-controls",
       label: "Guardian Controls shell",
       status: "preview",
@@ -209,6 +215,43 @@ const modelSeatsStatusPayload = {
   ]
 };
 
+const taskLanesStatusPayload = {
+  service: "sparkbot-server",
+  mode: "local",
+  status: "preview",
+  task_runtime: "not-implemented",
+  task_persistence: "not-implemented",
+  scheduler: "not-implemented",
+  background_jobs: "not-implemented",
+  notifications: "not-implemented",
+  lanes: [
+    {
+      id: "inbox",
+      label: "Inbox Lane",
+      status: "preview",
+      notes: "Read-only lane preview. No tasks are stored or executed."
+    },
+    {
+      id: "planned",
+      label: "Planned Lane",
+      status: "planned",
+      notes: "Future planning lane. No scheduler is implemented."
+    },
+    {
+      id: "active",
+      label: "Active Lane",
+      status: "planned",
+      notes: "Future active work lane. No task runtime is implemented."
+    },
+    {
+      id: "review",
+      label: "Review Lane",
+      status: "planned",
+      notes: "Future review lane. No workflow runtime is implemented."
+    }
+  ]
+};
+
 const providerConfigStatusPayload = {
   service: "sparkbot-server",
   mode: "local",
@@ -360,6 +403,10 @@ function mockBackendStatusFetch() {
       return mockJsonResponse(modelSeatsStatusPayload);
     }
 
+    if (url.includes("/work-lanes/status")) {
+      return mockJsonResponse(taskLanesStatusPayload);
+    }
+
     if (url.includes("/guardian/status")) {
       return mockJsonResponse(guardianStatusPayload);
     }
@@ -401,7 +448,7 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Capability source" })).toBeDefined();
     expect(screen.getByText("Not checked")).toBeDefined();
     expect(screen.getByText("Local read-only status requests only.")).toBeDefined();
-    expect(screen.getByText("13 public capability entries loaded.")).toBeDefined();
+    expect(screen.getByText("14 public capability entries loaded.")).toBeDefined();
     expect(screen.getByRole("heading", { name: "Health" })).toBeDefined();
     expect(screen.getByText("GET /health")).toBeDefined();
     expect(screen.getByRole("heading", { name: "Capabilities" })).toBeDefined();
@@ -409,6 +456,7 @@ describe("App", () => {
     expect(screen.getByText("GET /chat/status")).toBeDefined();
     expect(screen.getByText("GET /round-table/status")).toBeDefined();
     expect(screen.getByText("GET /model-seats/status")).toBeDefined();
+    expect(screen.getByText("GET /work-lanes/status")).toBeDefined();
     expect(screen.getByText("GET /provider-config/status")).toBeDefined();
     expect(screen.getByText("GET /connector-status")).toBeDefined();
     expect(screen.getByText("GET /guardian/status")).toBeDefined();
@@ -419,6 +467,7 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: /Chat.*Preview/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Round Table.*Preview/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Model Seats.*Preview/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Task Lanes.*Preview/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Provider Setup.*Preview/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Guardian Controls.*Preview/i })).toBeDefined();
     expect(screen.getAllByText("Available").length).toBeGreaterThanOrEqual(2);
@@ -480,6 +529,19 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Builder Seat" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Reviewer Seat" })).toBeDefined();
     expect(screen.getByText(/does not assign models, route requests, collect credentials/i)).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Task Lane Preview" })).toBeDefined();
+    expect(screen.getByText("Using local Task Lane status fallback.")).toBeDefined();
+    expect(screen.getByText(/Task lanes show future workflow organization/i)).toBeDefined();
+    expect(screen.getByText("Task runtime")).toBeDefined();
+    expect(screen.getByText("Task persistence")).toBeDefined();
+    expect(screen.getByText("Scheduler")).toBeDefined();
+    expect(screen.getByText("Background jobs")).toBeDefined();
+    expect(screen.getByText("Notifications")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Inbox Lane" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Planned Lane" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Active Lane" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Review Lane" })).toBeDefined();
+    expect(screen.getByText(/does not create tasks, store tasks, run a scheduler/i)).toBeDefined();
     expect(screen.getAllByText("Preview").length).toBeGreaterThanOrEqual(6);
     expect(screen.getByRole("heading", { name: "Provider Setup Preview" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Local provider" })).toBeDefined();
@@ -530,7 +592,7 @@ describe("App", () => {
     expect(screen.getByText(/no approval buttons, no execution controls, no save actions/i)).toBeDefined();
     expect(screen.getByRole("heading", { name: "Backend Health" })).toBeDefined();
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/capabilities"), expect.any(Object)));
-  });
+  }, 10000);
 
   it("renders backend capability statuses when the capabilities API responds", async () => {
     vi.stubGlobal("fetch", mockBackendStatusFetch());
@@ -545,7 +607,7 @@ describe("App", () => {
     expect(screen.getByText("No credential entry or storage path.")).toBeDefined();
     expect(screen.getByText("No terminal, tool, or automation execution.")).toBeDefined();
     expect(screen.getByText("Future local action")).toBeDefined();
-    expect(screen.getByText("14 public capability entries loaded.")).toBeDefined();
+    expect(screen.getByText("15 public capability entries loaded.")).toBeDefined();
     expect(screen.getAllByText("Disabled by default").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(8);
   });
@@ -620,6 +682,30 @@ describe("App", () => {
     expect(screen.getByText("Future seat for review workflows. No model routing is implemented.")).toBeDefined();
     expect(screen.getAllByText("Preview").length).toBeGreaterThanOrEqual(8);
     expect(screen.getAllByText("Planned").length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("renders backend Task Lane status when the status API responds", async () => {
+    vi.stubGlobal("fetch", mockBackendStatusFetch());
+
+    render(<App />);
+
+    expect(await screen.findByText("Using backend Task Lane status.")).toBeDefined();
+    expect(screen.getByText("Task runtime")).toBeDefined();
+    expect(screen.getByText("Task persistence")).toBeDefined();
+    expect(screen.getByText("Scheduler")).toBeDefined();
+    expect(screen.getByText("Background jobs")).toBeDefined();
+    expect(screen.getByText("Notifications")).toBeDefined();
+    expect(screen.getAllByText("not implemented").length).toBeGreaterThanOrEqual(5);
+    expect(screen.getByRole("heading", { name: "Inbox Lane" })).toBeDefined();
+    expect(screen.getByText("Read-only lane preview. No tasks are stored or executed.")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Planned Lane" })).toBeDefined();
+    expect(screen.getByText("Future planning lane. No scheduler is implemented.")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Active Lane" })).toBeDefined();
+    expect(screen.getByText("Future active work lane. No task runtime is implemented.")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Review Lane" })).toBeDefined();
+    expect(screen.getByText("Future review lane. No workflow runtime is implemented.")).toBeDefined();
+    expect(screen.getAllByText("Preview").length).toBeGreaterThanOrEqual(9);
+    expect(screen.getAllByText("Planned").length).toBeGreaterThanOrEqual(7);
   });
 
   it("renders backend provider configuration status when the status API responds", async () => {
@@ -697,19 +783,19 @@ describe("App", () => {
     expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(4);
   });
 
-  it("keeps provider, connector, chat, Round Table, and guardian surfaces inert", () => {
+  it("keeps provider, connector, chat, Round Table, Task Lane, and guardian surfaces inert", () => {
     render(<App />);
 
-    expect(screen.queryByPlaceholderText(/api key|password|token/i)).toBeNull();
+    expect(screen.queryByPlaceholderText(/api key|password|token|task/i)).toBeNull();
     expect(screen.queryByLabelText(/api key|password|token/i)).toBeNull();
     expect(screen.queryByRole("textbox", { name: /api key|password|token/i })).toBeNull();
     expect(document.querySelectorAll('input').length).toBe(0);
     expect(document.querySelectorAll('textarea').length).toBe(1);
     expect(document.querySelectorAll('input[type="password"]').length).toBe(0);
-    expect(screen.queryByRole("button", { name: /save|test connection|connect/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /save|test connection|connect|complete|schedule|remind/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /approve|execute|enforce|allow|deny|assign/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /policy decision|runtime enforcement|approval token/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /start|join|send|run|invite/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /start|join|send|run|invite|add/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /send|execute|save|test/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /connector call|outbound action|external send/i })).toBeNull();
   });

@@ -61,6 +61,12 @@ def test_capabilities_are_static_and_public_safe() -> None:
             "notes": "No model assignment, routing, calls, credentials, or seat persistence.",
         },
         {
+            "id": "work-lanes",
+            "label": "Task Lane preview",
+            "status": "preview",
+            "notes": "No scheduler, background jobs, task execution, notifications, or task persistence.",
+        },
+        {
             "id": "guardian-controls",
             "label": "Guardian Controls shell",
             "status": "preview",
@@ -147,6 +153,7 @@ def test_preview_shell_capabilities_do_not_claim_runtime_operation() -> None:
         "round-table": ["no meeting engine", "agent orchestration"],
         "provider-setup": ["no credential storage", "provider calls"],
         "model-seats": ["no model assignment", "routing", "seat persistence"],
+        "work-lanes": ["no scheduler", "background jobs", "task persistence"],
         "guardian-controls": ["no policy enforcement runtime"],
     }
 

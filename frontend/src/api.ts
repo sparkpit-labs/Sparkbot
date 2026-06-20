@@ -23,6 +23,7 @@ export type ProviderImplementationStatus = "not-implemented";
 export type ChatImplementationStatus = "not-implemented";
 export type RoundTableImplementationStatus = "not-implemented";
 export type ModelSeatImplementationStatus = "not-implemented";
+export type TaskLaneImplementationStatus = "not-implemented";
 export type ConnectorImplementationStatus = "not-implemented";
 export type ConnectorAuditTrailStatus = "planned";
 export type GuardianImplementationStatus = "not-implemented";
@@ -82,6 +83,25 @@ export type ModelSeatsStatusPayload = {
   provider_credentials: ModelSeatImplementationStatus;
   seat_persistence: ModelSeatImplementationStatus;
   seats: ModelSeatStatusItem[];
+};
+
+export type TaskLaneStatusItem = {
+  id: string;
+  label: string;
+  status: PublicCapabilityStatus;
+  notes: string;
+};
+
+export type TaskLanesStatusPayload = {
+  service: string;
+  mode: string;
+  status: PublicCapabilityStatus;
+  task_runtime: TaskLaneImplementationStatus;
+  task_persistence: TaskLaneImplementationStatus;
+  scheduler: TaskLaneImplementationStatus;
+  background_jobs: TaskLaneImplementationStatus;
+  notifications: TaskLaneImplementationStatus;
+  lanes: TaskLaneStatusItem[];
 };
 
 export type ProviderStatusItem = {
@@ -381,6 +401,63 @@ export async function fetchModelSeatsStatus(signal?: AbortSignal): Promise<Model
     provider_credentials: payload.provider_credentials,
     seat_persistence: payload.seat_persistence,
     seats
+  };
+}
+
+export async function fetchTaskLanesStatus(signal?: AbortSignal): Promise<TaskLanesStatusPayload> {
+  const endpoint = new URL("/work-lanes/status", API_BASE_URL).toString();
+  const response = await fetch(endpoint, {
+    method: "GET",
+    headers: {
+      Accept: "application/json"
+    },
+    cache: "no-store",
+    signal
+  });
+
+  if (!response.ok) {
+    throw new Error(`Task Lane status request failed with status ${response.status}`);
+  }
+
+  const payload = (await response.json()) as Partial<TaskLanesStatusPayload>;
+  if (
+    !payload.service ||
+    !payload.mode ||
+    !payload.status ||
+    payload.task_runtime !== "not-implemented" ||
+    payload.task_persistence !== "not-implemented" ||
+    payload.scheduler !== "not-implemented" ||
+    payload.background_jobs !== "not-implemented" ||
+    payload.notifications !== "not-implemented" ||
+    !Array.isArray(payload.lanes) ||
+    !publicCapabilityStatuses.has(payload.status)
+  ) {
+    throw new Error("Task Lane status response is missing required fields");
+  }
+
+  const lanes = payload.lanes.map((lane) => {
+    if (!lane || !lane.id || !lane.label || !lane.notes || !publicCapabilityStatuses.has(lane.status ?? "")) {
+      throw new Error("Task Lane status response includes an invalid lane item");
+    }
+
+    return {
+      id: lane.id,
+      label: lane.label,
+      status: lane.status,
+      notes: lane.notes
+    };
+  });
+
+  return {
+    service: payload.service,
+    mode: payload.mode,
+    status: payload.status,
+    task_runtime: payload.task_runtime,
+    task_persistence: payload.task_persistence,
+    scheduler: payload.scheduler,
+    background_jobs: payload.background_jobs,
+    notifications: payload.notifications,
+    lanes
   };
 }
 

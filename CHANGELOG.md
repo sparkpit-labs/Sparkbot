@@ -6,6 +6,7 @@ This changelog tracks public Sparkbot repository baselines and release-facing do
 
 ### Added
 
+- Read-only Task Lane status endpoint and frontend status display with local fallback.
 - Read-only Model Seat status endpoint and frontend status display with local fallback.
 - Public capability, connector safety, provider configuration, and Guardian policy contracts for future implementation gates.
 - Capabilities endpoint and frontend status model alignment with public contract statuses, including guarded-future capability entries.

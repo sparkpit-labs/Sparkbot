@@ -71,6 +71,12 @@ CAPABILITIES: list[Capability] = [
         "notes": "No model assignment, routing, calls, credentials, or seat persistence.",
     },
     {
+        "id": "work-lanes",
+        "label": "Task Lane preview",
+        "status": "preview",
+        "notes": "No scheduler, background jobs, task execution, notifications, or task persistence.",
+    },
+    {
         "id": "guardian-controls",
         "label": "Guardian Controls shell",
         "status": "preview",
