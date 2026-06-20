@@ -393,6 +393,115 @@ h3 {
   border-color: #e2bcbc;
 }
 
+.local-runtime-panel {
+  border: 1px solid #cfd8df;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.97);
+  padding: 18px;
+  display: grid;
+  gap: 16px;
+  box-shadow: 0 12px 26px rgba(12, 18, 25, 0.06);
+}
+
+.local-runtime-heading,
+.local-runtime-form,
+.local-runtime-list,
+.local-message-list {
+  display: grid;
+  gap: 10px;
+}
+
+.local-runtime-heading p,
+.local-runtime-card p,
+.local-runtime-list p,
+.local-message-list p {
+  margin: 0;
+  color: #4b5b6c;
+}
+
+.local-runtime-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.8fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.local-runtime-form {
+  border: 1px solid #d7dce3;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.local-runtime-form label {
+  display: grid;
+  gap: 6px;
+  color: #283746;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.local-runtime-form input,
+.local-runtime-form select,
+.local-runtime-form textarea {
+  width: 100%;
+  border: 1px solid #cfd8df;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1c2530;
+  padding: 9px 10px;
+  font: inherit;
+}
+
+.local-runtime-form textarea {
+  min-height: 94px;
+  resize: vertical;
+}
+
+.local-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.local-list-button {
+  border: 1px solid #d7dce3;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1c2530;
+  padding: 10px;
+  display: grid;
+  gap: 4px;
+  text-align: left;
+}
+
+.local-list-button span,
+.local-runtime-card small {
+  color: #5c6b7c;
+  font-size: 0.84rem;
+}
+
+.local-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.local-runtime-card {
+  border: 1px solid #d7dce3;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 12px;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.local-runtime-card h3,
+.local-runtime-card h4 {
+  margin: 0;
+}
+
 .chat-shell-preview {
   border: 1px solid #ccd7df;
   border-radius: 8px;
@@ -936,7 +1045,9 @@ dd {
   .baseline-overview-grid,
   .baseline-count-grid,
   .baseline-surface-grid,
-  .status-grid {
+  .status-grid,
+  .local-runtime-grid,
+  .local-card-grid {
     grid-template-columns: 1fr;
   }
 
@@ -975,7 +1086,8 @@ dd {
   }
 
   .baseline-overview-grid,
-  .baseline-surface-grid {
+  .baseline-surface-grid,
+  .local-card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

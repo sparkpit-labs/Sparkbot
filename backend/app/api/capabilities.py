@@ -41,6 +41,30 @@ CAPABILITIES: list[Capability] = [
         "notes": "Public shell interface.",
     },
     {
+        "id": "local-workstation-store",
+        "label": "Local Workstation store",
+        "status": "available",
+        "notes": "Local SQLite storage for Workstation data.",
+    },
+    {
+        "id": "local-chat-drafts",
+        "label": "Local chat drafts",
+        "status": "available",
+        "notes": "Stores operator and note messages locally without model calls.",
+    },
+    {
+        "id": "local-memory-notes",
+        "label": "Local memory notes",
+        "status": "available",
+        "notes": "Stores local notes without cloud sync or model memory.",
+    },
+    {
+        "id": "local-work-lane-cards",
+        "label": "Local work lane cards",
+        "status": "available",
+        "notes": "Stores local planning cards without scheduler or task execution.",
+    },
+    {
         "id": "workstation",
         "label": "Workstation shell",
         "status": "preview",

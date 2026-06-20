@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
@@ -18,6 +18,30 @@ const capabilitiesPayload = {
       label: "Frontend shell",
       status: "available",
       notes: "Public shell interface."
+    },
+    {
+      id: "local-workstation-store",
+      label: "Local Workstation store",
+      status: "available",
+      notes: "Local SQLite storage for Workstation data."
+    },
+    {
+      id: "local-chat-drafts",
+      label: "Local chat drafts",
+      status: "available",
+      notes: "Stores operator and note messages locally without model calls."
+    },
+    {
+      id: "local-memory-notes",
+      label: "Local memory notes",
+      status: "available",
+      notes: "Stores local notes without cloud sync or model memory."
+    },
+    {
+      id: "local-work-lane-cards",
+      label: "Local work lane cards",
+      status: "available",
+      notes: "Stores local planning cards without scheduler or task execution."
     },
     {
       id: "workstation",
@@ -378,6 +402,61 @@ const guardianStatusPayload = {
   ]
 };
 
+const localChatSessionsPayload = {
+  sessions: [
+    {
+      id: "session-1",
+      title: "Seeded local chat",
+      created_at: "2026-06-20T00:00:00Z",
+      updated_at: "2026-06-20T00:00:00Z",
+      message_count: 1
+    }
+  ]
+};
+
+const localChatSessionPayload = {
+  id: "session-1",
+  title: "Seeded local chat",
+  created_at: "2026-06-20T00:00:00Z",
+  updated_at: "2026-06-20T00:00:00Z",
+  messages: [
+    {
+      id: "message-1",
+      session_id: "session-1",
+      role: "operator",
+      content: "Stored locally.",
+      created_at: "2026-06-20T00:00:00Z"
+    }
+  ]
+};
+
+const localMemoryNotesPayload = {
+  notes: [
+    {
+      id: "note-1",
+      title: "Seeded memory",
+      body: "Stored local note.",
+      source: "operator",
+      created_at: "2026-06-20T00:00:00Z",
+      updated_at: "2026-06-20T00:00:00Z"
+    }
+  ]
+};
+
+const localWorkLaneCardsPayload = {
+  cards: [
+    {
+      id: "card-1",
+      lane: "inbox",
+      title: "Seeded card",
+      body: "Stored local card.",
+      status: "open",
+      created_at: "2026-06-20T00:00:00Z",
+      updated_at: "2026-06-20T00:00:00Z"
+    }
+  ]
+};
+
 function mockJsonResponse(payload: unknown) {
   return Promise.resolve(
     new Response(JSON.stringify(payload), {
@@ -388,8 +467,37 @@ function mockJsonResponse(payload: unknown) {
 }
 
 function mockBackendStatusFetch() {
-  return vi.fn((input: RequestInfo | URL) => {
+  return vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
     const url = input.toString();
+    const method = init?.method ?? "GET";
+
+    if (url.includes("/local/chat/sessions/session-1/messages")) {
+      return mockJsonResponse(localChatSessionPayload.messages[0]);
+    }
+
+    if (url.includes("/local/chat/sessions/session-1")) {
+      return mockJsonResponse(localChatSessionPayload);
+    }
+
+    if (url.includes("/local/chat/sessions")) {
+      return mockJsonResponse(method === "POST" ? localChatSessionPayload : localChatSessionsPayload);
+    }
+
+    if (url.includes("/local/memory-notes/note-1")) {
+      return mockJsonResponse(localMemoryNotesPayload.notes[0]);
+    }
+
+    if (url.includes("/local/memory-notes")) {
+      return mockJsonResponse(method === "POST" || method === "PATCH" ? localMemoryNotesPayload.notes[0] : localMemoryNotesPayload);
+    }
+
+    if (url.includes("/local/work-lane-cards/card-1")) {
+      return mockJsonResponse(localWorkLaneCardsPayload.cards[0]);
+    }
+
+    if (url.includes("/local/work-lane-cards")) {
+      return mockJsonResponse(method === "POST" || method === "PATCH" ? localWorkLaneCardsPayload.cards[0] : localWorkLaneCardsPayload);
+    }
 
     if (url.includes("/chat/status")) {
       return mockJsonResponse(chatStatusPayload);
@@ -448,7 +556,7 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Capability source" })).toBeDefined();
     expect(screen.getByText("Not checked")).toBeDefined();
     expect(screen.getByText("Local read-only status requests only.")).toBeDefined();
-    expect(screen.getByText("14 public capability entries loaded.")).toBeDefined();
+    expect(screen.getByText("18 public capability entries loaded.")).toBeDefined();
     expect(screen.getByRole("heading", { name: "Health" })).toBeDefined();
     expect(screen.getByText("GET /health")).toBeDefined();
     expect(screen.getByRole("heading", { name: "Capabilities" })).toBeDefined();
@@ -470,6 +578,15 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: /Task Lanes.*Preview/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Provider Setup.*Preview/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Guardian Controls.*Preview/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Local Chat.*Available/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Memory Notes.*Available/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Work Cards.*Available/i })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Local Chat Drafts" })).toBeDefined();
+    expect(screen.getByText(/No model response is generated/i)).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Local Memory Notes" })).toBeDefined();
+    expect(screen.getByText(/not model memory and are not synced/i)).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Local Work Lane Cards" })).toBeDefined();
+    expect(screen.getByText(/do not run, schedule, remind, notify, or execute tasks/i)).toBeDefined();
     expect(screen.getAllByText("Available").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByRole("heading", { name: "Backend health endpoint" })).toBeDefined();
     expect(screen.getByText("Read-only local health check.")).toBeDefined();
@@ -607,7 +724,7 @@ describe("App", () => {
     expect(screen.getByText("No credential entry or storage path.")).toBeDefined();
     expect(screen.getByText("No terminal, tool, or automation execution.")).toBeDefined();
     expect(screen.getByText("Future local action")).toBeDefined();
-    expect(screen.getByText("15 public capability entries loaded.")).toBeDefined();
+    expect(screen.getByText("19 public capability entries loaded.")).toBeDefined();
     expect(screen.getAllByText("Disabled by default").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(8);
   });
@@ -773,6 +890,69 @@ describe("App", () => {
     expect(screen.getByText("No terminal or tool execution is implemented.")).toBeDefined();
   });
 
+  it("renders local Workstation runtime data from backend", async () => {
+    vi.stubGlobal("fetch", mockBackendStatusFetch());
+
+    render(<App />);
+
+    expect(await screen.findByText("Seeded local chat")).toBeDefined();
+    expect(screen.getByText("1 local messages")).toBeDefined();
+    expect(await screen.findByText("Seeded memory")).toBeDefined();
+    expect(screen.getByText("Stored local note.")).toBeDefined();
+    expect(await screen.findByText("Seeded card")).toBeDefined();
+    expect(screen.getByText("Stored local card.")).toBeDefined();
+    expect(screen.getAllByRole("button", { name: "Edit" }).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByRole("button", { name: "Delete" }).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("creates a local chat session and stores a local message", async () => {
+    const fetchMock = mockBackendStatusFetch();
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+
+    fireEvent.change(screen.getByLabelText("Session title"), { target: { value: "New local chat" } });
+    fireEvent.click(screen.getAllByRole("button", { name: "Save locally" })[0]);
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/local/chat/sessions"), expect.objectContaining({ method: "POST" }))
+    );
+
+    const localMessage = await screen.findByLabelText("Local message");
+    fireEvent.change(localMessage, { target: { value: "Store this operator message locally." } });
+    fireEvent.click(screen.getAllByRole("button", { name: "Save locally" })[1]);
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/local/chat/sessions/session-1/messages"),
+        expect.objectContaining({ method: "POST" })
+      )
+    );
+  });
+
+  it("creates local memory notes and work lane cards through local endpoints", async () => {
+    const fetchMock = mockBackendStatusFetch();
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+
+    fireEvent.change(screen.getByLabelText("Note title"), { target: { value: "New local note" } });
+    fireEvent.change(screen.getByLabelText("Note body"), { target: { value: "Only local storage." } });
+    fireEvent.click(screen.getByRole("button", { name: "Add local note" }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/local/memory-notes"), expect.objectContaining({ method: "POST" }))
+    );
+
+    fireEvent.change(screen.getByLabelText("Card title"), { target: { value: "New local card" } });
+    fireEvent.change(screen.getByLabelText("Card body"), { target: { value: "Plan this locally." } });
+    fireEvent.click(screen.getByRole("button", { name: "Add card" }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/local/work-lane-cards"), expect.objectContaining({ method: "POST" }))
+    );
+  });
+
   it("keeps fallback statuses on the public capability contract vocabulary", () => {
     render(<App />);
 
@@ -786,17 +966,17 @@ describe("App", () => {
   it("keeps provider, connector, chat, Round Table, Task Lane, and guardian surfaces inert", () => {
     render(<App />);
 
-    expect(screen.queryByPlaceholderText(/api key|password|token|task/i)).toBeNull();
+    expect(screen.queryByPlaceholderText(/api key|password|token/i)).toBeNull();
     expect(screen.queryByLabelText(/api key|password|token/i)).toBeNull();
     expect(screen.queryByRole("textbox", { name: /api key|password|token/i })).toBeNull();
-    expect(document.querySelectorAll('input').length).toBe(0);
-    expect(document.querySelectorAll('textarea').length).toBe(1);
     expect(document.querySelectorAll('input[type="password"]').length).toBe(0);
-    expect(screen.queryByRole("button", { name: /save|test connection|connect|complete|schedule|remind/i })).toBeNull();
+    expect(document.querySelectorAll('textarea').length).toBeGreaterThanOrEqual(1);
+    expect(document.querySelectorAll('input[type="password"]').length).toBe(0);
+    expect(screen.queryByRole("button", { name: /test connection|\bconnect\b|\bcomplete\b|\bschedule\b|\bremind\b/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /approve|execute|enforce|allow|deny|assign/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /policy decision|runtime enforcement|approval token/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /start|join|send|run|invite|add/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /send|execute|save|test/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /start|join|send|run|invite/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /send|execute|test provider/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /connector call|outbound action|external send/i })).toBeNull();
   });
 });

@@ -73,9 +73,10 @@ The `.github/workflows/validate-public-shell.yml` workflow runs on pull requests
 
 ## Local smoke check
 
-After starting local development servers, verify `/health`, `/capabilities`, `/chat/status`, `/provider-config/status`, `/connector-status`, `/guardian/status`, `/round-table/status`, `/model-seats/status`, `/work-lanes/status`, and the frontend URL. The capabilities response must use the public contract statuses `available`, `preview`, `planned`, `disabled-by-default`, and `guarded-future`:
+After starting local development servers, verify `/health`, `/capabilities`, `/chat/status`, `/provider-config/status`, `/connector-status`, `/guardian/status`, `/round-table/status`, `/model-seats/status`, `/work-lanes/status`, `/local/chat/sessions`, `/local/memory-notes`, `/local/work-lane-cards`, and the frontend URL. The capabilities response must use the public contract statuses `available`, `preview`, `planned`, `disabled-by-default`, and `guarded-future`:
 
 ```bash
+SPARKBOT_DATA_DIR="$(mktemp -d)" \
 SPARKBOT_BACKEND_URL=http://127.0.0.1:18000 \
 SPARKBOT_FRONTEND_URL=http://127.0.0.1:15173 \
 bash scripts/smoke-check-local.sh

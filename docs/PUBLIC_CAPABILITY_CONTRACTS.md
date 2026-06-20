@@ -32,6 +32,10 @@ A capability may move to a more active status only when all of the following are
 | Backend health endpoint | `available` | Local read-only `GET /health`. |
 | Backend capabilities endpoint | `available` | Local read-only `GET /capabilities`. |
 | Frontend shell | `available` | Buildable React/Vite shell with local status display. |
+| Local Workstation store | `available` | SQLite-backed local storage for public Workstation data. No cloud sync or provider calls. |
+| Local chat drafts | `available` | Stores operator and note messages locally. No model-generated response, streaming, or provider routing. |
+| Local memory notes | `available` | Stores local notes only. Not model memory and not cloud sync. |
+| Local work lane cards | `available` | Stores local planning cards. No scheduler, reminders, notifications, or execution. |
 | Workstation shell | `preview` | Product shell preview only. |
 | Chat shell | `preview` | Read-only status may be shown; no send action, chat runtime, model call, streaming, provider routing, or message persistence. |
 | Round Table shell | `preview` | Read-only status may be shown; no meeting engine, agent orchestration, model calls, or turn persistence. |

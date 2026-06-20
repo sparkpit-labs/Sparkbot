@@ -4,7 +4,8 @@ The current public shell baseline includes a local Workstation shell skeleton fo
 
 ## What Exists
 
-- Read-only Workstation shell layout in the frontend.
+- Local SQLite Workstation runtime for chat drafts, memory notes, and work lane cards.
+- Workstation shell layout in the frontend with local create, read, update, and delete flows.
 - Read-only public baseline status panel summarizing health, capability status counts, and local status endpoints.
 - Structured status cards using the public contract statuses: Available, Preview, Planned, Disabled by default, and Guarded future.
 - Grouped capability lanes for available, preview, planned, disabled-by-default, and guarded-future surfaces.
@@ -18,11 +19,16 @@ The current public shell baseline includes a local Workstation shell skeleton fo
 - Read-only Connector Status surface with connectors disabled and no outbound actions.
 - Read-only Guardian Controls status surface with inert local action, provider access, workspace, connection, checkpoint, and audit cards.
 - Existing backend health panel retained in the same frontend app.
+- Local data is stored under `SPARKBOT_DATA_DIR` when set, otherwise in the user app data directory.
 
 ## Current Status Model
 
 - Backend health endpoint: Available
 - Frontend shell: Available
+- Local Workstation store: Available
+- Local chat drafts: Available
+- Local memory notes: Available
+- Local work lane cards: Available
 - Workstation shell: Preview
 - Chat shell: Preview
 - Round Table: Preview
@@ -44,11 +50,11 @@ Status labels in the UI mean:
 ## What Is Intentionally Excluded
 
 - Workstation agent orchestration
-- Chat runtime implementation
+- Model-generated chat runtime implementation
 - Round Table runtime implementation
 - Model calls
 - Model seat assignment or persistence
-- Task scheduling, persistence, notifications, background jobs, or execution
+- Task scheduling, reminders, notifications, background jobs, or execution
 - Tool execution
 - Provider setup runtime forms
 - Guardian runtime controls and policy enforcement
@@ -70,4 +76,4 @@ pytest backend/tests -q
 
 ## Scope Notes
 
-This is a product-direction shell slice only. It does not claim release readiness and does not activate Chat, Round Table, Model Seat, Task Lane, Provider Setup, Connector Status, or Guardian Controls runtime behavior beyond existing read-only local status fetches.
+This is a product-direction shell slice only. It does not claim release readiness and activates only local SQLite CRUD for Workstation drafts, notes, and planning cards. It does not activate model calls, external sends, provider credentials, connectors, schedulers, tool execution, or Guardian runtime enforcement.

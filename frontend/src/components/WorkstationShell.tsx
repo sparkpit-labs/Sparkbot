@@ -3,6 +3,9 @@ import { useState } from "react";
 import ChatShellPreview from "./ChatShellPreview";
 import ConnectorStatusPreview from "./ConnectorStatusPreview";
 import GuardianControlsPreview from "./GuardianControlsPreview";
+import LocalChatPanel from "./LocalChatPanel";
+import LocalMemoryNotesPanel from "./LocalMemoryNotesPanel";
+import LocalWorkLaneCardsPanel from "./LocalWorkLaneCardsPanel";
 import ModelSeatPreview from "./ModelSeatPreview";
 import ProviderSetupPreview from "./ProviderSetupPreview";
 import RoadmapCard from "./RoadmapCard";
@@ -28,8 +31,8 @@ export default function WorkstationShell({
       <div className="workstation-shell-header">
         <h2>Workstation Shell</h2>
         <p>
-          A read-only operating floor for the public shell. It keeps available checks, preview rooms, setup surfaces,
-          and guarded future work visible without enabling orchestration, chat runtime, model execution, or tool actions.
+          A local-first operating floor for the public shell. It keeps available checks, preview rooms, setup surfaces,
+          and guarded future work visible without enabling model execution, connectors, external sends, or tool actions.
         </p>
       </div>
 
@@ -83,6 +86,10 @@ export default function WorkstationShell({
               </article>
             </div>
           </section>
+
+          <LocalChatPanel />
+          <LocalMemoryNotesPanel />
+          <LocalWorkLaneCardsPanel />
 
           <ChatShellPreview />
           <RoundTablePreview />

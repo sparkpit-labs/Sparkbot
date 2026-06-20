@@ -34,6 +34,27 @@ const surfaceStatuses: SurfaceStatus[] = [
     summary: "Public capability status contract."
   },
   {
+    id: "local-chat",
+    label: "Local Chat",
+    endpoint: "GET /local/chat/sessions",
+    status: "available",
+    summary: "Local chat drafts and operator notes stored in SQLite."
+  },
+  {
+    id: "local-memory-notes",
+    label: "Local Memory",
+    endpoint: "GET /local/memory-notes",
+    status: "available",
+    summary: "Local notes stored without model calls or cloud sync."
+  },
+  {
+    id: "local-work-cards",
+    label: "Local Work Cards",
+    endpoint: "GET /local/work-lane-cards",
+    status: "available",
+    summary: "Local planning cards with no scheduler or execution path."
+  },
+  {
     id: "chat",
     label: "Chat",
     endpoint: "GET /chat/status",

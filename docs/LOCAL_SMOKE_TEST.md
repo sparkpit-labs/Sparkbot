@@ -64,7 +64,7 @@ The smoke check script supports:
 - `SPARKBOT_BACKEND_URL`, default `http://127.0.0.1:8000`
 - `SPARKBOT_FRONTEND_URL`, default `http://127.0.0.1:5173`
 
-It verifies backend `/health`, backend `/capabilities`, backend `/chat/status`, backend `/provider-config/status`, backend `/connector-status`, backend `/guardian/status`, backend `/round-table/status`, backend `/model-seats/status`, `/work-lanes/status`, and the frontend HTTP response.
+It verifies backend `/health`, backend `/capabilities`, backend `/chat/status`, backend `/provider-config/status`, backend `/connector-status`, backend `/guardian/status`, backend `/round-table/status`, backend `/model-seats/status`, `/work-lanes/status`, `/local/chat/sessions`, `/local/memory-notes`, `/local/work-lane-cards`, and the frontend HTTP response.
 
 Expected result:
 
@@ -85,3 +85,5 @@ The page should show the Sparkbot shell with Workstation navigation, preview-onl
 ## Cleanup
 
 Stop only the backend and frontend processes that you started for the smoke test. Do not stop unrelated local services.
+
+Use `SPARKBOT_DATA_DIR` with a temporary directory when smoke testing local runtime CRUD so test data stays outside the repository.

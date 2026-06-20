@@ -24,6 +24,30 @@ export const workstationStatusItems: WorkstationStatusItem[] = [
     summary: "Public shell interface."
   },
   {
+    id: "local-workstation-store",
+    name: "Local Workstation store",
+    status: "available",
+    summary: "Local SQLite storage for Workstation data."
+  },
+  {
+    id: "local-chat-drafts",
+    name: "Local chat drafts",
+    status: "available",
+    summary: "Stores operator and note messages locally without model calls."
+  },
+  {
+    id: "local-memory-notes",
+    name: "Local memory notes",
+    status: "available",
+    summary: "Stores local notes without cloud sync or model memory."
+  },
+  {
+    id: "local-work-lane-cards",
+    name: "Local work lane cards",
+    status: "available",
+    summary: "Stores local planning cards without scheduler or task execution."
+  },
+  {
     id: "workstation",
     name: "Workstation shell",
     status: "preview",

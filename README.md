@@ -18,8 +18,12 @@ The current repository is a validated shell baseline. It is useful for review, l
 | Backend health endpoint | Available | FastAPI exposes local `GET /health`. |
 | Backend capabilities endpoint | Available | FastAPI exposes static read-only `GET /capabilities`. |
 | Frontend shell | Available | React/Vite shell builds and tests successfully. |
+| Local Workstation store | Available | SQLite-backed local storage under `SPARKBOT_DATA_DIR` or the user app data directory. |
+| Local chat drafts | Available | Stores operator and note messages locally; no model response is generated. |
+| Local memory notes | Available | Stores local notes only; not model memory or cloud sync. |
+| Local work lane cards | Available | Stores planning cards locally; no scheduler, reminders, notifications, or execution. |
 | Workstation shell | Preview | Read-only dashboard with public baseline status, capability grouping, and product shell layout. |
-| Chat shell | Preview | Read-only status surface; no chat runtime, message persistence, model calls, streaming, provider routing, or send action. |
+| Chat shell | Preview | Read-only status surface; local operator drafts are separate from model chat runtime. No model calls, streaming, provider routing, or send action. |
 | Round Table | Preview | Read-only status surface; no meeting engine, agent orchestration, model calls, or turn persistence. |
 | Model Seats | Preview | Read-only model seat status surface; no model assignment, routing, calls, credentials, or seat persistence. |
 | Task Lanes | Preview | Read-only task lane status surface; no scheduler, background jobs, notifications, task execution, or persistence. |
@@ -33,7 +37,7 @@ The current repository is a validated shell baseline. It is useful for review, l
 
 ## Release and checkpoint status
 
-The latest public checkpoint tag on `main` is `public-v1-model-seat-preview-0`.
+The latest public checkpoint tag on `main` is `public-v1-local-workstation-runtime-0`.
 
 The GitHub pre-release `public-v1-shell-baseline-0` remains the first published shell baseline release. Development continues on `main` through checkpoint tags, so `main` may include newer docs and planning checkpoints than the first pre-release page.
 
@@ -127,6 +131,24 @@ Expected Round Table status URL:
 http://127.0.0.1:8000/round-table/status
 ```
 
+Expected local chat sessions URL:
+
+```text
+http://127.0.0.1:8000/local/chat/sessions
+```
+
+Expected local memory notes URL:
+
+```text
+http://127.0.0.1:8000/local/memory-notes
+```
+
+Expected local work lane cards URL:
+
+```text
+http://127.0.0.1:8000/local/work-lane-cards
+```
+
 ### 4. Start the frontend in terminal 2
 
 ```bash
@@ -170,8 +192,9 @@ Open `http://127.0.0.1:15173` for the browser check. See `docs/LOCAL_SMOKE_TEST.
 ## What this repository does not do yet
 
 - No desktop installer or desktop binary.
-- No real chat runtime.
+- No model-generated chat runtime.
 - No model calls or model routing.
+- Local chat drafts, memory notes, and work lane cards are stored only in the local SQLite Workstation store.
 - No model seat assignment or seat persistence.
 - No provider credential setup.
 - No credential storage.
@@ -203,7 +226,7 @@ Key docs:
 
 ## Security and privacy posture
 
-Current validation does not require secrets. The repository does not accept provider credentials, store credentials, call models, execute tools, run connectors, or send data to external services. Product surfaces beyond the backend health endpoint and frontend shell are previews until explicit public contracts and runtime gates are added.
+Current validation does not require secrets. The repository does not accept provider credentials, store credentials, call models, execute tools, run connectors, or send data to external services. Local Workstation CRUD stores user-entered drafts, notes, and planning cards in SQLite only. Product surfaces beyond the backend health endpoint and frontend shell are previews until explicit public contracts and runtime gates are added.
 
 Future provider, connector, model-call, credential, and Guardian runtime work must satisfy the public contracts in `docs/` before implementation branches can claim active behavior.
 

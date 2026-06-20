@@ -23,6 +23,24 @@ export const shellSections: ShellSection[] = [
     summary: "Read-only shell map, status cards, and local health check surface."
   },
   {
+    id: "local-chat",
+    label: "Local Chat",
+    status: "available",
+    summary: "Local operator and note messages stored in SQLite."
+  },
+  {
+    id: "local-memory-notes",
+    label: "Memory Notes",
+    status: "available",
+    summary: "Local notes stored without cloud sync or model memory."
+  },
+  {
+    id: "local-work-lane-cards",
+    label: "Work Cards",
+    status: "available",
+    summary: "Local planning cards with no scheduler or execution path."
+  },
+  {
     id: "chat-shell",
     label: "Chat",
     status: "preview",

@@ -6,6 +6,7 @@ This changelog tracks public Sparkbot repository baselines and release-facing do
 
 ### Added
 
+- Local SQLite Workstation runtime for chat drafts, memory notes, and work lane cards.
 - Read-only Task Lane status endpoint and frontend status display with local fallback.
 - Read-only Model Seat status endpoint and frontend status display with local fallback.
 - Public capability, connector safety, provider configuration, and Guardian policy contracts for future implementation gates.
@@ -31,7 +32,7 @@ This changelog tracks public Sparkbot repository baselines and release-facing do
 
 ### Not Included
 
-- No real chat runtime, message persistence, model calls, provider credentials, backend chat endpoint, connector runtime, Guardian enforcement runtime, desktop app, installer, auto-update path, or code signing setup.
+- No model-generated chat runtime, model calls, provider credentials, connector runtime, Guardian enforcement runtime, desktop app, installer, auto-update path, or code signing setup. Local drafts, notes, and work cards persist only in the local SQLite Workstation store.
 
 ## public-v1-frontend-audit-fix-0 - 2026-06-18
 
@@ -62,6 +63,7 @@ This tag is an early public shell baseline for review, validation, and continued
 
 ### Added
 
+- Local SQLite Workstation runtime for chat drafts, memory notes, and work lane cards.
 - Backend health endpoint skeleton with a local read-only `GET /health` route.
 - Frontend shell for the public Sparkbot workstation baseline.
 - Workstation preview as a read-only product layout.

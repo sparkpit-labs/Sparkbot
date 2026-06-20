@@ -13,6 +13,9 @@ guardian_status_url="${SPARKBOT_BACKEND_URL%/}/guardian/status"
 round_table_status_url="${SPARKBOT_BACKEND_URL%/}/round-table/status"
 model_seats_status_url="${SPARKBOT_BACKEND_URL%/}/model-seats/status"
 task_lanes_status_url="${SPARKBOT_BACKEND_URL%/}/work-lanes/status"
+local_chat_sessions_url="${SPARKBOT_BACKEND_URL%/}/local/chat/sessions"
+local_memory_notes_url="${SPARKBOT_BACKEND_URL%/}/local/memory-notes"
+local_work_lane_cards_url="${SPARKBOT_BACKEND_URL%/}/local/work-lane-cards"
 
 echo "Checking backend health at ${backend_health_url}"
 backend_response="$(curl -fsS "${backend_health_url}")"
@@ -200,6 +203,39 @@ case "${guardian_status_response}" in
     ;;
   *)
     echo "Guardian status response did not report policy decisions as not implemented." >&2
+    exit 1
+    ;;
+esac
+
+echo "Checking local chat sessions at ${local_chat_sessions_url}"
+local_chat_sessions_response="$(curl -fsS "${local_chat_sessions_url}")"
+printf "%s\n" "${local_chat_sessions_response}"
+case "${local_chat_sessions_response}" in
+  *\"sessions\"*) ;;
+  *)
+    echo "Local chat sessions response did not include sessions." >&2
+    exit 1
+    ;;
+esac
+
+echo "Checking local memory notes at ${local_memory_notes_url}"
+local_memory_notes_response="$(curl -fsS "${local_memory_notes_url}")"
+printf "%s\n" "${local_memory_notes_response}"
+case "${local_memory_notes_response}" in
+  *\"notes\"*) ;;
+  *)
+    echo "Local memory notes response did not include notes." >&2
+    exit 1
+    ;;
+esac
+
+echo "Checking local work lane cards at ${local_work_lane_cards_url}"
+local_work_lane_cards_response="$(curl -fsS "${local_work_lane_cards_url}")"
+printf "%s\n" "${local_work_lane_cards_response}"
+case "${local_work_lane_cards_response}" in
+  *\"cards\"*) ;;
+  *)
+    echo "Local work lane cards response did not include cards." >&2
     exit 1
     ;;
 esac
