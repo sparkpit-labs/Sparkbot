@@ -5,6 +5,7 @@ The current public shell baseline includes a local Workstation shell skeleton fo
 ## What Exists
 
 - Local SQLite Workstation runtime for chat drafts, memory notes, and work lane cards.
+- Disabled-by-default local Ollama adapter status and prompt panel.
 - Workstation shell layout in the frontend with local create, read, update, and delete flows.
 - Read-only public baseline status panel summarizing health, capability status counts, and local status endpoints.
 - Structured status cards using the public contract statuses: Available, Preview, Planned, Disabled by default, and Guarded future.
@@ -29,6 +30,8 @@ The current public shell baseline includes a local Workstation shell skeleton fo
 - Local chat drafts: Available
 - Local memory notes: Available
 - Local work lane cards: Available
+- Local model adapter: Disabled by default
+- Local Ollama: Disabled by default
 - Workstation shell: Preview
 - Chat shell: Preview
 - Round Table: Preview
@@ -52,7 +55,7 @@ Status labels in the UI mean:
 - Workstation agent orchestration
 - Model-generated chat runtime implementation
 - Round Table runtime implementation
-- Model calls
+- Cloud model calls and production model routing
 - Model seat assignment or persistence
 - Task scheduling, reminders, notifications, background jobs, or execution
 - Tool execution
@@ -76,4 +79,4 @@ pytest backend/tests -q
 
 ## Scope Notes
 
-This is a product-direction shell slice only. It does not claim release readiness and activates only local SQLite CRUD for Workstation drafts, notes, and planning cards. It does not activate model calls, external sends, provider credentials, connectors, schedulers, tool execution, or Guardian runtime enforcement.
+This is a product-direction shell slice only. It does not claim release readiness and activates only local SQLite CRUD for Workstation drafts, notes, and planning cards. It activates only default-off localhost Ollama prompt calls when explicitly enabled by environment variable. It does not activate cloud model calls, external sends, provider credentials, connectors, schedulers, tool execution, Guardian runtime enforcement, or LIMA AI OS integration.

@@ -73,7 +73,7 @@ The `.github/workflows/validate-public-shell.yml` workflow runs on pull requests
 
 ## Local smoke check
 
-After starting local development servers, verify `/health`, `/capabilities`, `/chat/status`, `/provider-config/status`, `/connector-status`, `/guardian/status`, `/round-table/status`, `/model-seats/status`, `/work-lanes/status`, `/local/chat/sessions`, `/local/memory-notes`, `/local/work-lane-cards`, and the frontend URL. The capabilities response must use the public contract statuses `available`, `preview`, `planned`, `disabled-by-default`, and `guarded-future`:
+After starting local development servers, verify `/health`, `/capabilities`, `/chat/status`, `/provider-config/status`, `/connector-status`, `/guardian/status`, `/round-table/status`, `/model-seats/status`, `/work-lanes/status`, `/local/chat/sessions`, `/local/memory-notes`, `/local/work-lane-cards`, `/local-models/status`, disabled-mode `POST /local-models/ollama/prompt` returning 403, and the frontend URL. The capabilities response must use the public contract statuses `available`, `preview`, `planned`, `disabled-by-default`, and `guarded-future`:
 
 ```bash
 SPARKBOT_DATA_DIR="$(mktemp -d)" \

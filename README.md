@@ -8,7 +8,7 @@ The current repository is a validated shell baseline. It is useful for review, l
 
 - Hobbyists and tinkerers who want to inspect and run the local shell baseline.
 - Developers evaluating the project structure, validation path, and public roadmap.
-- Security-conscious users who want clear boundaries before provider credentials, model calls, or sensitive actions exist.
+- Security-conscious users who want clear boundaries before provider credentials, cloud model calls, or sensitive actions exist.
 - Future contributors who want to understand what is implemented, what is preview-only, and what is intentionally excluded.
 
 ## Current status at a glance
@@ -22,6 +22,7 @@ The current repository is a validated shell baseline. It is useful for review, l
 | Local chat drafts | Available | Stores operator and note messages locally; no model response is generated. |
 | Local memory notes | Available | Stores local notes only; not model memory or cloud sync. |
 | Local work lane cards | Available | Stores planning cards locally; no scheduler, reminders, notifications, or execution. |
+| Local Ollama adapter | Disabled by default | Localhost-only prompt adapter for Ollama; enable with `SPARKBOT_LOCAL_MODELS_ENABLED=true`. No cloud providers or credentials. |
 | Workstation shell | Preview | Read-only dashboard with public baseline status, capability grouping, and product shell layout. |
 | Chat shell | Preview | Read-only status surface; local operator drafts are separate from model chat runtime. No model calls, streaming, provider routing, or send action. |
 | Round Table | Preview | Read-only status surface; no meeting engine, agent orchestration, model calls, or turn persistence. |
@@ -37,7 +38,7 @@ The current repository is a validated shell baseline. It is useful for review, l
 
 ## Release and checkpoint status
 
-The latest public checkpoint tag on `main` is `public-v1-local-workstation-runtime-0`.
+The latest public checkpoint tag on `main` is `public-v1-local-ollama-adapter-0`.
 
 The GitHub pre-release `public-v1-shell-baseline-0` remains the first published shell baseline release. Development continues on `main` through checkpoint tags, so `main` may include newer docs and planning checkpoints than the first pre-release page.
 
@@ -192,10 +193,11 @@ Open `http://127.0.0.1:15173` for the browser check. See `docs/LOCAL_SMOKE_TEST.
 ## What this repository does not do yet
 
 - No desktop installer or desktop binary.
-- No model-generated chat runtime.
-- No model calls or model routing.
+- No cloud model calls or production model routing.
+- Local Ollama prompt calls are disabled by default and require `SPARKBOT_LOCAL_MODELS_ENABLED=true`.
 - Local chat drafts, memory notes, and work lane cards are stored only in the local SQLite Workstation store.
 - No model seat assignment or seat persistence.
+- No provider SDK dependencies or credential-backed provider setup.
 - No provider credential setup.
 - No credential storage.
 - No Round Table meeting engine.
@@ -215,6 +217,7 @@ Key docs:
 - `docs/VALIDATION.md` for validation commands.
 - `docs/LOCAL_DEVELOPMENT.md` for local runner scripts.
 - `docs/LOCAL_SMOKE_TEST.md` for alternate-port local smoke testing.
+- `docs/LOCAL_MODEL_ADAPTER.md` for the disabled-by-default localhost Ollama adapter.
 - `docs/PUBLIC_CAPABILITY_CONTRACTS.md` for capability status definitions and promotion gates.
 - `docs/CONNECTOR_SAFETY_CONTRACT.md` for future connector safety gates.
 - `docs/PROVIDER_CONFIG_CONTRACT.md` for future provider setup and model-call gates.
@@ -226,7 +229,7 @@ Key docs:
 
 ## Security and privacy posture
 
-Current validation does not require secrets. The repository does not accept provider credentials, store credentials, call models, execute tools, run connectors, or send data to external services. Local Workstation CRUD stores user-entered drafts, notes, and planning cards in SQLite only. Product surfaces beyond the backend health endpoint and frontend shell are previews until explicit public contracts and runtime gates are added.
+Current validation does not require secrets. The repository does not accept provider credentials, store credentials, call cloud models, execute tools, run connectors, or send data to external services. Local Workstation CRUD stores user-entered drafts, notes, and planning cards in SQLite only. The local Ollama adapter is localhost-only, disabled by default, and has no credential support. Product surfaces beyond the backend health endpoint and frontend shell are previews until explicit public contracts and runtime gates are added.
 
 Future provider, connector, model-call, credential, and Guardian runtime work must satisfy the public contracts in `docs/` before implementation branches can claim active behavior.
 

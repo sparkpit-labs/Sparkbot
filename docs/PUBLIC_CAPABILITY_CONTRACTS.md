@@ -36,6 +36,8 @@ A capability may move to a more active status only when all of the following are
 | Local chat drafts | `available` | Stores operator and note messages locally. No model-generated response, streaming, or provider routing. |
 | Local memory notes | `available` | Stores local notes only. Not model memory and not cloud sync. |
 | Local work lane cards | `available` | Stores local planning cards. No scheduler, reminders, notifications, or execution. |
+| Local model adapter | `disabled-by-default` | Localhost-only Ollama adapter. Prompt calls require explicit operator enablement and tests proving disabled defaults. |
+| Local Ollama | `disabled-by-default` | Uses only `localhost` or `127.0.0.1`. No credentials, cloud providers, or provider SDK dependencies. |
 | Workstation shell | `preview` | Product shell preview only. |
 | Chat shell | `preview` | Read-only status may be shown; no send action, chat runtime, model call, streaming, provider routing, or message persistence. |
 | Round Table shell | `preview` | Read-only status may be shown; no meeting engine, agent orchestration, model calls, or turn persistence. |
@@ -45,7 +47,7 @@ A capability may move to a more active status only when all of the following are
 | Guardian Controls shell | `preview` | Read-only policy status may be shown; no runtime approval or enforcement path. |
 | Desktop packaging | `planned` | No installer, desktop binary, signing, or auto-update path. |
 | Connectors | `guarded-future` | Read-only status may be shown; must satisfy `CONNECTOR_SAFETY_CONTRACT.md` before any runtime behavior. |
-| Model calls | `guarded-future` | Must satisfy provider configuration and Guardian policy contracts before runtime behavior. |
+| Cloud model calls | `guarded-future` | Must satisfy provider configuration and Guardian policy contracts before runtime behavior. |
 | Credential storage | `guarded-future` | Must satisfy provider configuration and secret handling gates before any storage path. |
 | Tool execution | `guarded-future` | Must satisfy Guardian policy gates before any execution path. |
 

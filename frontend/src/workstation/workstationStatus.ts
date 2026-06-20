@@ -47,6 +47,18 @@ export const workstationStatusItems: WorkstationStatusItem[] = [
     status: "available",
     summary: "Stores local planning cards without scheduler or task execution."
   },
+    {
+    id: "local-model-adapter",
+    name: "Local model adapter",
+    status: "disabled-by-default",
+    summary: "Localhost-only Ollama adapter; prompt calls require explicit operator enablement."
+  },
+  {
+    id: "local-ollama",
+    name: "Local Ollama",
+    status: "disabled-by-default",
+    summary: "Uses only localhost or 127.0.0.1 and no credentials or cloud providers."
+  },
   {
     id: "workstation",
     name: "Workstation shell",
@@ -103,9 +115,9 @@ export const workstationStatusItems: WorkstationStatusItem[] = [
   },
   {
     id: "model-calls",
-    name: "Model calls",
+    name: "Cloud model calls",
     status: "guarded-future",
-    summary: "No provider runtime or model routing."
+    summary: "No cloud provider runtime or production model routing."
   },
   {
     id: "credential-storage",

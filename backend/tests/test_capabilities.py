@@ -55,6 +55,18 @@ def test_capabilities_are_static_and_public_safe() -> None:
             "notes": "Stores local planning cards without scheduler or task execution.",
         },
         {
+            "id": "local-model-adapter",
+            "label": "Local model adapter",
+            "status": "disabled-by-default",
+            "notes": "Localhost-only Ollama adapter; prompt calls require explicit operator enablement.",
+        },
+        {
+            "id": "local-ollama",
+            "label": "Local Ollama",
+            "status": "disabled-by-default",
+            "notes": "Uses only localhost or 127.0.0.1 and no credentials or cloud providers.",
+        },
+        {
             "id": "workstation",
             "label": "Workstation shell",
             "status": "preview",
@@ -110,9 +122,9 @@ def test_capabilities_are_static_and_public_safe() -> None:
         },
         {
             "id": "model-calls",
-            "label": "Model calls",
+            "label": "Cloud model calls",
             "status": "guarded-future",
-            "notes": "No provider runtime or model routing.",
+            "notes": "No cloud provider runtime or production model routing.",
         },
         {
             "id": "credential-storage",
@@ -143,6 +155,7 @@ def test_capability_statuses_use_contract_values() -> None:
     statuses = {item["status"] for item in payload["capabilities"]}
     assert statuses <= ALLOWED_CAPABILITY_STATUSES
     assert "guarded-future" in statuses
+    assert "disabled-by-default" in statuses
 
 
 def test_guarded_future_capabilities_are_present_and_inactive() -> None:
@@ -156,7 +169,7 @@ def test_guarded_future_capabilities_are_present_and_inactive() -> None:
     inactive_notes = " ".join(item["notes"].lower() for item in payload["capabilities"])
     assert "no connector calls" in inactive_notes
     assert "external sends" in inactive_notes
-    assert "no provider runtime" in inactive_notes
+    assert "no cloud provider runtime" in inactive_notes
     assert "no credential entry" in inactive_notes
     assert "no terminal" in inactive_notes
     assert "available" not in {

@@ -65,6 +65,18 @@ CAPABILITIES: list[Capability] = [
         "notes": "Stores local planning cards without scheduler or task execution.",
     },
     {
+        "id": "local-model-adapter",
+        "label": "Local model adapter",
+        "status": "disabled-by-default",
+        "notes": "Localhost-only Ollama adapter; prompt calls require explicit operator enablement.",
+    },
+    {
+        "id": "local-ollama",
+        "label": "Local Ollama",
+        "status": "disabled-by-default",
+        "notes": "Uses only localhost or 127.0.0.1 and no credentials or cloud providers.",
+    },
+    {
         "id": "workstation",
         "label": "Workstation shell",
         "status": "preview",
@@ -120,9 +132,9 @@ CAPABILITIES: list[Capability] = [
     },
     {
         "id": "model-calls",
-        "label": "Model calls",
+        "label": "Cloud model calls",
         "status": "guarded-future",
-        "notes": "No provider runtime or model routing.",
+        "notes": "No cloud provider runtime or production model routing.",
     },
     {
         "id": "credential-storage",

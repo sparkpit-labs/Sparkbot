@@ -14,7 +14,7 @@ from app.services.local_workstation_store import (
 
 router = APIRouter(prefix="/local", tags=["local-workstation"])
 
-MessageRole = Literal["operator", "note"]
+MessageRole = Literal["operator", "note", "assistant-local"]
 WorkLaneName = Literal["inbox", "planned", "active", "review", "done"]
 WorkCardStatus = Literal["open", "in-progress", "blocked", "done"]
 

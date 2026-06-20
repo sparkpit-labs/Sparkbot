@@ -2,7 +2,7 @@
 
 This guide verifies that the public Sparkbot shell can run locally on alternate localhost ports without touching existing development or server processes.
 
-The smoke test starts only local development servers that you launch for the test. It does not configure provider credentials, call models, enable chat runtime behavior, run connectors, execute tools, or start deployment infrastructure.
+The smoke test starts only local development servers that you launch for the test. It does not configure provider credentials, call cloud models, enable chat runtime behavior, run connectors, execute tools, or start deployment infrastructure. The local model check verifies disabled-mode behavior by default.
 
 ## Default ports
 
@@ -64,7 +64,7 @@ The smoke check script supports:
 - `SPARKBOT_BACKEND_URL`, default `http://127.0.0.1:8000`
 - `SPARKBOT_FRONTEND_URL`, default `http://127.0.0.1:5173`
 
-It verifies backend `/health`, backend `/capabilities`, backend `/chat/status`, backend `/provider-config/status`, backend `/connector-status`, backend `/guardian/status`, backend `/round-table/status`, backend `/model-seats/status`, `/work-lanes/status`, `/local/chat/sessions`, `/local/memory-notes`, `/local/work-lane-cards`, and the frontend HTTP response.
+It verifies backend `/health`, backend `/capabilities`, backend `/chat/status`, backend `/provider-config/status`, backend `/connector-status`, backend `/guardian/status`, backend `/round-table/status`, backend `/model-seats/status`, `/work-lanes/status`, `/local/chat/sessions`, `/local/memory-notes`, `/local/work-lane-cards`, `/local-models/status`, disabled-mode `POST /local-models/ollama/prompt` returning 403, and the frontend HTTP response.
 
 Expected result:
 
@@ -80,7 +80,7 @@ Open:
 http://127.0.0.1:15173
 ```
 
-The page should show the Sparkbot shell with Workstation navigation, preview-only Chat status, Round Table, Model Seats, Provider Setup, Connector Status, Guardian Controls, backend capability statuses when available, and the read-only backend health panel.
+The page should show the Sparkbot shell with Workstation navigation, local runtime panels, disabled-by-default Local Ollama adapter status, preview-only Chat status, Round Table, Model Seats, Provider Setup, Connector Status, Guardian Controls, backend capability statuses when available, and the read-only backend health panel.
 
 ## Cleanup
 

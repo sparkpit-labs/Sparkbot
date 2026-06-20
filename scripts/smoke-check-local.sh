@@ -16,6 +16,8 @@ task_lanes_status_url="${SPARKBOT_BACKEND_URL%/}/work-lanes/status"
 local_chat_sessions_url="${SPARKBOT_BACKEND_URL%/}/local/chat/sessions"
 local_memory_notes_url="${SPARKBOT_BACKEND_URL%/}/local/memory-notes"
 local_work_lane_cards_url="${SPARKBOT_BACKEND_URL%/}/local/work-lane-cards"
+local_models_status_url="${SPARKBOT_BACKEND_URL%/}/local-models/status"
+local_models_prompt_url="${SPARKBOT_BACKEND_URL%/}/local-models/ollama/prompt"
 
 echo "Checking backend health at ${backend_health_url}"
 backend_response="$(curl -fsS "${backend_health_url}")"
@@ -236,6 +238,34 @@ case "${local_work_lane_cards_response}" in
   *\"cards\"*) ;;
   *)
     echo "Local work lane cards response did not include cards." >&2
+    exit 1
+    ;;
+esac
+
+echo "Checking local model status at ${local_models_status_url}"
+local_models_status_response="$(curl -fsS "${local_models_status_url}")"
+printf "%s\n" "${local_models_status_response}"
+case "${local_models_status_response}" in
+  *\"adapter\":\"ollama\"*|*\"adapter\":\ \"ollama\"*) ;;
+  *)
+    echo "Local model status response did not report the Ollama adapter." >&2
+    exit 1
+    ;;
+esac
+case "${local_models_status_response}" in
+  *\"base_url_policy\":\"localhost-only\"*|*\"base_url_policy\":\ \"localhost-only\"*) ;;
+  *)
+    echo "Local model status response did not report localhost-only policy." >&2
+    exit 1
+    ;;
+esac
+
+echo "Checking local model prompt remains disabled by default at ${local_models_prompt_url}"
+local_models_prompt_code="$(curl -sS -o /dev/null -w "%{http_code}" -X POST "${local_models_prompt_url}" -H "Content-Type: application/json" -d '{"prompt":"smoke","model":"llama3.2"}')"
+case "${local_models_prompt_code}" in
+  403) ;;
+  *)
+    echo "Local model prompt did not return 403 while disabled; got ${local_models_prompt_code}." >&2
     exit 1
     ;;
 esac

@@ -5,6 +5,7 @@ import ConnectorStatusPreview from "./ConnectorStatusPreview";
 import GuardianControlsPreview from "./GuardianControlsPreview";
 import LocalChatPanel from "./LocalChatPanel";
 import LocalMemoryNotesPanel from "./LocalMemoryNotesPanel";
+import LocalModelPanel from "./LocalModelPanel";
 import LocalWorkLaneCardsPanel from "./LocalWorkLaneCardsPanel";
 import ModelSeatPreview from "./ModelSeatPreview";
 import ProviderSetupPreview from "./ProviderSetupPreview";
@@ -90,6 +91,7 @@ export default function WorkstationShell({
           <LocalChatPanel />
           <LocalMemoryNotesPanel />
           <LocalWorkLaneCardsPanel />
+          <LocalModelPanel />
 
           <ChatShellPreview />
           <RoundTablePreview />

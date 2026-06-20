@@ -40,6 +40,12 @@ export const shellSections: ShellSection[] = [
     status: "available",
     summary: "Local planning cards with no scheduler or execution path."
   },
+    {
+    id: "local-models",
+    label: "Local Models",
+    status: "disabled-by-default",
+    summary: "Localhost-only Ollama prompt adapter disabled until operator enabled."
+  },
   {
     id: "chat-shell",
     label: "Chat",

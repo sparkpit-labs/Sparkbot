@@ -6,6 +6,7 @@ This changelog tracks public Sparkbot repository baselines and release-facing do
 
 ### Added
 
+- Disabled-by-default localhost Ollama adapter with local status endpoint and explicit operator-enabled prompt path.
 - Local SQLite Workstation runtime for chat drafts, memory notes, and work lane cards.
 - Read-only Task Lane status endpoint and frontend status display with local fallback.
 - Read-only Model Seat status endpoint and frontend status display with local fallback.
@@ -32,7 +33,7 @@ This changelog tracks public Sparkbot repository baselines and release-facing do
 
 ### Not Included
 
-- No model-generated chat runtime, model calls, provider credentials, connector runtime, Guardian enforcement runtime, desktop app, installer, auto-update path, or code signing setup. Local drafts, notes, and work cards persist only in the local SQLite Workstation store.
+- No cloud model providers, provider SDK dependencies, provider credentials, connector runtime, Guardian enforcement runtime, desktop app, installer, auto-update path, or code signing setup. Local drafts, notes, work cards, and any explicitly enabled localhost Ollama responses remain local-only.
 
 ## public-v1-frontend-audit-fix-0 - 2026-06-18
 
@@ -63,6 +64,7 @@ This tag is an early public shell baseline for review, validation, and continued
 
 ### Added
 
+- Disabled-by-default localhost Ollama adapter with local status endpoint and explicit operator-enabled prompt path.
 - Local SQLite Workstation runtime for chat drafts, memory notes, and work lane cards.
 - Backend health endpoint skeleton with a local read-only `GET /health` route.
 - Frontend shell for the public Sparkbot workstation baseline.

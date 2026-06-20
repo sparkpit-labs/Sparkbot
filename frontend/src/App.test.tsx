@@ -44,6 +44,18 @@ const capabilitiesPayload = {
       notes: "Stores local planning cards without scheduler or task execution."
     },
     {
+      id: "local-model-adapter",
+      label: "Local model adapter",
+      status: "disabled-by-default",
+      notes: "Localhost-only Ollama adapter; prompt calls require explicit operator enablement."
+    },
+    {
+      id: "local-ollama",
+      label: "Local Ollama",
+      status: "disabled-by-default",
+      notes: "Uses only localhost or 127.0.0.1 and no credentials or cloud providers."
+    },
+    {
       id: "workstation",
       label: "Workstation shell",
       status: "preview",
@@ -99,9 +111,9 @@ const capabilitiesPayload = {
     },
     {
       id: "model-calls",
-      label: "Model calls",
+      label: "Cloud model calls",
       status: "guarded-future",
-      notes: "No provider runtime or model routing."
+      notes: "No cloud provider runtime or production model routing."
     },
     {
       id: "credential-storage",
@@ -457,6 +469,38 @@ const localWorkLaneCardsPayload = {
   ]
 };
 
+const localModelDisabledStatusPayload = {
+  service: "sparkbot-server",
+  mode: "local",
+  status: "disabled-by-default",
+  local_models_enabled: false,
+  adapter: "ollama",
+  base_url: "http://127.0.0.1:11434",
+  base_url_policy: "localhost-only",
+  configured_model: null,
+  prompt_calls: "disabled",
+  credentials: "not-supported",
+  external_network: "not-supported"
+};
+
+const localModelEnabledStatusPayload = {
+  ...localModelDisabledStatusPayload,
+  status: "available-local-only",
+  local_models_enabled: true,
+  configured_model: "llama3.2",
+  prompt_calls: "enabled-local-only",
+  ollama_reachable: true
+};
+
+const localPromptResponsePayload = {
+  adapter: "ollama",
+  base_url_policy: "localhost-only",
+  model: "llama3.2",
+  response: "Local-only Ollama response.",
+  done: true,
+  stored_message: null
+};
+
 function mockJsonResponse(payload: unknown) {
   return Promise.resolve(
     new Response(JSON.stringify(payload), {
@@ -497,6 +541,14 @@ function mockBackendStatusFetch() {
 
     if (url.includes("/local/work-lane-cards")) {
       return mockJsonResponse(method === "POST" || method === "PATCH" ? localWorkLaneCardsPayload.cards[0] : localWorkLaneCardsPayload);
+    }
+
+    if (url.includes("/local-models/ollama/prompt")) {
+      return mockJsonResponse(localPromptResponsePayload);
+    }
+
+    if (url.includes("/local-models/status")) {
+      return mockJsonResponse(localModelDisabledStatusPayload);
     }
 
     if (url.includes("/chat/status")) {
@@ -556,7 +608,7 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Capability source" })).toBeDefined();
     expect(screen.getByText("Not checked")).toBeDefined();
     expect(screen.getByText("Local read-only status requests only.")).toBeDefined();
-    expect(screen.getByText("18 public capability entries loaded.")).toBeDefined();
+    expect(screen.getByText("20 public capability entries loaded.")).toBeDefined();
     expect(screen.getByRole("heading", { name: "Health" })).toBeDefined();
     expect(screen.getByText("GET /health")).toBeDefined();
     expect(screen.getByRole("heading", { name: "Capabilities" })).toBeDefined();
@@ -581,22 +633,27 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: /Local Chat.*Available/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Memory Notes.*Available/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Work Cards.*Available/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Local Models.*Disabled by default/i })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Local Chat Drafts" })).toBeDefined();
     expect(screen.getByText(/No model response is generated/i)).toBeDefined();
     expect(screen.getByRole("heading", { name: "Local Memory Notes" })).toBeDefined();
     expect(screen.getByText(/not model memory and are not synced/i)).toBeDefined();
     expect(screen.getByRole("heading", { name: "Local Work Lane Cards" })).toBeDefined();
     expect(screen.getByText(/do not run, schedule, remind, notify, or execute tasks/i)).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Local Ollama Adapter" })).toBeDefined();
+    expect(screen.getByText(/Local-only prompt adapter for Ollama on localhost/i)).toBeDefined();
+    expect(screen.getByText(/SPARKBOT_LOCAL_MODELS_ENABLED=true/)).toBeDefined();
+    expect((screen.getByRole("button", { name: "Run local prompt" }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getAllByText("Available").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByRole("heading", { name: "Backend health endpoint" })).toBeDefined();
     expect(screen.getByText("Read-only local health check.")).toBeDefined();
     expect(screen.getByRole("heading", { name: "Connectors" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Model calls" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Cloud model calls" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Credential storage" })).toBeDefined();
     expect(screen.getAllByRole("heading", { name: "Tool execution" }).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(4);
     expect(screen.getByText("No connector calls or external sends.")).toBeDefined();
-    expect(screen.getByText("No provider runtime or model routing.")).toBeDefined();
+    expect(screen.getByText("No cloud provider runtime or production model routing.")).toBeDefined();
     expect(screen.getByText("No credential entry or storage path.")).toBeDefined();
     expect(screen.getByText("No terminal, tool, or automation execution.")).toBeDefined();
     expect(screen.getAllByRole("heading", { name: "Chat shell" }).length).toBeGreaterThanOrEqual(1);
@@ -676,7 +733,7 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Connector Status Preview" })).toBeDefined();
     expect(screen.getByText("Using local connector status fallback.")).toBeDefined();
     expect(screen.getByText("Connectors enabled")).toBeDefined();
-    expect(screen.getByText("disabled")).toBeDefined();
+    expect(screen.getAllByText("disabled").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Outbound actions")).toBeDefined();
     expect(screen.getAllByText("Audit trail").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("heading", { name: "Messaging connectors" })).toBeDefined();
@@ -720,11 +777,11 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Backend health endpoint" })).toBeDefined();
     expect(screen.getByText("Read-only local health check.")).toBeDefined();
     expect(screen.getByText("No connector calls or external sends.")).toBeDefined();
-    expect(screen.getByText("No provider runtime or model routing.")).toBeDefined();
+    expect(screen.getByText("No cloud provider runtime or production model routing.")).toBeDefined();
     expect(screen.getByText("No credential entry or storage path.")).toBeDefined();
     expect(screen.getByText("No terminal, tool, or automation execution.")).toBeDefined();
     expect(screen.getByText("Future local action")).toBeDefined();
-    expect(screen.getByText("19 public capability entries loaded.")).toBeDefined();
+    expect(screen.getByText("21 public capability entries loaded.")).toBeDefined();
     expect(screen.getAllByText("Disabled by default").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(8);
   });
@@ -851,7 +908,7 @@ describe("App", () => {
 
     expect(await screen.findByText("Using backend connector status.")).toBeDefined();
     expect(screen.getByText("Connectors enabled")).toBeDefined();
-    expect(screen.getByText("disabled")).toBeDefined();
+    expect(screen.getAllByText("disabled").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Outbound actions")).toBeDefined();
     expect(screen.getAllByText("Credential storage").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Audit trail").length).toBeGreaterThanOrEqual(1);
@@ -953,6 +1010,51 @@ describe("App", () => {
     );
   });
 
+
+  it("renders local model status as disabled by default", async () => {
+    vi.stubGlobal("fetch", mockBackendStatusFetch());
+
+    render(<App />);
+
+    expect(await screen.findByText("Using backend local model status.")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Local Ollama Adapter" })).toBeDefined();
+    expect(screen.getByText(/Status: disabled by default/i)).toBeDefined();
+    expect(screen.getAllByText("disabled").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("localhost only")).toBeDefined();
+    expect(screen.getAllByText("not supported").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText(/Local prompt calls are disabled until the backend is explicitly enabled/i)).toBeDefined();
+    expect((screen.getByRole("button", { name: "Run local prompt" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByLabelText(/api key|password|token/i)).toBeNull();
+  });
+
+  it("runs a local-only prompt when backend reports local models enabled", async () => {
+    const fallbackFetch = mockBackendStatusFetch();
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = input.toString();
+      if (url.includes("/local-models/status")) {
+        return mockJsonResponse(localModelEnabledStatusPayload);
+      }
+      if (url.includes("/local-models/ollama/prompt")) {
+        return mockJsonResponse(localPromptResponsePayload);
+      }
+      return fallbackFetch(input, init);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+
+    expect(await screen.findByText(/Status: available local only/i)).toBeDefined();
+    expect((screen.getByRole("button", { name: "Run local prompt" }) as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.change(screen.getByLabelText("Local prompt"), { target: { value: "Use only localhost." } });
+    fireEvent.click(screen.getByRole("button", { name: "Run local prompt" }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/local-models/ollama/prompt"), expect.objectContaining({ method: "POST" }))
+    );
+    expect(await screen.findByText("Local-only Ollama response.")).toBeDefined();
+    expect(screen.getByText(/No external provider was called/i)).toBeDefined();
+  });
+
   it("keeps fallback statuses on the public capability contract vocabulary", () => {
     render(<App />);
 
@@ -975,7 +1077,9 @@ describe("App", () => {
     expect(screen.queryByRole("button", { name: /test connection|\bconnect\b|\bcomplete\b|\bschedule\b|\bremind\b/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /approve|execute|enforce|allow|deny|assign/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /policy decision|runtime enforcement|approval token/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /start|join|send|run|invite/i })).toBeNull();
+    for (const button of screen.queryAllByRole("button", { name: /start|join|send|run|invite/i })) {
+      expect((button as HTMLButtonElement).disabled).toBe(true);
+    }
     expect(screen.queryByRole("button", { name: /send|execute|test provider/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /connector call|outbound action|external send/i })).toBeNull();
   });

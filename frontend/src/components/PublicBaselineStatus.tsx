@@ -54,6 +54,13 @@ const surfaceStatuses: SurfaceStatus[] = [
     status: "available",
     summary: "Local planning cards with no scheduler or execution path."
   },
+    {
+    id: "local-models",
+    label: "Local Models",
+    endpoint: "GET /local-models/status",
+    status: "disabled-by-default",
+    summary: "Localhost-only Ollama adapter; prompt endpoint is disabled unless explicitly enabled."
+  },
   {
     id: "chat",
     label: "Chat",

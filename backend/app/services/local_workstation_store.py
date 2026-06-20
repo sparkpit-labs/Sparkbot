@@ -9,7 +9,7 @@ from typing import Any
 from uuid import uuid4
 
 DATABASE_NAME = "sparkbot_public.sqlite3"
-ALLOWED_MESSAGE_ROLES = {"operator", "note"}
+ALLOWED_MESSAGE_ROLES = {"operator", "note", "assistant-local"}
 ALLOWED_WORK_LANES = {"inbox", "planned", "active", "review", "done"}
 ALLOWED_CARD_STATUSES = {"open", "in-progress", "blocked", "done"}
 
