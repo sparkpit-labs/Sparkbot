@@ -3,7 +3,7 @@ import { localJsonRequest } from "./localRequests";
 export type LocalChatMessage = {
   id: string;
   session_id: string;
-  role: "operator" | "note";
+  role: "operator" | "note" | "assistant-local";
   content: string;
   created_at: string;
 };
@@ -49,7 +49,7 @@ export async function deleteLocalChatSession(sessionId: string): Promise<void> {
 
 export async function addLocalChatMessage(
   sessionId: string,
-  role: LocalChatMessage["role"],
+  role: "operator" | "note",
   content: string
 ): Promise<LocalChatMessage> {
   return localJsonRequest<LocalChatMessage>(`/local/chat/sessions/${sessionId}/messages`, {

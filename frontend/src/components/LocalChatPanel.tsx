@@ -108,7 +108,7 @@ export default function LocalChatPanel() {
       <div className="local-runtime-heading">
         <p className="eyebrow">Available locally</p>
         <h2 id="local-chat-heading">Local Chat Drafts</h2>
-        <p>Store operator notes and draft chat sessions in the local SQLite Workstation store. No model response is generated.</p>
+        <p>Store operator notes and draft chat sessions in the local SQLite Workstation store. Local assistant responses are saved only through the manual Local Ollama Adapter flow.</p>
         <p className="capabilities-source">{statusMessage}</p>
       </div>
 

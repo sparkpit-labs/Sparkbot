@@ -498,7 +498,13 @@ const localPromptResponsePayload = {
   model: "llama3.2",
   response: "Local-only Ollama response.",
   done: true,
-  stored_message: null
+  stored_message: {
+    id: "message-2",
+    session_id: "session-1",
+    role: "assistant-local",
+    content: "Local-only Ollama response.",
+    created_at: "2026-06-20T00:00:01Z"
+  }
 };
 
 function mockJsonResponse(payload: unknown) {
@@ -635,7 +641,7 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: /Work Cards.*Available/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Local Models.*Disabled by default/i })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Local Chat Drafts" })).toBeDefined();
-    expect(screen.getByText(/No model response is generated/i)).toBeDefined();
+    expect(screen.getByText(/manual Local Ollama Adapter flow/i)).toBeDefined();
     expect(screen.getByRole("heading", { name: "Local Memory Notes" })).toBeDefined();
     expect(screen.getByText(/not model memory and are not synced/i)).toBeDefined();
     expect(screen.getByRole("heading", { name: "Local Work Lane Cards" })).toBeDefined();
@@ -952,7 +958,7 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(await screen.findByText("Seeded local chat")).toBeDefined();
+    expect((await screen.findAllByText("Seeded local chat")).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("1 local messages")).toBeDefined();
     expect(await screen.findByText("Seeded memory")).toBeDefined();
     expect(screen.getByText("Stored local note.")).toBeDefined();
@@ -1027,6 +1033,28 @@ describe("App", () => {
     expect(screen.queryByLabelText(/api key|password|token/i)).toBeNull();
   });
 
+  it("shows local model offline state when Ollama is enabled but unavailable", async () => {
+    const fallbackFetch = mockBackendStatusFetch();
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = input.toString();
+      if (url.includes("/local-models/status")) {
+        return mockJsonResponse({
+          ...localModelEnabledStatusPayload,
+          status: "unavailable",
+          ollama_reachable: false
+        });
+      }
+      return fallbackFetch(input, init);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+
+    expect(await screen.findByText(/Status: unavailable/i)).toBeDefined();
+    expect(screen.getByText(/Ollama is offline or unavailable on localhost/i)).toBeDefined();
+    expect((screen.getByRole("button", { name: "Run local prompt" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
   it("runs a local-only prompt when backend reports local models enabled", async () => {
     const fallbackFetch = mockBackendStatusFetch();
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
@@ -1045,6 +1073,7 @@ describe("App", () => {
 
     expect(await screen.findByText(/Status: available local only/i)).toBeDefined();
     expect((screen.getByRole("button", { name: "Run local prompt" }) as HTMLButtonElement).disabled).toBe(false);
+    expect(screen.getByLabelText("Local chat session")).toBeDefined();
     fireEvent.change(screen.getByLabelText("Local prompt"), { target: { value: "Use only localhost." } });
     fireEvent.click(screen.getByRole("button", { name: "Run local prompt" }));
 
@@ -1052,7 +1081,13 @@ describe("App", () => {
       expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/local-models/ollama/prompt"), expect.objectContaining({ method: "POST" }))
     );
     expect(await screen.findByText("Local-only Ollama response.")).toBeDefined();
-    expect(screen.getByText(/No external provider was called/i)).toBeDefined();
+    expect(screen.getByText(/assistant response was saved to the selected session/i)).toBeDefined();
+    const promptCall = fetchMock.mock.calls.find(([input]) => input.toString().includes("/local-models/ollama/prompt"));
+    expect(JSON.parse((promptCall?.[1]?.body as string) ?? "{}")).toMatchObject({
+      prompt: "Use only localhost.",
+      model: "llama3.2",
+      session_id: "session-1"
+    });
   });
 
   it("keeps fallback statuses on the public capability contract vocabulary", () => {

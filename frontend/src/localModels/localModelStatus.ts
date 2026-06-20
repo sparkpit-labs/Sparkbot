@@ -57,9 +57,13 @@ export async function fetchLocalModelStatus(): Promise<LocalModelStatusPayload> 
   return localJsonRequest<LocalModelStatusPayload>("/local-models/status");
 }
 
-export async function runLocalPrompt(prompt: string, model?: string): Promise<LocalPromptResponse> {
+export async function runLocalPrompt(
+  prompt: string,
+  model?: string,
+  sessionId?: string
+): Promise<LocalPromptResponse> {
   return localJsonRequest<LocalPromptResponse>("/local-models/ollama/prompt", {
     method: "POST",
-    body: JSON.stringify({ prompt, model: model?.trim() || undefined })
+    body: JSON.stringify({ prompt, model: model?.trim() || undefined, session_id: sessionId || undefined })
   });
 }

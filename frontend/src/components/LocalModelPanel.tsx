@@ -8,22 +8,50 @@ import {
   runLocalPrompt,
   type LocalModelStatusPayload
 } from "../localModels/localModelStatus";
+import { listLocalChatSessions, type LocalChatSessionSummary } from "../localWorkstation/localChat";
 import StatusPill from "./StatusPill";
 
 export default function LocalModelPanel() {
   const [status, setStatus] = useState<LocalModelStatusPayload>(fallbackLocalModelStatus);
+  const [sessions, setSessions] = useState<LocalChatSessionSummary[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState("");
+  const [sessionMessage, setSessionMessage] = useState("Local chat sessions have not been loaded yet.");
   const [statusSource, setStatusSource] = useState("Using local model fallback status.");
   const [prompt, setPrompt] = useState("Summarize this local Sparkbot note in one sentence.");
   const [model, setModel] = useState("");
   const [responseText, setResponseText] = useState("");
   const [runMessage, setRunMessage] = useState("Local prompt calls are disabled until the backend is explicitly enabled.");
 
+  const refreshSessions = async () => {
+    try {
+      const nextSessions = await listLocalChatSessions();
+      setSessions(nextSessions);
+      setSessionMessage(nextSessions.length > 0 ? "Select an existing local chat session for the response." : "Create a local chat session before running a local prompt.");
+      if (!selectedSessionId && nextSessions.length > 0) {
+        setSelectedSessionId(nextSessions[0].id);
+      }
+      if (selectedSessionId && !nextSessions.some((session) => session.id === selectedSessionId)) {
+        setSelectedSessionId(nextSessions[0]?.id ?? "");
+      }
+    } catch {
+      setSessions([]);
+      setSelectedSessionId("");
+      setSessionMessage("Local chat sessions are unavailable. Start the local backend and retry.");
+    }
+  };
+
   const refreshStatus = async () => {
     try {
       const nextStatus = await fetchLocalModelStatus();
       setStatus(nextStatus);
       setStatusSource("Using backend local model status.");
-      setRunMessage(nextStatus.local_models_enabled ? "Local prompt calls are enabled for localhost Ollama only." : "Local prompt calls are disabled until the backend is explicitly enabled.");
+      if (!nextStatus.local_models_enabled) {
+        setRunMessage("Local prompt calls are disabled until the backend is explicitly enabled.");
+      } else if (nextStatus.status !== "available-local-only") {
+        setRunMessage("Local prompt calls are enabled, but Ollama is offline or unavailable on localhost.");
+      } else {
+        setRunMessage("Local prompt calls are enabled for localhost Ollama only.");
+      }
       if (nextStatus.configured_model && !model) {
         setModel(nextStatus.configured_model);
       }
@@ -36,17 +64,26 @@ export default function LocalModelPanel() {
 
   useEffect(() => {
     void refreshStatus();
+    void refreshSessions();
   }, []);
 
-  const promptEnabled = status.local_models_enabled && status.prompt_calls === "enabled-local-only";
+  const promptEnabled =
+    status.local_models_enabled &&
+    status.prompt_calls === "enabled-local-only" &&
+    status.status === "available-local-only" &&
+    Boolean(selectedSessionId);
 
   const submitPrompt = async (event: FormEvent) => {
     event.preventDefault();
     if (!promptEnabled) return;
     try {
-      const result = await runLocalPrompt(prompt, model);
+      const result = await runLocalPrompt(prompt, model, selectedSessionId);
       setResponseText(result.response);
-      setRunMessage("Local prompt completed through localhost Ollama. No external provider was called.");
+      setRunMessage(
+        result.stored_message
+          ? "Local prompt completed through localhost Ollama and the assistant response was saved to the selected session."
+          : "Local prompt completed through localhost Ollama. No external provider was called."
+      );
     } catch {
       setRunMessage("Local prompt failed safely. Check that Ollama is running locally and a local model name is configured.");
     }
@@ -107,6 +144,17 @@ export default function LocalModelPanel() {
 
       <form className="local-runtime-form" onSubmit={submitPrompt}>
         <label>
+          Local chat session
+          <select value={selectedSessionId} onChange={(event) => setSelectedSessionId(event.target.value)} disabled={!status.local_models_enabled || sessions.length === 0}>
+            {sessions.length === 0 ? <option value="">No local chat sessions</option> : null}
+            {sessions.map((session) => (
+              <option value={session.id} key={session.id}>
+                {session.title}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
           Local Ollama model
           <input value={model} onChange={(event) => setModel(event.target.value)} placeholder="llama3.2" disabled={!promptEnabled} />
         </label>
@@ -117,7 +165,9 @@ export default function LocalModelPanel() {
         <div className="local-action-row">
           <button type="submit" disabled={!promptEnabled}>Run local prompt</button>
           <button type="button" onClick={refreshStatus}>Refresh</button>
+          <button type="button" onClick={refreshSessions}>Refresh sessions</button>
         </div>
+        <p className="capabilities-source">{sessionMessage}</p>
         <p className="capabilities-source">{runMessage}</p>
       </form>
 
