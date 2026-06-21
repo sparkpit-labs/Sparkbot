@@ -9,6 +9,7 @@ This guide covers the local-only developer runner scripts for the current public
 - `scripts/check-public-safety.sh` runs public sanitation checks without starting services.
 - `scripts/validate-public-shell.sh` runs backend and frontend validation without starting long-running development servers.
 - `scripts/smoke-check-local.sh` checks already-running local backend and frontend development servers.
+- `scripts/run-local-smoke-test.sh` prepares missing local dev dependencies, starts alternate-port smoke servers, runs the smoke check, verifies temporary data-dir reporting, verifies local-model disabled/enabled status paths, and shuts the smoke servers down.
 
 ## What the scripts do not do
 
@@ -18,6 +19,7 @@ This guide covers the local-only developer runner scripts for the current public
 - They do not enable chat runtime behavior.
 - They do not start deployment infrastructure.
 - They do not configure desktop packaging.
+- They do not build an installer or desktop binary.
 
 ## Alternate ports
 
@@ -53,6 +55,12 @@ bash scripts/start-frontend-dev.sh
 ```bash
 bash scripts/check-public-safety.sh
 bash scripts/validate-public-shell.sh
+```
+
+For a one-command local runtime smoke path, run:
+
+```bash
+bash scripts/run-local-smoke-test.sh
 ```
 
 Use the validation commands before opening public review branches.

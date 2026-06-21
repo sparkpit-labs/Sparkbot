@@ -10,6 +10,7 @@ This document describes the planned desktop packaging direction for Sparkbot. De
 - No auto-update path exists yet.
 - No code signing setup exists yet.
 - The current supported path is local development mode with the backend and frontend run separately.
+- A one-command local smoke wrapper exists at `scripts/run-local-smoke-test.sh` for desktop-readiness validation before installer work.
 
 ## Target platforms
 
@@ -58,8 +59,8 @@ Desktop packaging should not be claimed until these gates pass:
 - Fresh clone validation passes.
 - Backend build and tests pass.
 - Frontend install, audit, tests, and build pass.
-- Local runtime smoke test passes.
-- Installer smoke test passes on the target platform.
+- Local runtime smoke test passes with `bash scripts/run-local-smoke-test.sh`.
+- Installer smoke test passes on the target platform once an installer exists.
 - Uninstall and reinstall test passes.
 - No secrets are present in artifacts.
 - Public safety scan is clean.
@@ -71,6 +72,7 @@ Desktop packaging should not be claimed until these gates pass:
 
 - No installer is added.
 - No desktop binary is added.
+- No desktop smoke result should be described as an installer result.
 - No desktop framework is added.
 - No auto-update implementation is added.
 - No code signing configuration is added.
