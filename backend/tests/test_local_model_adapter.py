@@ -134,6 +134,87 @@ def test_mocked_ollama_success_returns_local_response(client: TestClient, monkey
     assert payload["stored_message"] is None
 
 
+def test_prompt_does_not_include_memory_notes_without_explicit_selection(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("SPARKBOT_LOCAL_MODELS_ENABLED", "true")
+    client.post("/local/memory-notes", json={"title": "Unselected note", "body": "This should stay out."})
+
+    def fake_request_json(url: str, payload: dict[str, Any] | None = None, timeout: int = 20) -> dict[str, Any]:
+        assert payload == {"model": "llama3.2", "prompt": "Use no memory context.", "stream": False}
+        return {"response": "No memory context used.", "done": True}
+
+    monkeypatch.setattr(local_model_adapter, "_request_json", fake_request_json)
+
+    response = client.post("/local-models/ollama/prompt", json={"prompt": "Use no memory context.", "model": "llama3.2"})
+
+    assert response.status_code == 200
+    assert response.json()["memory_context"] == "none"
+    assert response.json()["selected_memory_note_count"] == 0
+
+
+def test_prompt_includes_only_explicitly_selected_memory_notes(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("SPARKBOT_LOCAL_MODELS_ENABLED", "true")
+    selected = client.post("/local/memory-notes", json={"title": "Selected note", "body": "Use this local fact."}).json()
+    client.post("/local/memory-notes", json={"title": "Unselected note", "body": "Do not include this."})
+
+    def fake_request_json(url: str, payload: dict[str, Any] | None = None, timeout: int = 20) -> dict[str, Any]:
+        assert payload is not None
+        prompt = payload["prompt"]
+        assert "Selected local memory notes were explicitly included" in prompt
+        assert "Selected note" in prompt
+        assert "Use this local fact." in prompt
+        assert "Unselected note" not in prompt
+        assert "Do not include this." not in prompt
+        assert prompt.endswith("Answer locally.")
+        return {"response": "Selected memory context used.", "done": True}
+
+    monkeypatch.setattr(local_model_adapter, "_request_json", fake_request_json)
+
+    response = client.post(
+        "/local-models/ollama/prompt",
+        json={"prompt": "Answer locally.", "model": "llama3.2", "selected_memory_note_ids": [selected["id"]]},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["memory_context"] == "explicit-selected"
+    assert response.json()["selected_memory_note_count"] == 1
+
+
+def test_selected_memory_note_ids_are_validated(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("SPARKBOT_LOCAL_MODELS_ENABLED", "true")
+    selected = client.post("/local/memory-notes", json={"title": "Selected note", "body": "Use this."}).json()
+
+    duplicate = client.post(
+        "/local-models/ollama/prompt",
+        json={"prompt": "hello", "model": "llama3.2", "selected_memory_note_ids": [selected["id"], selected["id"]]},
+    )
+    missing = client.post(
+        "/local-models/ollama/prompt",
+        json={"prompt": "hello", "model": "llama3.2", "selected_memory_note_ids": ["missing-note"]},
+    )
+
+    assert duplicate.status_code == 400
+    assert missing.status_code == 404
+
+
+def test_selected_memory_context_does_not_write_model_memory(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("SPARKBOT_LOCAL_MODELS_ENABLED", "true")
+    selected = client.post("/local/memory-notes", json={"title": "Selected note", "body": "Use this."}).json()
+
+    def fake_request_json(url: str, payload: dict[str, Any] | None = None, timeout: int = 20) -> dict[str, Any]:
+        return {"response": "No memory write.", "done": True}
+
+    monkeypatch.setattr(local_model_adapter, "_request_json", fake_request_json)
+
+    response = client.post(
+        "/local-models/ollama/prompt",
+        json={"prompt": "hello", "model": "llama3.2", "selected_memory_note_ids": [selected["id"]]},
+    )
+
+    assert response.status_code == 200
+    notes = client.get("/local/memory-notes").json()["notes"]
+    assert [note["id"] for note in notes] == [selected["id"]]
+
+
 def test_mocked_ollama_failure_returns_safe_error(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("SPARKBOT_LOCAL_MODELS_ENABLED", "true")
 

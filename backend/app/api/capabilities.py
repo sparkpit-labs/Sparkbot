@@ -56,7 +56,7 @@ CAPABILITIES: list[Capability] = [
         "id": "local-memory-notes",
         "label": "Local memory notes",
         "status": "available",
-        "notes": "Stores local notes without cloud sync or model memory.",
+        "notes": "Stores local notes and supports explicit per-prompt selection without automatic retrieval or model memory.",
     },
     {
         "id": "local-work-lane-cards",

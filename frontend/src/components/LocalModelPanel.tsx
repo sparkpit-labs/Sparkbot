@@ -9,13 +9,17 @@ import {
   type LocalModelStatusPayload
 } from "../localModels/localModelStatus";
 import { listLocalChatSessions, type LocalChatSessionSummary } from "../localWorkstation/localChat";
+import { listLocalMemoryNotes, type LocalMemoryNote } from "../localWorkstation/localMemoryNotes";
 import StatusPill from "./StatusPill";
 
 export default function LocalModelPanel() {
   const [status, setStatus] = useState<LocalModelStatusPayload>(fallbackLocalModelStatus);
   const [sessions, setSessions] = useState<LocalChatSessionSummary[]>([]);
+  const [memoryNotes, setMemoryNotes] = useState<LocalMemoryNote[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState("");
+  const [selectedMemoryNoteIds, setSelectedMemoryNoteIds] = useState<string[]>([]);
   const [sessionMessage, setSessionMessage] = useState("Local chat sessions have not been loaded yet.");
+  const [memoryMessage, setMemoryMessage] = useState("Local memory notes have not been loaded yet.");
   const [statusSource, setStatusSource] = useState("Using local model fallback status.");
   const [prompt, setPrompt] = useState("Summarize this local Sparkbot note in one sentence.");
   const [model, setModel] = useState("");
@@ -37,6 +41,19 @@ export default function LocalModelPanel() {
       setSessions([]);
       setSelectedSessionId("");
       setSessionMessage("Local chat sessions are unavailable. Start the local backend and retry.");
+    }
+  };
+
+  const refreshMemoryNotes = async () => {
+    try {
+      const nextNotes = await listLocalMemoryNotes();
+      setMemoryNotes(nextNotes);
+      setSelectedMemoryNoteIds((currentIds) => currentIds.filter((noteId) => nextNotes.some((note) => note.id === noteId)));
+      setMemoryMessage(nextNotes.length > 0 ? "Select local memory notes to include with the prompt." : "No local memory notes are available.");
+    } catch {
+      setMemoryNotes([]);
+      setSelectedMemoryNoteIds([]);
+      setMemoryMessage("Local memory notes are unavailable. Start the local backend and retry.");
     }
   };
 
@@ -65,6 +82,7 @@ export default function LocalModelPanel() {
   useEffect(() => {
     void refreshStatus();
     void refreshSessions();
+    void refreshMemoryNotes();
   }, []);
 
   const promptEnabled =
@@ -73,16 +91,24 @@ export default function LocalModelPanel() {
     status.status === "available-local-only" &&
     Boolean(selectedSessionId);
 
+  const toggleMemoryNote = (noteId: string) => {
+    setSelectedMemoryNoteIds((currentIds) =>
+      currentIds.includes(noteId) ? currentIds.filter((currentId) => currentId !== noteId) : [...currentIds, noteId]
+    );
+  };
+
   const submitPrompt = async (event: FormEvent) => {
     event.preventDefault();
     if (!promptEnabled) return;
     try {
-      const result = await runLocalPrompt(prompt, model, selectedSessionId);
+      const result = await runLocalPrompt(prompt, model, selectedSessionId, selectedMemoryNoteIds);
       setResponseText(result.response);
+      const memoryText =
+        result.selected_memory_note_count > 0 ? ` ${result.selected_memory_note_count} selected memory note(s) were included.` : "";
       setRunMessage(
         result.stored_message
-          ? "Local prompt completed through localhost Ollama and the assistant response was saved to the selected session."
-          : "Local prompt completed through localhost Ollama. No external provider was called."
+          ? `Local prompt completed through localhost Ollama and the assistant response was saved to the selected session.${memoryText}`
+          : `Local prompt completed through localhost Ollama. No external provider was called.${memoryText}`
       );
     } catch {
       setRunMessage("Local prompt failed safely. Check that Ollama is running locally and a local model name is configured.");
@@ -158,6 +184,20 @@ export default function LocalModelPanel() {
           Local Ollama model
           <input value={model} onChange={(event) => setModel(event.target.value)} placeholder="llama3.2" disabled={!promptEnabled} />
         </label>
+        <fieldset className="local-memory-context-list" disabled={!promptEnabled || memoryNotes.length === 0}>
+          <legend>Local memory context</legend>
+          {memoryNotes.length === 0 ? <p>No local memory notes</p> : null}
+          {memoryNotes.map((note) => (
+            <label className="local-checkbox-row" key={note.id}>
+              <input
+                type="checkbox"
+                checked={selectedMemoryNoteIds.includes(note.id)}
+                onChange={() => toggleMemoryNote(note.id)}
+              />
+              <span>{note.title}</span>
+            </label>
+          ))}
+        </fieldset>
         <label>
           Local prompt
           <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} disabled={!promptEnabled} />
@@ -166,8 +206,10 @@ export default function LocalModelPanel() {
           <button type="submit" disabled={!promptEnabled}>Run local prompt</button>
           <button type="button" onClick={refreshStatus}>Refresh</button>
           <button type="button" onClick={refreshSessions}>Refresh sessions</button>
+          <button type="button" onClick={refreshMemoryNotes}>Refresh notes</button>
         </div>
         <p className="capabilities-source">{sessionMessage}</p>
+        <p className="capabilities-source">{memoryMessage}</p>
         <p className="capabilities-source">{runMessage}</p>
       </form>
 

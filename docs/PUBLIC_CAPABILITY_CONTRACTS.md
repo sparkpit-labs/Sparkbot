@@ -34,7 +34,7 @@ A capability may move to a more active status only when all of the following are
 | Frontend shell | `available` | Buildable React/Vite shell with local status display. |
 | Local Workstation store | `available` | SQLite-backed local storage for public Workstation data. No cloud sync or provider calls. |
 | Local chat drafts | `available` | Stores operator and note messages locally. No model-generated response, streaming, or provider routing. |
-| Local memory notes | `available` | Stores local notes only. Not model memory and not cloud sync. |
+| Local memory notes | `available` | Stores local notes only. Explicit per-prompt selection is available; no automatic retrieval, model memory, embeddings, vector DB, or cloud sync. |
 | Local work lane cards | `available` | Stores local planning cards. No scheduler, reminders, notifications, or execution. |
 | Local model adapter | `disabled-by-default` | Localhost-only Ollama adapter. Prompt calls require explicit operator enablement and tests proving disabled defaults. |
 | Local Ollama | `disabled-by-default` | Uses only `localhost` or `127.0.0.1`. No credentials, cloud providers, or provider SDK dependencies. |

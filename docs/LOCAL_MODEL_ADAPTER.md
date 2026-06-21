@@ -34,10 +34,13 @@ The status endpoint is safe to call in the default configuration. The prompt end
 
 When a prompt request includes an existing local chat `session_id`, a successful local Ollama response is stored as an `assistant-local` message in the local SQLite Workstation store. The backend does not create chat sessions implicitly for model prompts.
 
+A prompt request may also include `selected_memory_note_ids`. Only those explicitly selected local memory notes are read from SQLite and prepended to that one local prompt. Sparkbot does not retrieve memory automatically, does not write model memory, does not create embeddings, and does not add a vector database.
+
 The frontend local model panel mirrors that boundary:
 
 - It loads existing local chat sessions from `/local/chat/sessions`.
 - It requires an existing selected session before the prompt button is enabled.
+- It lets the operator check local memory notes to include in the current prompt only.
 - It disables prompt controls when local models are disabled by configuration.
 - It also disables prompt controls when local models are enabled but Ollama is unavailable on localhost.
 - It does not stream, auto-send, create sessions implicitly, call cloud providers, or request credentials.
