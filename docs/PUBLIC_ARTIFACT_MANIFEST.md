@@ -26,6 +26,8 @@
 
 This manifest reflects the current review baseline and can be revised as future public slices are validated.
 
+The final public V1.0.0 release notes are tracked in `docs/RELEASE_NOTES_V1_0_0.md`.
+
 The clean baseline release notes are tracked in `docs/RELEASE_NOTES_PUBLIC_V1_CLEAN_BASELINE.md`.
 
 The frontend audit advisory fix checkpoint is tracked in `docs/RELEASE_NOTES_PUBLIC_V1_FRONTEND_AUDIT_FIX.md`.

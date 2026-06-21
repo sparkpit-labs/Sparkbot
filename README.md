@@ -40,7 +40,7 @@ The current repository is a validated shell baseline. It is useful for review, l
 
 ## Release and checkpoint status
 
-The latest public release-candidate checkpoint tag on `main` is `v1.0.0-rc0`. The latest pre-RC phase checkpoint tag is `public-v1-desktop-readiness-0`.
+The latest public release tag on `main` is `v1.0.0`. The previous release-candidate checkpoint tag is `v1.0.0-rc0`, and the latest pre-RC phase checkpoint tag is `public-v1-desktop-readiness-0`.
 
 The GitHub pre-release `public-v1-shell-baseline-0` remains the first published shell baseline release. Development continues on `main` through checkpoint tags, so `main` may include newer docs and planning checkpoints than the first pre-release page.
 

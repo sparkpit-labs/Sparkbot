@@ -6,6 +6,25 @@ This changelog tracks public Sparkbot repository baselines and release-facing do
 
 No changes yet.
 
+## v1.0.0 - 2026-06-21
+
+This tag finalizes the public V1.0.0 shell baseline after the `v1.0.0-rc0` audit checkpoint. It is a final validation and release-notes checkpoint only; it does not add runtime feature behavior beyond the existing public checkpoints.
+
+### Changed
+
+- Finalized release-facing README, changelog, readiness, artifact manifest, and release notes documentation for `v1.0.0`.
+
+### Validation
+
+- Full public shell validation passed.
+- Frontend npm audit passed with 0 vulnerabilities.
+- Public safety, private reference, private IP, provider-key, and branch hygiene scans passed.
+- One-command local smoke testing passed with Ollama disabled and with local-model enabled offline status verified. A live Ollama prompt smoke was not run because no local Ollama daemon was reachable on `127.0.0.1:11434`.
+
+### Not Included
+
+- No installer, desktop binary, production deployment workflow, cloud provider runtime, credential storage, connector sends, tool execution, or Guardian enforcement runtime was added for the final tag.
+
 ## v1.0.0-rc0 - 2026-06-21
 
 This tag is the public V1.0.0 release-candidate audit checkpoint. It freezes the Phase 6 desktop-readiness baseline for final validation and does not add runtime feature behavior beyond the existing public checkpoints.
