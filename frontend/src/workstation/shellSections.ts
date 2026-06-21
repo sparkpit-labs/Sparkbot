@@ -47,6 +47,12 @@ export const shellSections: ShellSection[] = [
     summary: "Read-only JSON download for local Workstation data."
   },
   {
+    id: "local-runtime-settings",
+    label: "Settings",
+    status: "available",
+    summary: "Read-only local paths and env-driven Ollama configuration."
+  },
+  {
     id: "local-models",
     label: "Local Models",
     status: "disabled-by-default",

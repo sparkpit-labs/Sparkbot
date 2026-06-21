@@ -7,6 +7,7 @@ import LocalChatPanel from "./LocalChatPanel";
 import LocalDataExportPanel from "./LocalDataExportPanel";
 import LocalMemoryNotesPanel from "./LocalMemoryNotesPanel";
 import LocalModelPanel from "./LocalModelPanel";
+import LocalRuntimeSettingsPanel from "./LocalRuntimeSettingsPanel";
 import LocalWorkLaneCardsPanel from "./LocalWorkLaneCardsPanel";
 import ModelSeatPreview from "./ModelSeatPreview";
 import ProviderSetupPreview from "./ProviderSetupPreview";
@@ -93,6 +94,7 @@ export default function WorkstationShell({
           <LocalMemoryNotesPanel />
           <LocalWorkLaneCardsPanel />
           <LocalDataExportPanel />
+          <LocalRuntimeSettingsPanel />
           <LocalModelPanel />
 
           <ChatShellPreview />

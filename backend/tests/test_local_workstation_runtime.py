@@ -270,6 +270,72 @@ def test_local_export_returns_read_only_workstation_snapshot(client: TestClient)
     assert client.get(f"/local/work-lane-cards/{card['id']}").status_code == 200
 
 
+def test_local_runtime_settings_reports_env_driven_local_status(client: TestClient, tmp_path: Path) -> None:
+    response = client.get("/local/runtime/settings")
+
+    assert response.status_code == 200
+    payload = response.json()
+    _assert_no_credential_fields(payload)
+    assert payload["service"] == "sparkbot-server"
+    assert payload["mode"] == "local"
+    assert payload["status"] == "available"
+    assert payload["configuration"] == "env-driven"
+    assert payload["settings_writes"] == "not-supported"
+    assert payload["credentials"] == "not-supported"
+    assert payload["data_directory"] == {
+        "configured_by": "SPARKBOT_DATA_DIR",
+        "display_path": str(tmp_path),
+    }
+    assert payload["sqlite_database"] == {
+        "filename": "sparkbot_public.sqlite3",
+        "display_path": str(tmp_path / "sparkbot_public.sqlite3"),
+    }
+    assert payload["local_models"]["enabled"] is False
+    assert payload["local_models"]["adapter"] == "ollama"
+    assert payload["local_models"]["base_url"] == "http://127.0.0.1:11434"
+    assert payload["local_models"]["base_url_policy"] == "localhost-only"
+    assert payload["local_models"]["configured_model"] is None
+    assert payload["local_models"]["prompt_calls"] == "disabled"
+
+
+def test_local_runtime_settings_reflects_enabled_ollama_config(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("SPARKBOT_LOCAL_MODELS_ENABLED", "true")
+    monkeypatch.setenv("SPARKBOT_OLLAMA_BASE_URL", "http://localhost:11434")
+    monkeypatch.setenv("SPARKBOT_OLLAMA_MODEL", "llama3.2")
+
+    def fake_request_json(url: str, payload: dict[str, Any] | None = None, timeout: int = 2) -> dict[str, Any]:
+        assert url == "http://localhost:11434/api/tags"
+        assert payload is None
+        return {"models": []}
+
+    from app.services import local_model_adapter
+
+    monkeypatch.setattr(local_model_adapter, "_request_json", fake_request_json)
+
+    payload = client.get("/local/runtime/settings").json()
+
+    assert payload["local_models"]["enabled"] is True
+    assert payload["local_models"]["status"] == "available-local-only"
+    assert payload["local_models"]["base_url"] == "http://localhost:11434"
+    assert payload["local_models"]["configured_model"] == "llama3.2"
+    assert payload["local_models"]["prompt_calls"] == "enabled-local-only"
+
+
+def test_local_runtime_settings_does_not_add_save_secret_or_upload_paths(client: TestClient) -> None:
+    route_paths = {route.path for route in app.routes if isinstance(route, APIRoute)}
+    forbidden_paths = {
+        "/local/runtime/settings/save",
+        "/local/runtime/settings/secrets",
+        "/local/runtime/settings/credentials",
+        "/local/runtime/settings/upload",
+    }
+
+    assert route_paths.isdisjoint(forbidden_paths)
+    assert client.post("/local/runtime/settings", json={}).status_code == 405
+    for path in forbidden_paths:
+        assert client.post(path, json={}).status_code == 404
+
+
 def test_local_export_does_not_add_import_sync_or_upload_paths(client: TestClient) -> None:
     route_paths = {route.path for route in app.routes if isinstance(route, APIRoute)}
     forbidden_paths = {

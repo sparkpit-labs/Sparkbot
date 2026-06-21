@@ -10,6 +10,7 @@ This index groups the public Sparkbot documentation for first-time visitors, loc
 - [Local Development](LOCAL_DEVELOPMENT.md): local runner scripts and what they do not enable.
 - [Local Smoke Test](LOCAL_SMOKE_TEST.md): alternate-port local smoke testing without touching existing services.
 - [Local Data Export](LOCAL_DATA_EXPORT.md): read-only Workstation JSON export for backup and testing.
+- [Local Runtime Settings](LOCAL_RUNTIME_SETTINGS.md): read-only local data path and Ollama configuration status.
 - [Validation](VALIDATION.md): full validation, safety scans, backend checks, and frontend checks.
 
 ## Product shell previews
