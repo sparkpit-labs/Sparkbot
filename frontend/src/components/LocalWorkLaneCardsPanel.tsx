@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 
+import { listLocalChatSessions, type LocalChatSessionSummary } from "../localWorkstation/localChat";
 import {
   createLocalWorkLaneCard,
   deleteLocalWorkLaneCard,
@@ -12,13 +13,23 @@ import {
   type WorkLaneName
 } from "../localWorkstation/localWorkLaneCards";
 
-const emptyForm = { lane: "inbox" as WorkLaneName, title: "", body: "", status: "open" as WorkLaneCardStatus };
+type WorkLaneCardForm = {
+  lane: WorkLaneName;
+  title: string;
+  body: string;
+  status: WorkLaneCardStatus;
+  chat_session_id: string;
+};
+
+const emptyForm: WorkLaneCardForm = { lane: "inbox", title: "", body: "", status: "open", chat_session_id: "" };
 
 export default function LocalWorkLaneCardsPanel() {
   const [cards, setCards] = useState<LocalWorkLaneCard[]>([]);
-  const [form, setForm] = useState(emptyForm);
+  const [sessions, setSessions] = useState<LocalChatSessionSummary[]>([]);
+  const [form, setForm] = useState<WorkLaneCardForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState("Local work lane cards have not been loaded yet.");
+  const [sessionMessage, setSessionMessage] = useState("Local chat sessions have not been loaded yet.");
 
   const refreshCards = async () => {
     try {
@@ -29,18 +40,30 @@ export default function LocalWorkLaneCardsPanel() {
     }
   };
 
+  const refreshSessions = async () => {
+    try {
+      const nextSessions = await listLocalChatSessions();
+      setSessions(nextSessions);
+      setSessionMessage(nextSessions.length > 0 ? "Local chat sessions are available for manual card links." : "Create a local chat session before linking a card.");
+    } catch {
+      setSessions([]);
+      setSessionMessage("Local chat sessions are unavailable. Start the local backend and retry.");
+    }
+  };
+
   useEffect(() => {
     void refreshCards();
+    void refreshSessions();
   }, []);
 
   const saveCard = async (event: FormEvent) => {
     event.preventDefault();
     try {
       if (editingId) {
-        await updateLocalWorkLaneCard(editingId, form);
+        await updateLocalWorkLaneCard(editingId, { ...form, chat_session_id: form.chat_session_id || null });
         setStatusMessage("Updated local work lane card.");
       } else {
-        await createLocalWorkLaneCard(form.lane, form.title, form.body, form.status);
+        await createLocalWorkLaneCard(form.lane, form.title, form.body, form.status, form.chat_session_id || undefined);
         setStatusMessage("Added local work lane card.");
       }
       setForm(emptyForm);
@@ -53,7 +76,7 @@ export default function LocalWorkLaneCardsPanel() {
 
   const editCard = (card: LocalWorkLaneCard) => {
     setEditingId(card.id);
-    setForm({ lane: card.lane, title: card.title, body: card.body, status: card.status });
+    setForm({ lane: card.lane, title: card.title, body: card.body, status: card.status, chat_session_id: card.chat_session_id ?? "" });
     setStatusMessage("Editing local work lane card.");
   };
 
@@ -78,6 +101,7 @@ export default function LocalWorkLaneCardsPanel() {
         <h2 id="local-work-lane-cards-heading">Local Work Lane Cards</h2>
         <p>Plan work with local cards. Cards are stored locally and do not run, schedule, remind, notify, or execute tasks.</p>
         <p className="capabilities-source">{statusMessage}</p>
+        <p className="capabilities-source">{sessionMessage}</p>
       </div>
 
       <form className="local-runtime-form" onSubmit={saveCard}>
@@ -102,12 +126,22 @@ export default function LocalWorkLaneCardsPanel() {
           </select>
         </label>
         <label>
+          Linked local chat session
+          <select value={form.chat_session_id} onChange={(event) => setForm({ ...form, chat_session_id: event.target.value })}>
+            <option value="">No linked chat session</option>
+            {sessions.map((session) => (
+              <option value={session.id} key={session.id}>{session.title}</option>
+            ))}
+          </select>
+        </label>
+        <label>
           Card body
           <textarea value={form.body} onChange={(event) => setForm({ ...form, body: event.target.value })} />
         </label>
         <div className="local-action-row">
           <button type="submit">{editingId ? "Update" : "Add card"}</button>
           <button type="button" onClick={refreshCards}>Refresh</button>
+          <button type="button" onClick={refreshSessions}>Refresh sessions</button>
         </div>
       </form>
 
@@ -118,6 +152,7 @@ export default function LocalWorkLaneCardsPanel() {
             <h3>{card.title}</h3>
             <p>{card.body}</p>
             <small>Lane: {card.lane} | Status: {card.status}</small>
+            <small>Linked chat: {card.linked_chat_session_title ?? "none"}</small>
             <div className="local-action-row">
               <button type="button" onClick={() => editCard(card)}>Edit</button>
               <button type="button" onClick={() => void deleteCard(card.id)}>Delete</button>

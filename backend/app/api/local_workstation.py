@@ -49,6 +49,7 @@ class WorkLaneCardCreate(BaseModel):
     title: str = Field(min_length=1, max_length=160)
     body: str = Field(min_length=1, max_length=12000)
     status: WorkCardStatus = "open"
+    chat_session_id: str | None = Field(default=None, min_length=1, max_length=120)
 
 
 class WorkLaneCardUpdate(BaseModel):
@@ -56,6 +57,7 @@ class WorkLaneCardUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=160)
     body: str | None = Field(default=None, min_length=1, max_length=12000)
     status: WorkCardStatus | None = None
+    chat_session_id: str | None = Field(default=None, min_length=1, max_length=120)
 
 
 def store() -> LocalWorkstationStore:
@@ -166,7 +168,7 @@ def create_work_lane_card(payload: WorkLaneCardCreate) -> dict:
     if payload.lane not in ALLOWED_WORK_LANES or payload.status not in ALLOWED_CARD_STATUSES:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid local work lane card value")
     try:
-        return store().create_work_lane_card(payload.lane, payload.title, payload.body, payload.status)
+        return store().create_work_lane_card(payload.lane, payload.title, payload.body, payload.status, payload.chat_session_id)
     except (LocalStoreError, NotFoundError) as error:
         raise handle_store_error(error) from error
 
@@ -182,6 +184,9 @@ def get_work_lane_card(card_id: str) -> dict:
 @router.patch("/work-lane-cards/{card_id}")
 def update_work_lane_card(card_id: str, payload: WorkLaneCardUpdate) -> dict:
     try:
+        chat_session_id = payload.chat_session_id if "chat_session_id" in payload.model_fields_set else None
+        if "chat_session_id" in payload.model_fields_set:
+            return store().update_work_lane_card(card_id, payload.lane, payload.title, payload.body, payload.status, chat_session_id)
         return store().update_work_lane_card(card_id, payload.lane, payload.title, payload.body, payload.status)
     except (LocalStoreError, NotFoundError) as error:
         raise handle_store_error(error) from error

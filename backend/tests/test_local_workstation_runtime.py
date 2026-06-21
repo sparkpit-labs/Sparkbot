@@ -126,6 +126,8 @@ def test_work_lane_cards_crud_and_validation(client: TestClient, tmp_path: Path)
     _assert_no_credential_fields(card)
     assert card["lane"] == "inbox"
     assert card["status"] == "open"
+    assert card["chat_session_id"] is None
+    assert card["linked_chat_session_title"] is None
 
     listed = client.get("/local/work-lane-cards")
     assert listed.status_code == 200
@@ -147,6 +149,84 @@ def test_work_lane_cards_crud_and_validation(client: TestClient, tmp_path: Path)
 
     assert client.delete(f"/local/work-lane-cards/{card['id']}").status_code == 204
     assert client.get(f"/local/work-lane-cards/{card['id']}").status_code == 404
+
+
+def test_work_lane_card_can_link_and_unlink_local_chat_session(client: TestClient, tmp_path: Path) -> None:
+    session = client.post("/local/chat/sessions", json={"title": "Linked local chat"}).json()
+
+    created = client.post(
+        "/local/work-lane-cards",
+        json={
+            "lane": "planned",
+            "title": "Linked card",
+            "body": "Discuss in local chat.",
+            "status": "open",
+            "chat_session_id": session["id"],
+        },
+    )
+
+    assert created.status_code == 201
+    card = created.json()
+    assert card["chat_session_id"] == session["id"]
+    assert card["linked_chat_session_title"] == "Linked local chat"
+
+    listed = client.get("/local/work-lane-cards").json()["cards"]
+    assert listed[0]["chat_session_id"] == session["id"]
+    assert listed[0]["linked_chat_session_title"] == "Linked local chat"
+
+    fetched = client.get(f"/local/work-lane-cards/{card['id']}").json()
+    assert fetched["linked_chat_session_title"] == "Linked local chat"
+
+    unlinked = client.patch(f"/local/work-lane-cards/{card['id']}", json={"chat_session_id": None})
+    assert unlinked.status_code == 200
+    assert unlinked.json()["chat_session_id"] is None
+    assert unlinked.json()["linked_chat_session_title"] is None
+
+    second_store = LocalWorkstationStore(tmp_path)
+    assert second_store.get_work_lane_card(card["id"])["chat_session_id"] is None
+
+
+def test_work_lane_card_rejects_missing_chat_session_link(client: TestClient) -> None:
+    created = client.post(
+        "/local/work-lane-cards",
+        json={
+            "lane": "inbox",
+            "title": "Bad link",
+            "body": "Missing chat session.",
+            "status": "open",
+            "chat_session_id": "missing-session",
+        },
+    )
+
+    assert created.status_code == 404
+    assert created.json()["detail"] == "Chat session not found"
+
+
+def test_deleting_chat_session_unlinks_work_lane_cards(client: TestClient) -> None:
+    session = client.post("/local/chat/sessions", json={"title": "Temporary local chat"}).json()
+    card = client.post(
+        "/local/work-lane-cards",
+        json={
+            "lane": "review",
+            "title": "Card with chat",
+            "body": "Keep card when chat is removed.",
+            "status": "open",
+            "chat_session_id": session["id"],
+        },
+    ).json()
+
+    assert client.delete(f"/local/chat/sessions/{session['id']}").status_code == 204
+
+    fetched = client.get(f"/local/work-lane-cards/{card['id']}").json()
+    assert fetched["chat_session_id"] is None
+    assert fetched["linked_chat_session_title"] is None
+    assert fetched["title"] == "Card with chat"
+
+
+def test_work_lane_chat_link_does_not_add_execution_paths(client: TestClient) -> None:
+    assert client.post("/local/work-lane-cards/card-1/run", json={}).status_code == 404
+    assert client.post("/local/work-lane-cards/card-1/remind", json={}).status_code == 404
+    assert client.post("/local/work-lane-cards/card-1/background-job", json={}).status_code == 404
 
 
 def test_local_runtime_does_not_add_model_provider_or_execution_paths(client: TestClient) -> None:
