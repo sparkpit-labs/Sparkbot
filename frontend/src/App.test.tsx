@@ -44,6 +44,12 @@ const capabilitiesPayload = {
       notes: "Stores local planning cards and optional local chat-session links without scheduler or task execution."
     },
     {
+      id: "local-data-export",
+      label: "Local data export",
+      status: "available",
+      notes: "Downloads a read-only JSON backup of local Workstation data without import, sync, or upload."
+    },
+    {
       id: "local-model-adapter",
       label: "Local model adapter",
       status: "disabled-by-default",
@@ -471,6 +477,22 @@ const localWorkLaneCardsPayload = {
   ]
 };
 
+const localExportPayload = {
+  service: "sparkbot-server",
+  mode: "local",
+  export_type: "local-workstation-data",
+  schema_version: 1,
+  exported_at: "2026-06-21T00:00:00Z",
+  import_supported: false,
+  cloud_sync: "not-supported",
+  external_upload: "not-supported",
+  data: {
+    chat_sessions: [localChatSessionPayload],
+    memory_notes: localMemoryNotesPayload.notes,
+    work_lane_cards: localWorkLaneCardsPayload.cards
+  }
+};
+
 const localModelDisabledStatusPayload = {
   service: "sparkbot-server",
   mode: "local",
@@ -524,6 +546,10 @@ function mockBackendStatusFetch() {
   return vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
     const url = input.toString();
     const method = init?.method ?? "GET";
+
+    if (url.includes("/local/export")) {
+      return mockJsonResponse(localExportPayload);
+    }
 
     if (url.includes("/local/chat/sessions/session-1/messages")) {
       return mockJsonResponse(localChatSessionPayload.messages[0]);
@@ -603,6 +629,7 @@ describe("App", () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
@@ -618,7 +645,7 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Capability source" })).toBeDefined();
     expect(screen.getByText("Not checked")).toBeDefined();
     expect(screen.getByText("Local read-only status requests only.")).toBeDefined();
-    expect(screen.getByText("20 public capability entries loaded.")).toBeDefined();
+    expect(screen.getByText("21 public capability entries loaded.")).toBeDefined();
     expect(screen.getByRole("heading", { name: "Health" })).toBeDefined();
     expect(screen.getByText("GET /health")).toBeDefined();
     expect(screen.getByRole("heading", { name: "Capabilities" })).toBeDefined();
@@ -627,6 +654,7 @@ describe("App", () => {
     expect(screen.getByText("GET /round-table/status")).toBeDefined();
     expect(screen.getByText("GET /model-seats/status")).toBeDefined();
     expect(screen.getByText("GET /work-lanes/status")).toBeDefined();
+    expect(screen.getByText("GET /local/export")).toBeDefined();
     expect(screen.getByText("GET /provider-config/status")).toBeDefined();
     expect(screen.getByText("GET /connector-status")).toBeDefined();
     expect(screen.getByText("GET /guardian/status")).toBeDefined();
@@ -643,6 +671,7 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: /Local Chat.*Available/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Memory Notes.*Available/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Work Cards.*Available/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Export.*Available/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Local Models.*Disabled by default/i })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Local Chat Drafts" })).toBeDefined();
     expect(screen.getByText(/manual Local Ollama Adapter flow/i)).toBeDefined();
@@ -650,6 +679,8 @@ describe("App", () => {
     expect(screen.getByText(/not model memory and are not synced/i)).toBeDefined();
     expect(screen.getByRole("heading", { name: "Local Work Lane Cards" })).toBeDefined();
     expect(screen.getByText(/do not run, schedule, remind, notify, or execute tasks/i)).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Local Data Export" })).toBeDefined();
+    expect(screen.getByText(/No import, cloud sync, external upload/i)).toBeDefined();
     expect(screen.getByRole("heading", { name: "Local Ollama Adapter" })).toBeDefined();
     expect(screen.getByText(/Local-only prompt adapter for Ollama on localhost/i)).toBeDefined();
     expect(screen.getByText(/SPARKBOT_LOCAL_MODELS_ENABLED=true/)).toBeDefined();
@@ -791,7 +822,7 @@ describe("App", () => {
     expect(screen.getByText("No credential entry or storage path.")).toBeDefined();
     expect(screen.getByText("No terminal, tool, or automation execution.")).toBeDefined();
     expect(screen.getByText("Future local action")).toBeDefined();
-    expect(screen.getByText("21 public capability entries loaded.")).toBeDefined();
+    expect(screen.getByText("22 public capability entries loaded.")).toBeDefined();
     expect(screen.getAllByText("Disabled by default").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(8);
   });
@@ -1024,6 +1055,29 @@ describe("App", () => {
       input.toString().includes("/local/work-lane-cards") && init?.method === "POST"
     );
     expect(JSON.parse((cardCall?.[1]?.body as string) ?? "{}")).toMatchObject({ chat_session_id: "session-1" });
+  });
+
+
+  it("exports local Workstation data as a browser JSON download", async () => {
+    const fetchMock = mockBackendStatusFetch();
+    vi.stubGlobal("fetch", fetchMock);
+    const createObjectUrl = vi.fn(() => "blob:local-export");
+    const revokeObjectUrl = vi.fn();
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+    Object.defineProperty(URL, "createObjectURL", { configurable: true, value: createObjectUrl });
+    Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: revokeObjectUrl });
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Export JSON" }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/local/export"), expect.objectContaining({ cache: "no-store" }))
+    );
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+    expect(createObjectUrl).toHaveBeenCalledTimes(1);
+    expect(revokeObjectUrl).toHaveBeenCalledWith("blob:local-export");
+    expect(await screen.findByText(/Exported local Workstation JSON/i)).toBeDefined();
   });
 
 

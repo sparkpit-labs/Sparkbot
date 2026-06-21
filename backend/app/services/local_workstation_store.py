@@ -99,6 +99,23 @@ class LocalWorkstationStore:
             )
             self._ensure_work_lane_chat_link_column(connection)
 
+    def export_local_data(self) -> dict[str, Any]:
+        return {
+            "service": "sparkbot-server",
+            "mode": "local",
+            "export_type": "local-workstation-data",
+            "schema_version": 1,
+            "exported_at": utc_now(),
+            "import_supported": False,
+            "cloud_sync": "not-supported",
+            "external_upload": "not-supported",
+            "data": {
+                "chat_sessions": self._export_chat_sessions(),
+                "memory_notes": self.list_memory_notes(),
+                "work_lane_cards": self.list_work_lane_cards(),
+            },
+        }
+
     def list_chat_sessions(self) -> list[dict[str, Any]]:
         with self.connect() as connection:
             rows = connection.execute(
@@ -281,6 +298,10 @@ class LocalWorkstationStore:
 
     def delete_work_lane_card(self, card_id: str) -> None:
         self._delete_row("work_lane_cards", card_id, "Work lane card not found")
+
+    def _export_chat_sessions(self) -> list[dict[str, Any]]:
+        sessions = self.list_chat_sessions()
+        return [self.get_chat_session(session["id"]) for session in sessions]
 
     def _ensure_work_lane_chat_link_column(self, connection: sqlite3.Connection) -> None:
         columns = {row["name"] for row in connection.execute("PRAGMA table_info(work_lane_cards)").fetchall()}

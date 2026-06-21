@@ -54,7 +54,14 @@ const surfaceStatuses: SurfaceStatus[] = [
     status: "available",
     summary: "Local planning cards with no scheduler or execution path."
   },
-    {
+  {
+    id: "local-data-export",
+    label: "Local Export",
+    endpoint: "GET /local/export",
+    status: "available",
+    summary: "Read-only JSON export for local Workstation backup and testing."
+  },
+  {
     id: "local-models",
     label: "Local Models",
     endpoint: "GET /local-models/status",

@@ -40,7 +40,13 @@ export const shellSections: ShellSection[] = [
     status: "available",
     summary: "Local planning cards with no scheduler or execution path."
   },
-    {
+  {
+    id: "local-data-export",
+    label: "Export",
+    status: "available",
+    summary: "Read-only JSON download for local Workstation data."
+  },
+  {
     id: "local-models",
     label: "Local Models",
     status: "disabled-by-default",

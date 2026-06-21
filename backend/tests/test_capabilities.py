@@ -55,6 +55,12 @@ def test_capabilities_are_static_and_public_safe() -> None:
             "notes": "Stores local planning cards and optional local chat-session links without scheduler or task execution.",
         },
         {
+            "id": "local-data-export",
+            "label": "Local data export",
+            "status": "available",
+            "notes": "Downloads a read-only JSON backup of local Workstation data without import, sync, or upload.",
+        },
+        {
             "id": "local-model-adapter",
             "label": "Local model adapter",
             "status": "disabled-by-default",

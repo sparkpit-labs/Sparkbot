@@ -229,6 +229,62 @@ def test_work_lane_chat_link_does_not_add_execution_paths(client: TestClient) ->
     assert client.post("/local/work-lane-cards/card-1/background-job", json={}).status_code == 404
 
 
+def test_local_export_returns_read_only_workstation_snapshot(client: TestClient) -> None:
+    session = client.post("/local/chat/sessions", json={"title": "Export chat"}).json()
+    message = client.post(
+        f"/local/chat/sessions/{session['id']}/messages",
+        json={"role": "operator", "content": "Export this locally."},
+    ).json()
+    note = client.post("/local/memory-notes", json={"title": "Export note", "body": "Backup this note."}).json()
+    card = client.post(
+        "/local/work-lane-cards",
+        json={
+            "lane": "planned",
+            "title": "Export card",
+            "body": "Backup this card.",
+            "status": "open",
+            "chat_session_id": session["id"],
+        },
+    ).json()
+
+    response = client.get("/local/export")
+
+    assert response.status_code == 200
+    payload = response.json()
+    _assert_no_credential_fields(payload)
+    assert payload["service"] == "sparkbot-server"
+    assert payload["mode"] == "local"
+    assert payload["export_type"] == "local-workstation-data"
+    assert payload["schema_version"] == 1
+    assert payload["import_supported"] is False
+    assert payload["cloud_sync"] == "not-supported"
+    assert payload["external_upload"] == "not-supported"
+    assert payload["data"]["chat_sessions"][0]["id"] == session["id"]
+    assert payload["data"]["chat_sessions"][0]["messages"] == [message]
+    assert payload["data"]["memory_notes"][0]["id"] == note["id"]
+    assert payload["data"]["work_lane_cards"][0]["id"] == card["id"]
+    assert payload["data"]["work_lane_cards"][0]["linked_chat_session_title"] == "Export chat"
+
+    assert client.get(f"/local/chat/sessions/{session['id']}").status_code == 200
+    assert client.get(f"/local/memory-notes/{note['id']}").status_code == 200
+    assert client.get(f"/local/work-lane-cards/{card['id']}").status_code == 200
+
+
+def test_local_export_does_not_add_import_sync_or_upload_paths(client: TestClient) -> None:
+    route_paths = {route.path for route in app.routes if isinstance(route, APIRoute)}
+    forbidden_paths = {
+        "/local/import",
+        "/local/export/upload",
+        "/local/sync",
+        "/local/cloud-sync",
+        "/local/backup/upload",
+    }
+
+    assert route_paths.isdisjoint(forbidden_paths)
+    for path in forbidden_paths:
+        assert client.post(path, json={}).status_code == 404
+
+
 def test_local_runtime_does_not_add_model_provider_or_execution_paths(client: TestClient) -> None:
     route_paths = {route.path for route in app.routes if isinstance(route, APIRoute)}
     forbidden_paths = {
