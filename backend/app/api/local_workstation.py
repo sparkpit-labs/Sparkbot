@@ -3,6 +3,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException, Response, status
 from pydantic import BaseModel, Field
 
+from app.services.local_runtime_settings import get_local_runtime_settings
 from app.services.local_workstation_store import (
     ALLOWED_CARD_STATUSES,
     ALLOWED_MESSAGE_ROLES,
@@ -70,6 +71,11 @@ def handle_store_error(error: Exception) -> HTTPException:
     if isinstance(error, LocalStoreError):
         return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
     return HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Local store error")
+
+
+@router.get("/runtime/settings")
+def local_runtime_settings() -> dict:
+    return get_local_runtime_settings()
 
 
 @router.get("/export")

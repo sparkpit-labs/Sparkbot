@@ -8,6 +8,7 @@ The current public shell baseline includes a local Workstation shell skeleton fo
 - Manual local memory note selection for the disabled-by-default local Ollama prompt panel.
 - Optional local chat-session links on local work lane cards.
 - Read-only local Workstation JSON export for backup and testing.
+- Read-only local runtime settings panel for data paths and env-driven Ollama configuration.
 - Disabled-by-default local Ollama adapter status and prompt panel.
 - Workstation shell layout in the frontend with local create, read, update, and delete flows.
 - Read-only public baseline status panel summarizing health, capability status counts, and local status endpoints.
@@ -34,6 +35,7 @@ The current public shell baseline includes a local Workstation shell skeleton fo
 - Local memory notes: Available
 - Local work lane cards: Available
 - Local data export: Available
+- Local runtime settings: Available
 - Local model adapter: Disabled by default
 - Local Ollama: Disabled by default
 - Workstation shell: Preview
@@ -63,7 +65,8 @@ Status labels in the UI mean:
 - Model seat assignment or persistence
 - Task scheduling, reminders, notifications, background jobs, or execution
 - Tool execution
-- Local data import, cloud sync, external upload, or credential export
+- Local data import, cloud sync, external upload, credential export, or settings writes
+- Runtime settings credential fields or secret save buttons
 - Provider setup runtime forms
 - Guardian runtime controls and policy enforcement
 - Desktop and Tauri surfaces
@@ -84,4 +87,4 @@ pytest backend/tests -q
 
 ## Scope Notes
 
-This is a product-direction shell slice only. It does not claim release readiness and activates only local SQLite CRUD for Workstation drafts, notes, and planning cards. It activates only optional links between local work lane cards and local chat sessions. It activates only a read-only JSON export of local Workstation data for backup and testing; it does not activate import, cloud sync, external upload, or credential export. It activates only default-off localhost Ollama prompt calls when explicitly enabled by environment variable. Local memory notes are added to a prompt only when the operator selects them manually. It does not activate automatic memory retrieval, model memory writes, embeddings, vector databases, cloud model calls, external sends, provider credentials, connectors, schedulers, reminders, background jobs, task execution, tool execution, Guardian runtime enforcement, or LIMA AI OS integration.
+This is a product-direction shell slice only. It does not claim release readiness and activates only local SQLite CRUD for Workstation drafts, notes, and planning cards. It activates only optional links between local work lane cards and local chat sessions. It activates only a read-only JSON export of local Workstation data for backup and testing; it does not activate import, cloud sync, external upload, or credential export. It activates only read-only runtime settings display for local paths and env-driven Ollama configuration; it does not activate credential fields, secret save buttons, or runtime config writes. It activates only default-off localhost Ollama prompt calls when explicitly enabled by environment variable. Local memory notes are added to a prompt only when the operator selects them manually. It does not activate automatic memory retrieval, model memory writes, embeddings, vector databases, cloud model calls, external sends, provider credentials, connectors, schedulers, reminders, background jobs, task execution, tool execution, Guardian runtime enforcement, or LIMA AI OS integration.

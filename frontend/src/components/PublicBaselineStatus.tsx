@@ -62,6 +62,13 @@ const surfaceStatuses: SurfaceStatus[] = [
     summary: "Read-only JSON export for local Workstation backup and testing."
   },
   {
+    id: "local-runtime-settings",
+    label: "Local Settings",
+    endpoint: "GET /local/runtime/settings",
+    status: "available",
+    summary: "Read-only local data path and env-driven Ollama configuration."
+  },
+  {
     id: "local-models",
     label: "Local Models",
     endpoint: "GET /local-models/status",

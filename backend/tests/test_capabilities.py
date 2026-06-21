@@ -61,6 +61,12 @@ def test_capabilities_are_static_and_public_safe() -> None:
             "notes": "Downloads a read-only JSON backup of local Workstation data without import, sync, or upload.",
         },
         {
+            "id": "local-runtime-settings",
+            "label": "Local runtime settings",
+            "status": "available",
+            "notes": "Shows env-driven local runtime paths and Ollama settings without credential fields or save actions.",
+        },
+        {
             "id": "local-model-adapter",
             "label": "Local model adapter",
             "status": "disabled-by-default",

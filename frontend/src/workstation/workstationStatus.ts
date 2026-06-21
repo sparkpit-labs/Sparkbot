@@ -54,6 +54,12 @@ export const workstationStatusItems: WorkstationStatusItem[] = [
     summary: "Downloads a read-only JSON backup of local Workstation data without import, sync, or upload."
   },
   {
+    id: "local-runtime-settings",
+    name: "Local runtime settings",
+    status: "available",
+    summary: "Shows env-driven local runtime paths and Ollama settings without credential fields or save actions."
+  },
+  {
     id: "local-model-adapter",
     name: "Local model adapter",
     status: "disabled-by-default",

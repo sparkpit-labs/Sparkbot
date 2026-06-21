@@ -17,6 +17,7 @@ local_chat_sessions_url="${SPARKBOT_BACKEND_URL%/}/local/chat/sessions"
 local_memory_notes_url="${SPARKBOT_BACKEND_URL%/}/local/memory-notes"
 local_work_lane_cards_url="${SPARKBOT_BACKEND_URL%/}/local/work-lane-cards"
 local_data_export_url="${SPARKBOT_BACKEND_URL%/}/local/export"
+local_runtime_settings_url="${SPARKBOT_BACKEND_URL%/}/local/runtime/settings"
 local_models_status_url="${SPARKBOT_BACKEND_URL%/}/local-models/status"
 local_models_prompt_url="${SPARKBOT_BACKEND_URL%/}/local-models/ollama/prompt"
 
@@ -264,6 +265,31 @@ case "${local_data_export_response}" in
   *\"data\"*) ;;
   *)
     echo "Local data export response did not include data." >&2
+    exit 1
+    ;;
+esac
+
+echo "Checking local runtime settings at ${local_runtime_settings_url}"
+local_runtime_settings_response="$(curl -fsS "${local_runtime_settings_url}")"
+printf "%s\n" "${local_runtime_settings_response}"
+case "${local_runtime_settings_response}" in
+  *\"configuration\":\"env-driven\"*|*\"configuration\":\ \"env-driven\"*) ;;
+  *)
+    echo "Local runtime settings response did not report env-driven configuration." >&2
+    exit 1
+    ;;
+esac
+case "${local_runtime_settings_response}" in
+  *\"settings_writes\":\"not-supported\"*|*\"settings_writes\":\ \"not-supported\"*) ;;
+  *)
+    echo "Local runtime settings response did not report settings writes as unsupported." >&2
+    exit 1
+    ;;
+esac
+case "${local_runtime_settings_response}" in
+  *\"data_directory\"*\"sqlite_database\"*\"local_models\"*) ;;
+  *)
+    echo "Local runtime settings response did not include data directory, SQLite, and local model settings." >&2
     exit 1
     ;;
 esac

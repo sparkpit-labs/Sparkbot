@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
@@ -48,6 +48,12 @@ const capabilitiesPayload = {
       label: "Local data export",
       status: "available",
       notes: "Downloads a read-only JSON backup of local Workstation data without import, sync, or upload."
+    },
+    {
+      id: "local-runtime-settings",
+      label: "Local runtime settings",
+      status: "available",
+      notes: "Shows env-driven local runtime paths and Ollama settings without credential fields or save actions."
     },
     {
       id: "local-model-adapter",
@@ -493,6 +499,34 @@ const localExportPayload = {
   }
 };
 
+const localRuntimeSettingsPayload = {
+  service: "sparkbot-server",
+  mode: "local",
+  status: "available",
+  configuration: "env-driven",
+  settings_writes: "not-supported",
+  credentials: "not-supported",
+  data_directory: {
+    configured_by: "SPARKBOT_DATA_DIR",
+    display_path: "~/.local/share/sparkbot-public"
+  },
+  sqlite_database: {
+    filename: "sparkbot_public.sqlite3",
+    display_path: "~/.local/share/sparkbot-public/sparkbot_public.sqlite3"
+  },
+  local_models: {
+    enabled: false,
+    status: "disabled-by-default",
+    adapter: "ollama",
+    base_url: "http://127.0.0.1:11434",
+    base_url_policy: "localhost-only",
+    configured_model: null,
+    prompt_calls: "disabled",
+    credentials: "not-supported",
+    configuration_error: null
+  }
+};
+
 const localModelDisabledStatusPayload = {
   service: "sparkbot-server",
   mode: "local",
@@ -549,6 +583,10 @@ function mockBackendStatusFetch() {
 
     if (url.includes("/local/export")) {
       return mockJsonResponse(localExportPayload);
+    }
+
+    if (url.includes("/local/runtime/settings")) {
+      return mockJsonResponse(localRuntimeSettingsPayload);
     }
 
     if (url.includes("/local/chat/sessions/session-1/messages")) {
@@ -645,7 +683,7 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Capability source" })).toBeDefined();
     expect(screen.getByText("Not checked")).toBeDefined();
     expect(screen.getByText("Local read-only status requests only.")).toBeDefined();
-    expect(screen.getByText("21 public capability entries loaded.")).toBeDefined();
+    expect(screen.getByText("22 public capability entries loaded.")).toBeDefined();
     expect(screen.getByRole("heading", { name: "Health" })).toBeDefined();
     expect(screen.getByText("GET /health")).toBeDefined();
     expect(screen.getByRole("heading", { name: "Capabilities" })).toBeDefined();
@@ -655,6 +693,7 @@ describe("App", () => {
     expect(screen.getByText("GET /model-seats/status")).toBeDefined();
     expect(screen.getByText("GET /work-lanes/status")).toBeDefined();
     expect(screen.getByText("GET /local/export")).toBeDefined();
+    expect(screen.getByText("GET /local/runtime/settings")).toBeDefined();
     expect(screen.getByText("GET /provider-config/status")).toBeDefined();
     expect(screen.getByText("GET /connector-status")).toBeDefined();
     expect(screen.getByText("GET /guardian/status")).toBeDefined();
@@ -672,6 +711,7 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: /Memory Notes.*Available/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Work Cards.*Available/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Export.*Available/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Settings.*Available/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Local Models.*Disabled by default/i })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Local Chat Drafts" })).toBeDefined();
     expect(screen.getByText(/manual Local Ollama Adapter flow/i)).toBeDefined();
@@ -681,6 +721,8 @@ describe("App", () => {
     expect(screen.getByText(/do not run, schedule, remind, notify, or execute tasks/i)).toBeDefined();
     expect(screen.getByRole("heading", { name: "Local Data Export" })).toBeDefined();
     expect(screen.getByText(/No import, cloud sync, external upload/i)).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Local Runtime Settings" })).toBeDefined();
+    expect(screen.getByText(/Configuration remains environment-driven/i)).toBeDefined();
     expect(screen.getByRole("heading", { name: "Local Ollama Adapter" })).toBeDefined();
     expect(screen.getByText(/Local-only prompt adapter for Ollama on localhost/i)).toBeDefined();
     expect(screen.getByText(/SPARKBOT_LOCAL_MODELS_ENABLED=true/)).toBeDefined();
@@ -822,7 +864,7 @@ describe("App", () => {
     expect(screen.getByText("No credential entry or storage path.")).toBeDefined();
     expect(screen.getByText("No terminal, tool, or automation execution.")).toBeDefined();
     expect(screen.getByText("Future local action")).toBeDefined();
-    expect(screen.getByText("22 public capability entries loaded.")).toBeDefined();
+    expect(screen.getByText("23 public capability entries loaded.")).toBeDefined();
     expect(screen.getAllByText("Disabled by default").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(8);
   });
@@ -1055,6 +1097,26 @@ describe("App", () => {
       input.toString().includes("/local/work-lane-cards") && init?.method === "POST"
     );
     expect(JSON.parse((cardCall?.[1]?.body as string) ?? "{}")).toMatchObject({ chat_session_id: "session-1" });
+  });
+
+
+  it("renders local runtime settings from the backend without save controls", async () => {
+    const fetchMock = mockBackendStatusFetch();
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+
+    expect(await screen.findByText("Using backend local runtime settings.")).toBeDefined();
+    const settingsPanel = screen.getByRole("region", { name: "Local Runtime Settings" });
+    expect(within(settingsPanel).getByRole("heading", { name: "Local Runtime Settings" })).toBeDefined();
+    expect(within(settingsPanel).getByText("SPARKBOT_DATA_DIR")).toBeDefined();
+    expect(within(settingsPanel).getByText("sparkbot_public.sqlite3")).toBeDefined();
+    expect(within(settingsPanel).getByText("~/.local/share/sparkbot-public")).toBeDefined();
+    expect(within(settingsPanel).getByText("http://127.0.0.1:11434")).toBeDefined();
+    expect(within(settingsPanel).getByText("localhost-only")).toBeDefined();
+    expect(within(settingsPanel).getByText(/No credential fields, secret save buttons/i)).toBeDefined();
+    expect(within(settingsPanel).queryByRole("button", { name: /save|secret|credential/i })).toBeNull();
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/local/runtime/settings"), expect.objectContaining({ cache: "no-store" }));
   });
 
 
