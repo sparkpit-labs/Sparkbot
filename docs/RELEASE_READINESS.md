@@ -27,6 +27,12 @@ This repository is suitable for professional public review as an early shell bas
 
 This repository does not claim production readiness or complete product functionality.
 
+## V1.0.0 final release position
+
+The `v1.0.0` checkpoint finalizes the validated public shell baseline after the RC0 audit. It records final release notes, final validation, dependency audit, public safety scans, branch hygiene, and local smoke evidence.
+
+This final tag does not broaden the product boundary. It does not add an installer, desktop binary, cloud provider runtime, credential storage, connector sends, tool execution, Guardian enforcement runtime, or production deployment workflow.
+
 ## V1.0.0 RC0 audit position
 
 The `v1.0.0-rc0` checkpoint is a release-candidate audit tag, not a final production claim. It records full validation, dependency audit, public safety scans, branch hygiene cleanup, docs review, and local smoke evidence for the current public baseline.
