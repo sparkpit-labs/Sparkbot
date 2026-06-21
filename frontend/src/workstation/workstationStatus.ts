@@ -39,7 +39,7 @@ export const workstationStatusItems: WorkstationStatusItem[] = [
     id: "local-memory-notes",
     name: "Local memory notes",
     status: "available",
-    summary: "Stores local notes without cloud sync or model memory."
+    summary: "Stores local notes and supports explicit per-prompt selection without automatic retrieval or model memory."
   },
   {
     id: "local-work-lane-cards",

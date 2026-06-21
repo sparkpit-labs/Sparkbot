@@ -35,7 +35,7 @@ const capabilitiesPayload = {
       id: "local-memory-notes",
       label: "Local memory notes",
       status: "available",
-      notes: "Stores local notes without cloud sync or model memory."
+      notes: "Stores local notes and supports explicit per-prompt selection without automatic retrieval or model memory."
     },
     {
       id: "local-work-lane-cards",
@@ -498,6 +498,8 @@ const localPromptResponsePayload = {
   model: "llama3.2",
   response: "Local-only Ollama response.",
   done: true,
+  memory_context: "explicit-selected",
+  selected_memory_note_count: 1,
   stored_message: {
     id: "message-2",
     session_id: "session-1",
@@ -960,7 +962,7 @@ describe("App", () => {
 
     expect((await screen.findAllByText("Seeded local chat")).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("1 local messages")).toBeDefined();
-    expect(await screen.findByText("Seeded memory")).toBeDefined();
+    expect((await screen.findAllByText("Seeded memory")).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Stored local note.")).toBeDefined();
     expect(await screen.findByText("Seeded card")).toBeDefined();
     expect(screen.getByText("Stored local card.")).toBeDefined();
@@ -1074,6 +1076,8 @@ describe("App", () => {
     expect(await screen.findByText(/Status: available local only/i)).toBeDefined();
     expect((screen.getByRole("button", { name: "Run local prompt" }) as HTMLButtonElement).disabled).toBe(false);
     expect(screen.getByLabelText("Local chat session")).toBeDefined();
+    expect(screen.getByRole("checkbox", { name: "Seeded memory" })).toBeDefined();
+    fireEvent.click(screen.getByRole("checkbox", { name: "Seeded memory" }));
     fireEvent.change(screen.getByLabelText("Local prompt"), { target: { value: "Use only localhost." } });
     fireEvent.click(screen.getByRole("button", { name: "Run local prompt" }));
 
@@ -1082,11 +1086,13 @@ describe("App", () => {
     );
     expect(await screen.findByText("Local-only Ollama response.")).toBeDefined();
     expect(screen.getByText(/assistant response was saved to the selected session/i)).toBeDefined();
+    expect(screen.getByText(/1 selected memory note\(s\) were included/i)).toBeDefined();
     const promptCall = fetchMock.mock.calls.find(([input]) => input.toString().includes("/local-models/ollama/prompt"));
     expect(JSON.parse((promptCall?.[1]?.body as string) ?? "{}")).toMatchObject({
       prompt: "Use only localhost.",
       model: "llama3.2",
-      session_id: "session-1"
+      session_id: "session-1",
+      selected_memory_note_ids: ["note-1"]
     });
   });
 

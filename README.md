@@ -20,7 +20,7 @@ The current repository is a validated shell baseline. It is useful for review, l
 | Frontend shell | Available | React/Vite shell builds and tests successfully. |
 | Local Workstation store | Available | SQLite-backed local storage under `SPARKBOT_DATA_DIR` or the user app data directory. |
 | Local chat drafts | Available | Stores operator and note messages locally; local Ollama responses can be saved when explicitly run from a selected session. |
-| Local memory notes | Available | Stores local notes only; not model memory or cloud sync. |
+| Local memory notes | Available | Stores local notes only; notes can be manually selected for one local Ollama prompt. Not automatic retrieval, model memory, embeddings, vector DB, or cloud sync. |
 | Local work lane cards | Available | Stores planning cards locally; no scheduler, reminders, notifications, or execution. |
 | Local Ollama adapter | Disabled by default | Localhost-only prompt adapter for Ollama; enable with `SPARKBOT_LOCAL_MODELS_ENABLED=true`. Responses are persisted only to an explicitly selected existing local chat session. No cloud providers or credentials. |
 | Workstation shell | Preview | Read-only dashboard with public baseline status, capability grouping, and product shell layout. |
@@ -38,7 +38,7 @@ The current repository is a validated shell baseline. It is useful for review, l
 
 ## Release and checkpoint status
 
-The latest public checkpoint tag on `main` is `public-v1-local-ollama-adapter-0`.
+The latest public checkpoint tag on `main` is `public-v1-local-memory-context-0`.
 
 The GitHub pre-release `public-v1-shell-baseline-0` remains the first published shell baseline release. Development continues on `main` through checkpoint tags, so `main` may include newer docs and planning checkpoints than the first pre-release page.
 
@@ -156,7 +156,7 @@ Expected local model status URL:
 http://127.0.0.1:8000/local-models/status
 ```
 
-Local Ollama prompt calls remain disabled by default. To test the local-only response flow, create or select a local chat session, start Ollama locally, and run the backend with `SPARKBOT_LOCAL_MODELS_ENABLED=true` plus a configured or typed local model name. Successful responses are stored as `assistant-local` messages in the selected session.
+Local Ollama prompt calls remain disabled by default. To test the local-only response flow, create or select a local chat session, optionally check local memory notes to include in that one prompt, start Ollama locally, and run the backend with `SPARKBOT_LOCAL_MODELS_ENABLED=true` plus a configured or typed local model name. Successful responses are stored as `assistant-local` messages in the selected session.
 
 ### 4. Start the frontend in terminal 2
 
@@ -204,6 +204,7 @@ Open `http://127.0.0.1:15173` for the browser check. See `docs/LOCAL_SMOKE_TEST.
 - No cloud model calls or production model routing.
 - Local Ollama prompt calls are disabled by default and require `SPARKBOT_LOCAL_MODELS_ENABLED=true`.
 - Local chat drafts, local assistant responses, memory notes, and work lane cards are stored only in the local SQLite Workstation store.
+- Local memory notes are included in prompts only when explicitly selected; there is no automatic memory retrieval, model memory write, embeddings service, or vector database.
 - No model seat assignment or seat persistence.
 - No provider SDK dependencies or credential-backed provider setup.
 - No provider credential setup.

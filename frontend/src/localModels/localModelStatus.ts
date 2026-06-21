@@ -26,6 +26,8 @@ export type LocalPromptResponse = {
   response: string;
   done: boolean;
   stored_message: unknown | null;
+  memory_context: "none" | "explicit-selected";
+  selected_memory_note_count: number;
 };
 
 export const fallbackLocalModelStatus: LocalModelStatusPayload = {
@@ -60,10 +62,16 @@ export async function fetchLocalModelStatus(): Promise<LocalModelStatusPayload> 
 export async function runLocalPrompt(
   prompt: string,
   model?: string,
-  sessionId?: string
+  sessionId?: string,
+  selectedMemoryNoteIds: string[] = []
 ): Promise<LocalPromptResponse> {
   return localJsonRequest<LocalPromptResponse>("/local-models/ollama/prompt", {
     method: "POST",
-    body: JSON.stringify({ prompt, model: model?.trim() || undefined, session_id: sessionId || undefined })
+    body: JSON.stringify({
+      prompt,
+      model: model?.trim() || undefined,
+      session_id: sessionId || undefined,
+      selected_memory_note_ids: selectedMemoryNoteIds
+    })
   });
 }

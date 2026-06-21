@@ -458,6 +458,32 @@ h3 {
   resize: vertical;
 }
 
+.local-memory-context-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 8px;
+}
+
+.local-memory-context-list legend {
+  padding: 0 4px;
+  font-weight: 700;
+}
+
+.local-checkbox-row {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.local-checkbox-row input {
+  width: 16px;
+  height: 16px;
+}
+
 .local-action-row {
   display: flex;
   flex-wrap: wrap;
