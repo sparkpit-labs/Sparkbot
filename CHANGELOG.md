@@ -4,6 +4,12 @@ This changelog tracks public Sparkbot repository baselines and release-facing do
 
 ## Unreleased
 
+No changes yet.
+
+## v1.0.0-rc0 - 2026-06-21
+
+This tag is the public V1.0.0 release-candidate audit checkpoint. It freezes the Phase 6 desktop-readiness baseline for final validation and does not add runtime feature behavior beyond the existing public checkpoints.
+
 ### Added
 
 - Disabled-by-default localhost Ollama adapter with local status endpoint and explicit operator-enabled prompt path.
@@ -34,6 +40,17 @@ This changelog tracks public Sparkbot repository baselines and release-facing do
 ### Not Included
 
 - No cloud model providers, provider SDK dependencies, provider credentials, connector runtime, Guardian enforcement runtime, desktop app, installer, auto-update path, or code signing setup. Local drafts, notes, work cards, and any explicitly enabled localhost Ollama responses remain local-only.
+
+### Validation
+
+- Full public shell validation passed.
+- Frontend npm audit passed with 0 vulnerabilities.
+- Public safety, private reference, private IP, provider-key, and branch hygiene scans passed.
+- One-command local smoke testing passed with Ollama disabled and with local-model enabled offline status verified. A live Ollama prompt smoke was not run because no local Ollama daemon was reachable on `127.0.0.1:11434`.
+
+### Branch Hygiene
+
+- Archived and classified unexpected public remote branches before deletion. The public remote now keeps `main` as the only long-lived branch.
 
 ## public-v1-frontend-audit-fix-0 - 2026-06-18
 

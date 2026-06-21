@@ -27,6 +27,12 @@ This repository is suitable for professional public review as an early shell bas
 
 This repository does not claim production readiness or complete product functionality.
 
+## V1.0.0 RC0 audit position
+
+The `v1.0.0-rc0` checkpoint is a release-candidate audit tag, not a final production claim. It records full validation, dependency audit, public safety scans, branch hygiene cleanup, docs review, and local smoke evidence for the current public baseline.
+
+A live Ollama prompt smoke is not required for the tag unless a local Ollama daemon is already running. The RC0 audit confirms the disabled path and the enabled-but-offline local status path without sending a prompt.
+
 ## Dependency hygiene checkpoint
 
 The `public-v1-frontend-audit-fix-0` tag records a lockfile-only frontend audit advisory fix.
