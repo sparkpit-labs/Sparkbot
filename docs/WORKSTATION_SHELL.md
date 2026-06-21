@@ -6,6 +6,7 @@ The current public shell baseline includes a local Workstation shell skeleton fo
 
 - Local SQLite Workstation runtime for chat drafts, memory notes, and work lane cards.
 - Manual local memory note selection for the disabled-by-default local Ollama prompt panel.
+- Optional local chat-session links on local work lane cards.
 - Disabled-by-default local Ollama adapter status and prompt panel.
 - Workstation shell layout in the frontend with local create, read, update, and delete flows.
 - Read-only public baseline status panel summarizing health, capability status counts, and local status endpoints.
@@ -80,4 +81,4 @@ pytest backend/tests -q
 
 ## Scope Notes
 
-This is a product-direction shell slice only. It does not claim release readiness and activates only local SQLite CRUD for Workstation drafts, notes, and planning cards. It activates only default-off localhost Ollama prompt calls when explicitly enabled by environment variable. Local memory notes are added to a prompt only when the operator selects them manually. It does not activate automatic memory retrieval, model memory writes, embeddings, vector databases, cloud model calls, external sends, provider credentials, connectors, schedulers, tool execution, Guardian runtime enforcement, or LIMA AI OS integration.
+This is a product-direction shell slice only. It does not claim release readiness and activates only local SQLite CRUD for Workstation drafts, notes, and planning cards. It activates only optional links between local work lane cards and local chat sessions. It activates only default-off localhost Ollama prompt calls when explicitly enabled by environment variable. Local memory notes are added to a prompt only when the operator selects them manually. It does not activate automatic memory retrieval, model memory writes, embeddings, vector databases, cloud model calls, external sends, provider credentials, connectors, schedulers, reminders, background jobs, task execution, tool execution, Guardian runtime enforcement, or LIMA AI OS integration.

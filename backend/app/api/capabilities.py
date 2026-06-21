@@ -62,7 +62,7 @@ CAPABILITIES: list[Capability] = [
         "id": "local-work-lane-cards",
         "label": "Local work lane cards",
         "status": "available",
-        "notes": "Stores local planning cards without scheduler or task execution.",
+        "notes": "Stores local planning cards and optional local chat-session links without scheduler or task execution.",
     },
     {
         "id": "local-model-adapter",

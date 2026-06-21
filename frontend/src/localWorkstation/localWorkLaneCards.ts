@@ -9,6 +9,8 @@ export type LocalWorkLaneCard = {
   title: string;
   body: string;
   status: WorkLaneCardStatus;
+  chat_session_id: string | null;
+  linked_chat_session_title: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -25,17 +27,18 @@ export async function createLocalWorkLaneCard(
   lane: WorkLaneName,
   title: string,
   body: string,
-  status: WorkLaneCardStatus
+  status: WorkLaneCardStatus,
+  chatSessionId?: string
 ): Promise<LocalWorkLaneCard> {
   return localJsonRequest<LocalWorkLaneCard>("/local/work-lane-cards", {
     method: "POST",
-    body: JSON.stringify({ lane, title, body, status })
+    body: JSON.stringify({ lane, title, body, status, chat_session_id: chatSessionId || undefined })
   });
 }
 
 export async function updateLocalWorkLaneCard(
   cardId: string,
-  updates: Partial<Pick<LocalWorkLaneCard, "lane" | "title" | "body" | "status">>
+  updates: Partial<Pick<LocalWorkLaneCard, "lane" | "title" | "body" | "status" | "chat_session_id">>
 ): Promise<LocalWorkLaneCard> {
   return localJsonRequest<LocalWorkLaneCard>(`/local/work-lane-cards/${cardId}`, {
     method: "PATCH",

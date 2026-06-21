@@ -41,7 +41,7 @@ const capabilitiesPayload = {
       id: "local-work-lane-cards",
       label: "Local work lane cards",
       status: "available",
-      notes: "Stores local planning cards without scheduler or task execution."
+      notes: "Stores local planning cards and optional local chat-session links without scheduler or task execution."
     },
     {
       id: "local-model-adapter",
@@ -463,6 +463,8 @@ const localWorkLaneCardsPayload = {
       title: "Seeded card",
       body: "Stored local card.",
       status: "open",
+      chat_session_id: "session-1",
+      linked_chat_session_title: "Seeded local chat",
       created_at: "2026-06-20T00:00:00Z",
       updated_at: "2026-06-20T00:00:00Z"
     }
@@ -966,6 +968,7 @@ describe("App", () => {
     expect(screen.getByText("Stored local note.")).toBeDefined();
     expect(await screen.findByText("Seeded card")).toBeDefined();
     expect(screen.getByText("Stored local card.")).toBeDefined();
+    expect(screen.getByText("Linked chat: Seeded local chat")).toBeDefined();
     expect(screen.getAllByRole("button", { name: "Edit" }).length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByRole("button", { name: "Delete" }).length).toBeGreaterThanOrEqual(2);
   });
@@ -1011,11 +1014,16 @@ describe("App", () => {
 
     fireEvent.change(screen.getByLabelText("Card title"), { target: { value: "New local card" } });
     fireEvent.change(screen.getByLabelText("Card body"), { target: { value: "Plan this locally." } });
+    fireEvent.change(screen.getByLabelText("Linked local chat session"), { target: { value: "session-1" } });
     fireEvent.click(screen.getByRole("button", { name: "Add card" }));
 
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/local/work-lane-cards"), expect.objectContaining({ method: "POST" }))
     );
+    const cardCall = fetchMock.mock.calls.find(([input, init]) =>
+      input.toString().includes("/local/work-lane-cards") && init?.method === "POST"
+    );
+    expect(JSON.parse((cardCall?.[1]?.body as string) ?? "{}")).toMatchObject({ chat_session_id: "session-1" });
   });
 
 

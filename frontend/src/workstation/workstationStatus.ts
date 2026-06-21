@@ -45,7 +45,7 @@ export const workstationStatusItems: WorkstationStatusItem[] = [
     id: "local-work-lane-cards",
     name: "Local work lane cards",
     status: "available",
-    summary: "Stores local planning cards without scheduler or task execution."
+    summary: "Stores local planning cards and optional local chat-session links without scheduler or task execution."
   },
     {
     id: "local-model-adapter",
