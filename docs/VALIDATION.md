@@ -73,7 +73,15 @@ The `.github/workflows/validate-public-shell.yml` workflow runs on pull requests
 
 ## Local smoke check
 
-After starting local development servers, verify `/health`, `/capabilities`, `/chat/status`, `/provider-config/status`, `/connector-status`, `/guardian/status`, `/round-table/status`, `/model-seats/status`, `/work-lanes/status`, `/local/chat/sessions`, `/local/memory-notes`, `/local/work-lane-cards`, `/local/export`, `/local/runtime/settings`, `/local-models/status`, disabled-mode `POST /local-models/ollama/prompt` returning 403, and the frontend URL. The capabilities response must use the public contract statuses `available`, `preview`, `planned`, `disabled-by-default`, and `guarded-future`:
+For the current one-command local smoke path, run:
+
+```bash
+bash scripts/run-local-smoke-test.sh
+```
+
+The wrapper starts alternate-port local servers, uses a temporary data directory, verifies `/health`, `/capabilities`, `/chat/status`, `/provider-config/status`, `/connector-status`, `/guardian/status`, `/round-table/status`, `/model-seats/status`, `/work-lanes/status`, `/local/chat/sessions`, `/local/memory-notes`, `/local/work-lane-cards`, `/local/export`, `/local/runtime/settings`, `/local-models/status`, disabled-mode `POST /local-models/ollama/prompt` returning 403, frontend HTTP response, temporary data-dir reporting, and enabled-mode local model status. It does not send an enabled prompt.
+
+For the manual flow after starting local development servers, verify the same backend/frontend status surfaces. The capabilities response must use the public contract statuses `available`, `preview`, `planned`, `disabled-by-default`, and `guarded-future`:
 
 ```bash
 SPARKBOT_DATA_DIR="$(mktemp -d)" \

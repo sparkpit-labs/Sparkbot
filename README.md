@@ -40,7 +40,7 @@ The current repository is a validated shell baseline. It is useful for review, l
 
 ## Release and checkpoint status
 
-The latest public checkpoint tag on `main` is `public-v1-local-runtime-settings-0`.
+The latest public checkpoint tag on `main` is `public-v1-desktop-readiness-0`.
 
 The GitHub pre-release `public-v1-shell-baseline-0` remains the first published shell baseline release. Development continues on `main` through checkpoint tags, so `main` may include newer docs and planning checkpoints than the first pre-release page.
 
@@ -70,7 +70,24 @@ bash scripts/check-public-safety.sh
 
 This checks for blocked private references, unexpected publishing identity references, and non-BMP characters.
 
-### 3. Start the backend in terminal 1
+### 3. Run the one-command local smoke test
+
+```bash
+bash scripts/run-local-smoke-test.sh
+```
+
+This prepares missing local dev dependencies, starts backend and frontend dev servers on alternate localhost ports, uses a temporary `SPARKBOT_DATA_DIR`, checks the default Ollama-disabled path, restarts the backend with local models enabled, verifies the enabled local-model status path, and then stops the smoke servers.
+
+Default smoke ports:
+
+```text
+Backend: 127.0.0.1:18080
+Frontend: 127.0.0.1:15180
+```
+
+Override them with `SPARKBOT_SMOKE_BACKEND_PORT` and `SPARKBOT_SMOKE_FRONTEND_PORT` when needed.
+
+### 4. Start the backend manually in terminal 1
 
 ```bash
 python3 -m venv .venv-local
@@ -172,7 +189,7 @@ http://127.0.0.1:8000/local-models/status
 
 Local Ollama prompt calls remain disabled by default. To test the local-only response flow, create or select a local chat session, optionally check local memory notes to include in that one prompt, start Ollama locally, and run the backend with `SPARKBOT_LOCAL_MODELS_ENABLED=true` plus a configured or typed local model name. Successful responses are stored as `assistant-local` messages in the selected session.
 
-### 4. Start the frontend in terminal 2
+### 5. Start the frontend manually in terminal 2
 
 ```bash
 cd frontend
@@ -189,7 +206,7 @@ http://127.0.0.1:5173
 
 Vite may print the exact local URL when the frontend server starts.
 
-### 5. Optional alternate-port smoke test
+### 6. Optional manual alternate-port smoke test
 
 When the default ports are already in use, run the shell on alternate localhost ports and verify both surfaces:
 
@@ -215,6 +232,7 @@ Open `http://127.0.0.1:15173` for the browser check. See `docs/LOCAL_SMOKE_TEST.
 ## What this repository does not do yet
 
 - No desktop installer or desktop binary.
+- Desktop readiness is limited to local development, validation, and smoke-test paths. No installer, desktop framework, signing, or auto-update behavior is included.
 - No cloud model calls or production model routing.
 - Local Ollama prompt calls are disabled by default and require `SPARKBOT_LOCAL_MODELS_ENABLED=true`.
 - Local chat drafts, local assistant responses, memory notes, and work lane cards are stored only in the local SQLite Workstation store. Work lane card links point only to local chat sessions.
@@ -242,6 +260,7 @@ Key docs:
 - `docs/VALIDATION.md` for validation commands.
 - `docs/LOCAL_DEVELOPMENT.md` for local runner scripts.
 - `docs/LOCAL_SMOKE_TEST.md` for alternate-port local smoke testing.
+- `docs/DESKTOP_SMOKE_READINESS.md` for the current desktop-readiness smoke path and packaging boundary.
 - `docs/LOCAL_MODEL_ADAPTER.md` for the disabled-by-default localhost Ollama adapter.
 - `docs/LOCAL_DATA_EXPORT.md` for the read-only local Workstation JSON export.
 - `docs/LOCAL_RUNTIME_SETTINGS.md` for the read-only local runtime settings surface.

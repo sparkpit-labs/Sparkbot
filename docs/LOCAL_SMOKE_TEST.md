@@ -2,7 +2,15 @@
 
 This guide verifies that the public Sparkbot shell can run locally on alternate localhost ports without touching existing development or server processes.
 
-The smoke test starts only local development servers that you launch for the test. It does not configure provider credentials, call cloud models, enable chat runtime behavior, run connectors, execute tools, or start deployment infrastructure. The local model check verifies disabled-mode behavior by default.
+The manual smoke test starts only local development servers that you launch for the test. It does not configure provider credentials, call cloud models, enable chat runtime behavior, run connectors, execute tools, or start deployment infrastructure. The local model check verifies disabled-mode behavior by default.
+
+For the current one-command desktop-readiness path, run:
+
+```bash
+bash scripts/run-local-smoke-test.sh
+```
+
+That wrapper prepares missing local dev dependencies, starts backend and frontend on alternate localhost ports, uses a temporary local data directory, runs this smoke check, verifies the reported data directory, restarts the backend with local models enabled, verifies the enabled local-model status path, and stops the smoke servers. It does not run an Ollama prompt.
 
 ## Default ports
 
@@ -12,7 +20,7 @@ By default, the development scripts use:
 - Frontend: `127.0.0.1:5173`
 - Frontend API base URL: `http://127.0.0.1:8000`
 
-Use alternate ports when either default port is already occupied.
+Use alternate ports when either default port is already occupied. The one-command smoke wrapper defaults to backend port `18080` and frontend port `15180`; override those with `SPARKBOT_SMOKE_BACKEND_PORT` and `SPARKBOT_SMOKE_FRONTEND_PORT`.
 
 ## Start backend on an alternate port
 
@@ -86,4 +94,4 @@ The page should show the Sparkbot shell with Workstation navigation, local runti
 
 Stop only the backend and frontend processes that you started for the smoke test. Do not stop unrelated local services.
 
-Use `SPARKBOT_DATA_DIR` with a temporary directory when smoke testing local runtime CRUD so test data stays outside the repository.
+Use `SPARKBOT_DATA_DIR` with a temporary directory when smoke testing local runtime CRUD so test data stays outside the repository. The one-command wrapper creates a temporary data directory automatically unless `SPARKBOT_SMOKE_DATA_DIR` is set.
