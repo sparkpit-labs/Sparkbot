@@ -16,6 +16,7 @@ task_lanes_status_url="${SPARKBOT_BACKEND_URL%/}/work-lanes/status"
 local_chat_sessions_url="${SPARKBOT_BACKEND_URL%/}/local/chat/sessions"
 local_memory_notes_url="${SPARKBOT_BACKEND_URL%/}/local/memory-notes"
 local_work_lane_cards_url="${SPARKBOT_BACKEND_URL%/}/local/work-lane-cards"
+local_data_export_url="${SPARKBOT_BACKEND_URL%/}/local/export"
 local_models_status_url="${SPARKBOT_BACKEND_URL%/}/local-models/status"
 local_models_prompt_url="${SPARKBOT_BACKEND_URL%/}/local-models/ollama/prompt"
 
@@ -238,6 +239,31 @@ case "${local_work_lane_cards_response}" in
   *\"cards\"*) ;;
   *)
     echo "Local work lane cards response did not include cards." >&2
+    exit 1
+    ;;
+esac
+
+echo "Checking local data export at ${local_data_export_url}"
+local_data_export_response="$(curl -fsS "${local_data_export_url}")"
+printf "%s\n" "${local_data_export_response}"
+case "${local_data_export_response}" in
+  *\"export_type\":\"local-workstation-data\"*|*\"export_type\":\ \"local-workstation-data\"*) ;;
+  *)
+    echo "Local data export response did not report the local Workstation export type." >&2
+    exit 1
+    ;;
+esac
+case "${local_data_export_response}" in
+  *\"import_supported\":false*) ;;
+  *)
+    echo "Local data export response did not report import as unsupported." >&2
+    exit 1
+    ;;
+esac
+case "${local_data_export_response}" in
+  *\"data\"*) ;;
+  *)
+    echo "Local data export response did not include data." >&2
     exit 1
     ;;
 esac

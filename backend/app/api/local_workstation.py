@@ -72,6 +72,11 @@ def handle_store_error(error: Exception) -> HTTPException:
     return HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Local store error")
 
 
+@router.get("/export")
+def export_local_workstation_data() -> dict:
+    return store().export_local_data()
+
+
 @router.get("/chat/sessions")
 def list_chat_sessions() -> dict:
     return {"sessions": store().list_chat_sessions()}

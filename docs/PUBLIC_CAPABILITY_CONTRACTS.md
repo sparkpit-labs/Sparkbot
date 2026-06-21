@@ -36,6 +36,7 @@ A capability may move to a more active status only when all of the following are
 | Local chat drafts | `available` | Stores operator and note messages locally. No model-generated response, streaming, or provider routing. |
 | Local memory notes | `available` | Stores local notes only. Explicit per-prompt selection is available; no automatic retrieval, model memory, embeddings, vector DB, or cloud sync. |
 | Local work lane cards | `available` | Stores local planning cards with optional links to local chat sessions. No scheduler, reminders, notifications, or execution. |
+| Local data export | `available` | Read-only JSON backup for local Workstation data. No import, cloud sync, external upload, credential export, or provider call. |
 | Local model adapter | `disabled-by-default` | Localhost-only Ollama adapter. Prompt calls require explicit operator enablement and tests proving disabled defaults. |
 | Local Ollama | `disabled-by-default` | Uses only `localhost` or `127.0.0.1`. No credentials, cloud providers, or provider SDK dependencies. |
 | Workstation shell | `preview` | Product shell preview only. |
