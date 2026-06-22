@@ -8,6 +8,7 @@ backend_health_url="${SPARKBOT_BACKEND_URL%/}/health"
 capabilities_url="${SPARKBOT_BACKEND_URL%/}/capabilities"
 chat_status_url="${SPARKBOT_BACKEND_URL%/}/chat/status"
 provider_config_status_url="${SPARKBOT_BACKEND_URL%/}/provider-config/status"
+openrouter_prompt_url="${SPARKBOT_BACKEND_URL%/}/provider-config/openrouter/prompt"
 connector_status_url="${SPARKBOT_BACKEND_URL%/}/connector-status"
 guardian_status_url="${SPARKBOT_BACKEND_URL%/}/guardian/status"
 round_table_status_url="${SPARKBOT_BACKEND_URL%/}/round-table/status"
@@ -92,13 +93,57 @@ case "${provider_config_status_response}" in
 esac
 
 case "${provider_config_status_response}" in
-  *\"provider_calls\":\"not-implemented\"*|*\"provider_calls\":\ \"not-implemented\"*)
+  *\"provider_calls\":\"disabled-by-default\"*|*\"provider_calls\":\ \"disabled-by-default\"*)
+    provider_calls_mode="disabled-by-default"
+    ;;
+  *\"provider_calls\":\"guarded-manual\"*|*\"provider_calls\":\ \"guarded-manual\"*)
+    provider_calls_mode="guarded-manual"
     ;;
   *)
-    echo "Provider config status response did not report provider calls as not implemented." >&2
+    echo "Provider config status response did not report provider calls as disabled-by-default or guarded-manual." >&2
     exit 1
     ;;
 esac
+
+for provider_id in local-ollama openrouter openai anthropic google groq minimax xai openai-codex-subscription claude-subscription; do
+  case "${provider_config_status_response}" in
+    *\"id\":\"${provider_id}\"*|*\"id\":\ \"${provider_id}\"*) ;;
+    *)
+      echo "Provider config status response did not include provider ${provider_id}." >&2
+      exit 1
+      ;;
+  esac
+done
+
+case "${provider_config_status_response}" in
+  *:free*) ;;
+  *)
+    echo "Provider config status response did not include a free OpenRouter model." >&2
+    exit 1
+    ;;
+esac
+
+case "${provider_config_status_response}" in
+  *\"runtime_gate\":\"lima-guardian-required\"*|*\"runtime_gate\":\ \"lima-guardian-required\"*) ;;
+  *)
+    echo "Provider config status response did not include the LIMA Guardian subscription runtime gate." >&2
+    exit 1
+    ;;
+esac
+
+if [[ "${provider_calls_mode}" == "disabled-by-default" ]]; then
+  echo "Checking OpenRouter prompt remains disabled by default at ${openrouter_prompt_url}"
+  openrouter_prompt_code="$(curl -sS -o /dev/null -w "%{http_code}" -X POST "${openrouter_prompt_url}" -H "Content-Type: application/json" -d '{"prompt":"smoke","model":"mistralai/mistral-7b-instruct:free"}')"
+  case "${openrouter_prompt_code}" in
+    403) ;;
+    *)
+      echo "OpenRouter prompt did not return 403 while provider calls are disabled; got ${openrouter_prompt_code}." >&2
+      exit 1
+      ;;
+  esac
+else
+  echo "OpenRouter prompt endpoint is env-enabled; skipping disabled-gate assertion."
+fi
 
 echo "Checking connector status at ${connector_status_url}"
 connector_status_response="$(curl -fsS "${connector_status_url}")"
@@ -207,6 +252,30 @@ case "${guardian_status_response}" in
     ;;
   *)
     echo "Guardian status response did not report policy decisions as not implemented." >&2
+    exit 1
+    ;;
+esac
+
+case "${guardian_status_response}" in
+  *\"provider_execution_boundary\"*) ;;
+  *)
+    echo "Guardian status response did not include the provider execution boundary." >&2
+    exit 1
+    ;;
+esac
+
+case "${guardian_status_response}" in
+  *\"runtime_gate\":\"lima-guardian-required\"*|*\"runtime_gate\":\ \"lima-guardian-required\"*) ;;
+  *)
+    echo "Guardian status response did not report the LIMA Guardian runtime gate." >&2
+    exit 1
+    ;;
+esac
+
+case "${guardian_status_response}" in
+  *\"dispatch\":\"fail-closed\"*|*\"dispatch\":\ \"fail-closed\"*) ;;
+  *)
+    echo "Guardian status response did not report fail-closed provider dispatch." >&2
     exit 1
     ;;
 esac

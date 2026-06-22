@@ -79,7 +79,7 @@ For the current one-command local smoke path, run:
 bash scripts/run-local-smoke-test.sh
 ```
 
-The wrapper starts alternate-port local servers, uses a temporary data directory, verifies `/health`, `/capabilities`, `/chat/status`, `/provider-config/status`, `/connector-status`, `/guardian/status`, `/round-table/status`, `/model-seats/status`, `/work-lanes/status`, `/local/chat/sessions`, `/local/memory-notes`, `/local/work-lane-cards`, `/local/export`, `/local/runtime/settings`, `/local-models/status`, disabled-mode `POST /local-models/ollama/prompt` returning 403, frontend HTTP response, temporary data-dir reporting, and enabled-mode local model status. It does not send an enabled prompt.
+The wrapper starts alternate-port local servers, uses a temporary data directory, verifies `/health`, `/capabilities`, `/chat/status`, `/provider-config/status` including provider cards and the OpenRouter disabled gate, `/connector-status`, `/guardian/status` including the LIMA provider execution boundary, `/round-table/status`, `/model-seats/status`, `/work-lanes/status`, `/local/chat/sessions`, `/local/memory-notes`, `/local/work-lane-cards`, `/local/export`, `/local/runtime/settings`, `/local-models/status`, disabled-mode `POST /local-models/ollama/prompt` returning 403, frontend HTTP response, temporary data-dir reporting, and enabled-mode local model status. It does not send an enabled local-model prompt or any cloud prompt by default.
 
 For the manual flow after starting local development servers, verify the same backend/frontend status surfaces. The capabilities response must use the public contract statuses `available`, `preview`, `planned`, `disabled-by-default`, and `guarded-future`:
 
