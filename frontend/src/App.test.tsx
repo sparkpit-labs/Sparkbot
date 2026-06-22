@@ -494,6 +494,17 @@ const guardianStatusPayload = {
   policy_decisions: "not-implemented",
   audit_trail: "planned",
   default_posture: "deny-sensitive-actions",
+  provider_execution_boundary: {
+    id: "lima-guardian-provider-runtime",
+    label: "LIMA Guardian provider runtime boundary",
+    status: "guarded-future",
+    runtime_gate: "lima-guardian-required",
+    dispatch: "fail-closed",
+    required_controls: ["capability-check", "operator-approval", "audit-log", "secret-redaction", "timeout", "no-shell-expansion"],
+    blocked_until: "Codex and Claude subscription CLI dispatch requires a LIMA Guardian execution adapter.",
+    notes:
+      "Sparkbot may report subscription sign-in readiness, but direct Codex or Claude CLI execution remains disabled until LIMA provides guarded dispatch with audit and fail-closed behavior."
+  },
   sensitive_action_categories: [
     {
       id: "external-sends",
@@ -1132,6 +1143,11 @@ describe("App", () => {
     expect(screen.getByText("Policy decisions")).toBeDefined();
     expect(screen.getByText("Default posture")).toBeDefined();
     expect(screen.getByText("deny sensitive actions")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "LIMA Guardian provider runtime boundary" })).toBeDefined();
+    expect(screen.getAllByText("lima guardian required").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("fail closed")).toBeDefined();
+    expect(screen.getByText(/capability-check, operator-approval, audit-log/i)).toBeDefined();
+    expect(screen.getByText(/Codex and Claude subscription CLI dispatch requires/i)).toBeDefined();
     expect(screen.getAllByText("not implemented").length).toBeGreaterThanOrEqual(8);
     expect(screen.getByRole("heading", { name: "External sends" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Connector calls" })).toBeDefined();

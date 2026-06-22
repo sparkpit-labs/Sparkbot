@@ -18,7 +18,7 @@ export const guardianControlItems: GuardianControlItem[] = [
   {
     name: "Provider access",
     status: "planned",
-    summary: "Planned control category for provider usage. No model routing or provider calls are active."
+    summary: "Planned control category for provider usage. OpenRouter prompt calls require explicit env enablement. Codex and Claude CLI dispatch require the LIMA Guardian boundary."
   },
   {
     name: "Files and workspace",
@@ -92,6 +92,17 @@ export const fallbackGuardianStatus: GuardianStatusPayload = {
   policy_decisions: "not-implemented",
   audit_trail: "planned",
   default_posture: "deny-sensitive-actions",
+  provider_execution_boundary: {
+    id: "lima-guardian-provider-runtime",
+    label: "LIMA Guardian provider runtime boundary",
+    status: "guarded-future",
+    runtime_gate: "lima-guardian-required",
+    dispatch: "fail-closed",
+    required_controls: ["capability-check", "operator-approval", "audit-log", "secret-redaction", "timeout", "no-shell-expansion"],
+    blocked_until: "Codex and Claude subscription CLI dispatch requires a LIMA Guardian execution adapter.",
+    notes:
+      "Sparkbot may report subscription sign-in readiness, but direct Codex or Claude CLI execution remains disabled until LIMA provides guarded dispatch with audit and fail-closed behavior."
+  },
   sensitive_action_categories: guardianSensitiveActionCategories
 };
 

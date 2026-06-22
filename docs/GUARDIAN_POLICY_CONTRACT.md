@@ -6,7 +6,8 @@ This contract defines the public safety boundary for future Guardian behavior. G
 
 The Guardian Controls shell may describe planned categories and blocked future work. It must not imply that policy enforcement is active today.
 
-- `GET /guardian/status` may report static read-only posture, not-implemented runtime enforcement, and guarded-future sensitive action categories.
+- `GET /guardian/status` may report static read-only posture, not-implemented runtime enforcement, guarded-future sensitive action categories, and a read-only provider execution boundary.
+- The provider execution boundary must remain `guarded-future` and `fail-closed` until LIMA Guardian provides capability checks, operator approval, audit logging, secret redaction, timeout control, and no-shell-expansion dispatch for subscription CLIs.
 
 ## Sensitive Action Classes
 
@@ -42,6 +43,7 @@ Before Guardian moves beyond preview, the implementation must support:
 - Logs must not expose credentials, private prompts, or sensitive connector payloads.
 - Preview UI must remain inert until backend enforcement exists.
 - Unsupported actions must fail closed with clear user-facing status.
+- Codex and Claude subscription CLI dispatch must not be exposed as direct Sparkbot shell subprocess execution.
 
 ## Integration Boundary
 

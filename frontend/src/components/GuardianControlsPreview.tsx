@@ -91,6 +91,34 @@ export default function GuardianControlsPreview() {
         ))}
       </div>
 
+      <article className="guardian-boundary-card" aria-label="Provider execution boundary">
+        <div className="guardian-card-top">
+          <h3>{payload.provider_execution_boundary.label}</h3>
+          <span className={`status-badge status-${payload.provider_execution_boundary.status}`}>
+            {formatShellStatus(payload.provider_execution_boundary.status)}
+          </span>
+        </div>
+        <dl className="guardian-boundary-grid">
+          <div>
+            <dt>Runtime gate</dt>
+            <dd>{formatImplementationStatus(payload.provider_execution_boundary.runtime_gate)}</dd>
+          </div>
+          <div>
+            <dt>Dispatch</dt>
+            <dd>{formatImplementationStatus(payload.provider_execution_boundary.dispatch)}</dd>
+          </div>
+          <div>
+            <dt>Required controls</dt>
+            <dd>{payload.provider_execution_boundary.required_controls.join(", ")}</dd>
+          </div>
+          <div>
+            <dt>Blocked until</dt>
+            <dd>{payload.provider_execution_boundary.blocked_until}</dd>
+          </div>
+        </dl>
+        <p>{payload.provider_execution_boundary.notes}</p>
+      </article>
+
       <div className="guardian-sensitive-layout" aria-label="Read-only sensitive action category status">
         {payload.sensitive_action_categories.map((category) => (
           <article className="guardian-card" key={category.id}>

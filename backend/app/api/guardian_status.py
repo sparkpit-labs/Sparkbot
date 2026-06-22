@@ -18,6 +18,17 @@ class SensitiveActionCategory(TypedDict):
     notes: str
 
 
+class ProviderExecutionBoundary(TypedDict):
+    id: str
+    label: str
+    status: CapabilityStatus
+    runtime_gate: str
+    dispatch: str
+    required_controls: list[str]
+    blocked_until: str
+    notes: str
+
+
 class GuardianStatusResponse(TypedDict):
     service: str
     mode: str
@@ -27,7 +38,27 @@ class GuardianStatusResponse(TypedDict):
     policy_decisions: ImplementationStatus
     audit_trail: AuditTrailStatus
     default_posture: DefaultPosture
+    provider_execution_boundary: ProviderExecutionBoundary
     sensitive_action_categories: list[SensitiveActionCategory]
+
+
+PROVIDER_EXECUTION_BOUNDARY: ProviderExecutionBoundary = {
+    "id": "lima-guardian-provider-runtime",
+    "label": "LIMA Guardian provider runtime boundary",
+    "status": "guarded-future",
+    "runtime_gate": "lima-guardian-required",
+    "dispatch": "fail-closed",
+    "required_controls": [
+        "capability-check",
+        "operator-approval",
+        "audit-log",
+        "secret-redaction",
+        "timeout",
+        "no-shell-expansion",
+    ],
+    "blocked_until": "Codex and Claude subscription CLI dispatch requires a LIMA Guardian execution adapter.",
+    "notes": "Sparkbot may report subscription sign-in readiness, but direct Codex or Claude CLI execution remains disabled until LIMA provides guarded dispatch with audit and fail-closed behavior.",
+}
 
 
 SENSITIVE_ACTION_CATEGORIES: list[SensitiveActionCategory] = [
@@ -81,8 +112,10 @@ def guardian_status() -> GuardianStatusResponse:
         "policy_decisions": "not-implemented",
         "audit_trail": "planned",
         "default_posture": "deny-sensitive-actions",
+        "provider_execution_boundary": PROVIDER_EXECUTION_BOUNDARY,
         "sensitive_action_categories": SENSITIVE_ACTION_CATEGORIES,
     }
 
 
 assert {category["status"] for category in SENSITIVE_ACTION_CATEGORIES} <= ALLOWED_CAPABILITY_STATUSES
+assert PROVIDER_EXECUTION_BOUNDARY["status"] in ALLOWED_CAPABILITY_STATUSES

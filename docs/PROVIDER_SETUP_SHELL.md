@@ -39,7 +39,7 @@ curl -i -X POST http://127.0.0.1:8000/provider-config/openrouter/prompt \
 
 ## Subscription provider boundary
 
-Codex and Claude subscription cards are onboarding/status surfaces in this branch. Each card reports CLI availability, sign-in detection, the current runtime gate, and the next operator action. They do not execute local CLIs from the public shell yet. Direct CLI dispatch must go through the LIMA Guardian boundary with capability checks, audit logs, and fail-closed behavior before it is promoted.
+Codex and Claude subscription cards are onboarding/status surfaces in this branch. Each card reports CLI availability, sign-in detection, the current runtime gate, and the next operator action. They do not execute local CLIs from the public shell yet. Direct CLI dispatch must go through the LIMA Guardian boundary published by `GET /guardian/status`, with capability checks, operator approval, audit logs, secret redaction, timeout control, no shell expansion, and fail-closed behavior before it is promoted.
 
 ## Still not included
 

@@ -157,6 +157,17 @@ export type SensitiveActionCategory = {
   notes: string;
 };
 
+export type ProviderExecutionBoundary = {
+  id: string;
+  label: string;
+  status: PublicCapabilityStatus;
+  runtime_gate: string;
+  dispatch: string;
+  required_controls: string[];
+  blocked_until: string;
+  notes: string;
+};
+
 export type GuardianStatusPayload = {
   service: string;
   mode: string;
@@ -166,6 +177,7 @@ export type GuardianStatusPayload = {
   policy_decisions: GuardianImplementationStatus;
   audit_trail: GuardianAuditTrailStatus;
   default_posture: GuardianDefaultPosture;
+  provider_execution_boundary: ProviderExecutionBoundary;
   sensitive_action_categories: SensitiveActionCategory[];
 };
 
@@ -635,10 +647,25 @@ export async function fetchGuardianStatus(signal?: AbortSignal): Promise<Guardia
     payload.policy_decisions !== "not-implemented" ||
     payload.audit_trail !== "planned" ||
     payload.default_posture !== "deny-sensitive-actions" ||
+    !payload.provider_execution_boundary ||
     !Array.isArray(payload.sensitive_action_categories) ||
     !publicCapabilityStatuses.has(payload.status)
   ) {
     throw new Error("Guardian status response is missing required fields");
+  }
+
+  const providerExecutionBoundary = payload.provider_execution_boundary;
+  if (
+    !providerExecutionBoundary.id ||
+    !providerExecutionBoundary.label ||
+    !publicCapabilityStatuses.has(providerExecutionBoundary.status ?? "") ||
+    !providerExecutionBoundary.runtime_gate ||
+    !providerExecutionBoundary.dispatch ||
+    !Array.isArray(providerExecutionBoundary.required_controls) ||
+    !providerExecutionBoundary.blocked_until ||
+    !providerExecutionBoundary.notes
+  ) {
+    throw new Error("Guardian status response includes an invalid provider execution boundary");
   }
 
   const sensitiveActionCategories = payload.sensitive_action_categories.map((category) => {
@@ -669,6 +696,16 @@ export async function fetchGuardianStatus(signal?: AbortSignal): Promise<Guardia
     policy_decisions: payload.policy_decisions,
     audit_trail: payload.audit_trail,
     default_posture: payload.default_posture,
+    provider_execution_boundary: {
+      id: providerExecutionBoundary.id,
+      label: providerExecutionBoundary.label,
+      status: providerExecutionBoundary.status,
+      runtime_gate: providerExecutionBoundary.runtime_gate,
+      dispatch: providerExecutionBoundary.dispatch,
+      required_controls: providerExecutionBoundary.required_controls,
+      blocked_until: providerExecutionBoundary.blocked_until,
+      notes: providerExecutionBoundary.notes
+    },
     sensitive_action_categories: sensitiveActionCategories
   };
 }

@@ -26,6 +26,23 @@ def test_guardian_status_is_static_preview() -> None:
     assert payload["policy_decisions"] == "not-implemented"
     assert payload["audit_trail"] == "planned"
     assert payload["default_posture"] == "deny-sensitive-actions"
+    assert payload["provider_execution_boundary"] == {
+        "id": "lima-guardian-provider-runtime",
+        "label": "LIMA Guardian provider runtime boundary",
+        "status": "guarded-future",
+        "runtime_gate": "lima-guardian-required",
+        "dispatch": "fail-closed",
+        "required_controls": [
+            "capability-check",
+            "operator-approval",
+            "audit-log",
+            "secret-redaction",
+            "timeout",
+            "no-shell-expansion",
+        ],
+        "blocked_until": "Codex and Claude subscription CLI dispatch requires a LIMA Guardian execution adapter.",
+        "notes": "Sparkbot may report subscription sign-in readiness, but direct Codex or Claude CLI execution remains disabled until LIMA provides guarded dispatch with audit and fail-closed behavior.",
+    }
     assert payload["sensitive_action_categories"] == [
         {
             "id": "external-sends",
@@ -91,6 +108,11 @@ def test_guardian_status_does_not_claim_active_runtime() -> None:
     assert payload["policy_decisions"] == "not-implemented"
     assert payload["audit_trail"] == "planned"
     assert payload["default_posture"] == "deny-sensitive-actions"
+    assert payload["provider_execution_boundary"]["status"] == "guarded-future"
+    assert payload["provider_execution_boundary"]["dispatch"] == "fail-closed"
+    assert payload["provider_execution_boundary"]["runtime_gate"] == "lima-guardian-required"
+    assert "audit-log" in payload["provider_execution_boundary"]["required_controls"]
+    assert "no-shell-expansion" in payload["provider_execution_boundary"]["required_controls"]
 
     serialized = str(payload).lower()
     assert "available" not in serialized
@@ -111,3 +133,5 @@ def test_no_guardian_runtime_endpoint_was_introduced() -> None:
     assert client.get("/guardian/execute").status_code == 404
     assert client.get("/guardian/decision").status_code == 404
     assert client.get("/guardian/policy/decision").status_code == 404
+    assert client.post("/provider-config/codex-subscription/prompt", json={}).status_code == 404
+    assert client.post("/provider-config/claude-subscription/prompt", json={}).status_code == 404
