@@ -101,9 +101,28 @@ export default function ProviderSetupPreview() {
                   <dd>{provider.default_model}</dd>
                 </div>
               ) : null}
+              {typeof provider.cli_available === "boolean" ? (
+                <div>
+                  <dt>CLI</dt>
+                  <dd>{provider.cli_available ? "available" : "missing"}</dd>
+                </div>
+              ) : null}
+              {typeof provider.sign_in_detected === "boolean" ? (
+                <div>
+                  <dt>Sign-in</dt>
+                  <dd>{provider.sign_in_detected ? "detected" : "needed"}</dd>
+                </div>
+              ) : null}
+              {provider.runtime_gate ? (
+                <div>
+                  <dt>Runtime gate</dt>
+                  <dd>{formatImplementationStatus(provider.runtime_gate)}</dd>
+                </div>
+              ) : null}
             </dl>
             <p>{provider.runtime}</p>
             <p>{provider.notes}</p>
+            {provider.operator_action ? <p className="provider-action">Next: {provider.operator_action}</p> : null}
             {provider.model_examples.length ? (
               <p className="provider-model-list">Models: {provider.model_examples.join(", ")}</p>
             ) : null}

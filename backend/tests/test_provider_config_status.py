@@ -59,8 +59,64 @@ def test_provider_config_status_exposes_env_and_cli_onboarding(monkeypatch) -> N
     assert providers["openrouter"]["default_model"].endswith(":free")
     assert providers["openrouter"]["configured"] is False
     assert providers["openrouter"]["status"] == "planned"
-    assert providers["openai-codex-subscription"]["auth_mode"] == "codex-cli-sign-in"
-    assert providers["claude-subscription"]["auth_mode"] == "claude-cli-sign-in"
+    codex = providers["openai-codex-subscription"]
+    claude = providers["claude-subscription"]
+    assert codex["auth_mode"] == "codex-cli-sign-in"
+    assert codex["runtime_gate"] == "lima-guardian-required"
+    assert isinstance(codex["cli_available"], bool)
+    assert isinstance(codex["sign_in_detected"], bool)
+    assert codex["operator_action"]
+    assert claude["auth_mode"] == "claude-cli-sign-in"
+    assert claude["runtime_gate"] == "lima-guardian-required"
+    assert isinstance(claude["cli_available"], bool)
+    assert isinstance(claude["sign_in_detected"], bool)
+    assert claude["operator_action"]
+
+
+def test_subscription_provider_readiness_tracks_cli_and_sign_in(monkeypatch) -> None:
+    monkeypatch.setattr(provider_runtime, "_codex_cli_available", lambda: True)
+    monkeypatch.setattr(provider_runtime, "_codex_auth_file_exists", lambda: True)
+    monkeypatch.setattr(provider_runtime, "_claude_cli_available", lambda: True)
+    monkeypatch.setattr(provider_runtime, "_claude_subscription_hint_present", lambda: True)
+
+    payload = provider_runtime.get_provider_config_status()
+    providers = _provider_by_id(payload)
+
+    codex = providers["openai-codex-subscription"]
+    claude = providers["claude-subscription"]
+    assert codex["configured"] is True
+    assert codex["status"] == "disabled-by-default"
+    assert codex["cli_available"] is True
+    assert codex["sign_in_detected"] is True
+    assert "LIMA Guardian" in codex["operator_action"]
+    assert claude["configured"] is True
+    assert claude["status"] == "disabled-by-default"
+    assert claude["cli_available"] is True
+    assert claude["sign_in_detected"] is True
+    assert "LIMA Guardian" in claude["operator_action"]
+
+
+def test_subscription_provider_requires_cli_and_sign_in(monkeypatch) -> None:
+    monkeypatch.setattr(provider_runtime, "_codex_cli_available", lambda: False)
+    monkeypatch.setattr(provider_runtime, "_codex_auth_file_exists", lambda: True)
+    monkeypatch.setattr(provider_runtime, "_claude_cli_available", lambda: True)
+    monkeypatch.setattr(provider_runtime, "_claude_subscription_hint_present", lambda: False)
+
+    payload = provider_runtime.get_provider_config_status()
+    providers = _provider_by_id(payload)
+
+    codex = providers["openai-codex-subscription"]
+    claude = providers["claude-subscription"]
+    assert codex["configured"] is False
+    assert codex["status"] == "planned"
+    assert codex["cli_available"] is False
+    assert codex["sign_in_detected"] is True
+    assert "Install the Codex CLI" in codex["operator_action"]
+    assert claude["configured"] is False
+    assert claude["status"] == "planned"
+    assert claude["cli_available"] is True
+    assert claude["sign_in_detected"] is False
+    assert "Sign in with Claude Code" in claude["operator_action"]
 
 
 def test_provider_statuses_use_contract_values_and_reflect_enabled_openrouter(monkeypatch) -> None:

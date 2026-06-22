@@ -687,9 +687,15 @@ h3 {
   overflow-wrap: anywhere;
 }
 
-.provider-model-list {
+.provider-model-list,
+.provider-action {
   font-size: 0.86rem;
   overflow-wrap: anywhere;
+}
+
+.provider-action {
+  border-left: 3px solid #276fb6;
+  padding-left: 8px;
 }
 
 .round-table-seat-top {

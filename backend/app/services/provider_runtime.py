@@ -4,7 +4,7 @@ import os
 import pathlib
 import re
 import shutil
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 import httpx
 
@@ -44,6 +44,10 @@ class ProviderStatus(TypedDict):
     model_examples: list[str]
     runtime: str
     notes: str
+    cli_available: NotRequired[bool]
+    sign_in_detected: NotRequired[bool]
+    runtime_gate: NotRequired[str]
+    operator_action: NotRequired[str]
 
 
 class ProviderConfigStatusResponse(TypedDict):
@@ -217,8 +221,12 @@ def _claude_subscription_hint_present() -> bool:
 
 
 def _subscription_statuses() -> list[ProviderStatus]:
-    codex_configured = _codex_auth_file_exists() and _codex_cli_available()
-    claude_configured = _claude_subscription_hint_present() and _claude_cli_available()
+    codex_cli_available = _codex_cli_available()
+    codex_sign_in_detected = _codex_auth_file_exists()
+    codex_configured = codex_cli_available and codex_sign_in_detected
+    claude_cli_available = _claude_cli_available()
+    claude_sign_in_detected = _claude_subscription_hint_present()
+    claude_configured = claude_cli_available and claude_sign_in_detected
     return [
         {
             "id": "openai-codex-subscription",
@@ -230,8 +238,17 @@ def _subscription_statuses() -> list[ProviderStatus]:
             "credential_source": "CODEX_HOME auth file",
             "default_model": os.environ.get("SPARKBOT_CODEX_MODEL", "openai-codex/gpt-5.3-codex").strip(),
             "model_examples": ["openai-codex/gpt-5.3-codex", "openai-codex/gpt-5.5", "openai-codex/gpt-5.4"],
-            "runtime": "Sign-in detection only in this public branch. CLI dispatch requires the LIMA Guardian execution boundary.",
+            "runtime": "Sign-in readiness only in this public branch. CLI dispatch requires the LIMA Guardian execution boundary.",
             "notes": "Run codex login with a ChatGPT/Codex subscription, then restart Sparkbot. Auth presence is detected without reading or returning the auth file.",
+            "cli_available": codex_cli_available,
+            "sign_in_detected": codex_sign_in_detected,
+            "runtime_gate": "lima-guardian-required",
+            "operator_action": _subscription_operator_action(
+                cli_available=codex_cli_available,
+                sign_in_detected=codex_sign_in_detected,
+                install_action="Install the Codex CLI and make it available on PATH or SPARKBOT_CODEX_CLI.",
+                sign_in_action="Run codex login, choose ChatGPT sign-in, then restart Sparkbot.",
+            ),
         },
         {
             "id": "claude-subscription",
@@ -243,10 +260,27 @@ def _subscription_statuses() -> list[ProviderStatus]:
             "credential_source": "Claude Code local sign-in",
             "default_model": os.environ.get("SPARKBOT_CLAUDE_SUB_MODEL", "claude-sub/sonnet").strip(),
             "model_examples": ["claude-sub/sonnet", "claude-sub/opus", "claude-sub/haiku", "claude-sub/opus-1m"],
-            "runtime": "Sign-in detection only in this public branch. CLI dispatch requires the LIMA Guardian execution boundary.",
+            "runtime": "Sign-in readiness only in this public branch. CLI dispatch requires the LIMA Guardian execution boundary.",
             "notes": "Install Claude Code, sign in locally, and set SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED=true when using this public shell status path.",
+            "cli_available": claude_cli_available,
+            "sign_in_detected": claude_sign_in_detected,
+            "runtime_gate": "lima-guardian-required",
+            "operator_action": _subscription_operator_action(
+                cli_available=claude_cli_available,
+                sign_in_detected=claude_sign_in_detected,
+                install_action="Install Claude Code and make it available on PATH or SPARKBOT_CLAUDE_CLI.",
+                sign_in_action="Sign in with Claude Code, set SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED=true if needed, then restart Sparkbot.",
+            ),
         },
     ]
+
+
+def _subscription_operator_action(*, cli_available: bool, sign_in_detected: bool, install_action: str, sign_in_action: str) -> str:
+    if not cli_available:
+        return install_action
+    if not sign_in_detected:
+        return sign_in_action
+    return "Ready for LIMA Guardian runtime integration; direct CLI dispatch remains disabled in the public shell."
 
 
 def _local_provider_status() -> ProviderStatus:

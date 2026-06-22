@@ -12,8 +12,8 @@ Provider Setup is now an environment-driven onboarding surface for local models,
 - Groq API: env-driven onboarding/status using `GROQ_API_KEY`.
 - MiniMax API: env-driven onboarding/status using `MINIMAX_API_KEY`.
 - xAI API: env-driven onboarding/status using `XAI_API_KEY`.
-- OpenAI Codex Subscription: detects local Codex sign-in state through `CODEX_HOME` or `SPARKBOT_CODEX_AUTH_FILE` without reading or returning the auth file.
-- Claude Subscription: detects operator-declared Claude Code sign-in state through local CLI configuration and `SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED=true`.
+- OpenAI Codex Subscription: reports whether the Codex CLI is available and whether local sign-in state is detected through `CODEX_HOME` or `SPARKBOT_CODEX_AUTH_FILE` without reading or returning the auth file.
+- Claude Subscription: reports whether Claude Code is available and whether operator-declared sign-in state is detected through local CLI configuration and `SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED=true`.
 
 ## OpenRouter free model path
 
@@ -39,7 +39,7 @@ curl -i -X POST http://127.0.0.1:8000/provider-config/openrouter/prompt \
 
 ## Subscription provider boundary
 
-Codex and Claude subscription cards are onboarding/status surfaces in this branch. They do not execute local CLIs from the public shell yet. Direct CLI dispatch must go through the LIMA Guardian boundary with capability checks, audit logs, and fail-closed behavior before it is promoted.
+Codex and Claude subscription cards are onboarding/status surfaces in this branch. Each card reports CLI availability, sign-in detection, the current runtime gate, and the next operator action. They do not execute local CLIs from the public shell yet. Direct CLI dispatch must go through the LIMA Guardian boundary with capability checks, audit logs, and fail-closed behavior before it is promoted.
 
 ## Still not included
 

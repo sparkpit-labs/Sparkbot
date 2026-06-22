@@ -116,6 +116,10 @@ export type ProviderStatusItem = {
   model_examples: string[];
   runtime: string;
   notes: string;
+  cli_available?: boolean;
+  sign_in_detected?: boolean;
+  runtime_gate?: string;
+  operator_action?: string;
 };
 
 export type ProviderConfigStatusPayload = {
@@ -526,7 +530,11 @@ export async function fetchProviderConfigStatus(signal?: AbortSignal): Promise<P
       default_model: provider.default_model ?? null,
       model_examples: provider.model_examples,
       runtime: provider.runtime,
-      notes: provider.notes
+      notes: provider.notes,
+      cli_available: typeof provider.cli_available === "boolean" ? provider.cli_available : undefined,
+      sign_in_detected: typeof provider.sign_in_detected === "boolean" ? provider.sign_in_detected : undefined,
+      runtime_gate: provider.runtime_gate,
+      operator_action: provider.operator_action
     };
   });
 

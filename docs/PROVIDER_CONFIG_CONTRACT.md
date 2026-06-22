@@ -14,7 +14,7 @@ POST /provider-config/openrouter/prompt
 
 That endpoint is disabled unless `SPARKBOT_PROVIDER_CALLS_ENABLED=true` and `OPENROUTER_API_KEY` is configured in the backend environment. OpenRouter model IDs ending in `:free` are enforced unless the operator explicitly sets `SPARKBOT_ALLOW_PAID_OPENROUTER_MODELS=true`.
 
-Other API-key providers are onboarding/status only in this branch. Codex and Claude subscription providers are sign-in status/onboarding only until LIMA Guardian execution contracts are available.
+Other API-key providers are onboarding/status only in this branch. Codex and Claude subscription providers expose CLI availability, sign-in detection, runtime-gate status, and next operator action until LIMA Guardian execution contracts are available.
 
 ## Provider Setup Rules
 

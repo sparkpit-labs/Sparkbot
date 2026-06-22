@@ -422,8 +422,12 @@ const providerConfigStatusPayload = {
       credential_source: "CODEX_HOME auth file",
       default_model: "openai-codex/gpt-5.3-codex",
       model_examples: ["openai-codex/gpt-5.3-codex", "openai-codex/gpt-5.5", "openai-codex/gpt-5.4"],
-      runtime: "Sign-in detection only in this public branch. CLI dispatch requires the LIMA Guardian execution boundary.",
-      notes: "Run codex login with a ChatGPT/Codex subscription, then restart Sparkbot. Auth presence is detected without reading or returning the auth file."
+      runtime: "Sign-in readiness only in this public branch. CLI dispatch requires the LIMA Guardian execution boundary.",
+      notes: "Run codex login with a ChatGPT/Codex subscription, then restart Sparkbot. Auth presence is detected without reading or returning the auth file.",
+      cli_available: false,
+      sign_in_detected: false,
+      runtime_gate: "lima-guardian-required",
+      operator_action: "Install the Codex CLI and make it available on PATH or SPARKBOT_CODEX_CLI."
     },
     {
       id: "claude-subscription",
@@ -435,8 +439,12 @@ const providerConfigStatusPayload = {
       credential_source: "Claude Code local sign-in",
       default_model: "claude-sub/sonnet",
       model_examples: ["claude-sub/sonnet", "claude-sub/opus", "claude-sub/haiku", "claude-sub/opus-1m"],
-      runtime: "Sign-in detection only in this public branch. CLI dispatch requires the LIMA Guardian execution boundary.",
-      notes: "Install Claude Code, sign in locally, and set SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED=true when using this public shell status path."
+      runtime: "Sign-in readiness only in this public branch. CLI dispatch requires the LIMA Guardian execution boundary.",
+      notes: "Install Claude Code, sign in locally, and set SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED=true when using this public shell status path.",
+      cli_available: false,
+      sign_in_detected: false,
+      runtime_gate: "lima-guardian-required",
+      operator_action: "Install Claude Code and make it available on PATH or SPARKBOT_CLAUDE_CLI."
     }
   ]
 };
@@ -1085,6 +1093,9 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "OpenRouter" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "OpenAI Codex Subscription" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Claude Subscription" })).toBeDefined();
+    expect(screen.getAllByText("lima guardian required").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText(/Install the Codex CLI/i)).toBeDefined();
+    expect(screen.getAllByText(/Install Claude Code/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Planned").length).toBeGreaterThanOrEqual(6);
   });
 
