@@ -88,8 +88,8 @@ const capabilitiesPayload = {
     {
       id: "provider-setup",
       label: "Provider Setup shell",
-      status: "preview",
-      notes: "No credential storage or provider calls."
+      status: "available",
+      notes: "Env-driven provider onboarding and CLI sign-in status without browser credential storage."
     },
     {
       id: "model-seats",
@@ -124,8 +124,8 @@ const capabilitiesPayload = {
     {
       id: "model-calls",
       label: "Cloud model calls",
-      status: "guarded-future",
-      notes: "No cloud provider runtime or production model routing."
+      status: "disabled-by-default",
+      notes: "Only explicit OpenRouter prompt calls are available when SPARKBOT_PROVIDER_CALLS_ENABLED=true and an env key is configured."
     },
     {
       id: "credential-storage",
@@ -303,40 +303,140 @@ const taskLanesStatusPayload = {
 const providerConfigStatusPayload = {
   service: "sparkbot-server",
   mode: "local",
-  status: "preview",
+  status: "disabled-by-default",
   credential_storage: "not-implemented",
-  provider_calls: "not-implemented",
-  model_routing: "not-implemented",
+  provider_calls: "disabled-by-default",
+  model_routing: "env-driven",
   providers: [
     {
-      id: "local",
-      label: "Local provider",
+      id: "local-ollama",
+      label: "Local Ollama",
+      status: "disabled-by-default",
+      configured: false,
+      auth_mode: "none",
+      configuration: "environment-localhost",
+      credential_source: "not-required",
+      default_model: null,
+      model_examples: ["llama3.2", "qwen2.5-coder", "mistral"],
+      runtime: "Active localhost-only adapter when SPARKBOT_LOCAL_MODELS_ENABLED=true and Ollama is reachable.",
+      notes: "Uses only localhost or 127.0.0.1. No cloud provider credentials are used."
+    },
+    {
+      id: "openrouter",
+      label: "OpenRouter",
       status: "planned",
-      notes: "Local provider configuration is planned. No runtime provider calls are made."
+      configured: false,
+      auth_mode: "env-api-key",
+      configuration: "environment",
+      credential_source: "OPENROUTER_API_KEY",
+      default_model: "meta-llama/llama-3.2-3b-instruct:free",
+      model_examples: ["meta-llama/llama-3.2-3b-instruct:free", "mistralai/mistral-7b-instruct:free"],
+      runtime: "Guarded backend prompt endpoint for explicit operator calls. Free :free models are enforced by default.",
+      notes: "Uses OpenRouter through a backend-only env key. Set SPARKBOT_PROVIDER_CALLS_ENABLED=true to enable explicit OpenRouter prompt calls."
     },
     {
-      id: "openai-compatible",
-      label: "OpenAI-compatible provider",
-      status: "guarded-future",
-      notes: "Cloud provider configuration will require explicit setup and safety gates."
+      id: "openai",
+      label: "OpenAI API",
+      status: "planned",
+      configured: false,
+      auth_mode: "env-api-key",
+      configuration: "environment",
+      credential_source: "OPENAI_API_KEY",
+      default_model: "gpt-5-mini",
+      model_examples: ["gpt-5-mini", "gpt-5.3-codex", "codex-mini-latest"],
+      runtime: "Onboarding/status only in this public branch; direct provider calls remain behind future routing gates.",
+      notes: "Matches the prototype provider slot for OpenAI API keys without adding browser credential entry or storage."
     },
     {
-      id: "anthropic-compatible",
-      label: "Anthropic-compatible provider",
-      status: "guarded-future",
-      notes: "Cloud provider configuration will require explicit setup and safety gates."
+      id: "anthropic",
+      label: "Anthropic API",
+      status: "planned",
+      configured: false,
+      auth_mode: "env-api-key",
+      configuration: "environment",
+      credential_source: "ANTHROPIC_API_KEY",
+      default_model: "claude-sonnet-4-5",
+      model_examples: ["claude-sonnet-4-5", "claude-haiku-4-5", "claude-opus-4-6"],
+      runtime: "Onboarding/status only in this public branch; direct provider calls remain behind future routing gates.",
+      notes: "Matches the prototype Anthropic provider slot without adding browser credential entry or storage."
     },
     {
-      id: "google-compatible",
-      label: "Google-compatible provider",
-      status: "guarded-future",
-      notes: "Cloud provider configuration will require explicit setup and safety gates."
+      id: "google",
+      label: "Google Gemini API",
+      status: "planned",
+      configured: false,
+      auth_mode: "env-api-key",
+      configuration: "environment",
+      credential_source: "GOOGLE_API_KEY",
+      default_model: "gemini/gemini-2.0-flash",
+      model_examples: ["gemini/gemini-2.0-flash", "gemini/gemini-3-flash"],
+      runtime: "Onboarding/status only in this public branch; direct provider calls remain behind future routing gates.",
+      notes: "Matches the prototype Google provider slot without adding browser credential entry or storage."
     },
     {
-      id: "custom-endpoint",
-      label: "Custom endpoint",
-      status: "guarded-future",
-      notes: "Custom endpoints are planned for future guarded configuration."
+      id: "groq",
+      label: "Groq API",
+      status: "planned",
+      configured: false,
+      auth_mode: "env-api-key",
+      configuration: "environment",
+      credential_source: "GROQ_API_KEY",
+      default_model: "groq/llama-3.3-70b-versatile",
+      model_examples: ["groq/llama-3.3-70b-versatile"],
+      runtime: "Onboarding/status only in this public branch; direct provider calls remain behind future routing gates.",
+      notes: "Matches the prototype Groq provider slot without adding browser credential entry or storage."
+    },
+    {
+      id: "minimax",
+      label: "MiniMax API",
+      status: "planned",
+      configured: false,
+      auth_mode: "env-api-key",
+      configuration: "environment",
+      credential_source: "MINIMAX_API_KEY",
+      default_model: "minimax/MiniMax-M2.5",
+      model_examples: ["minimax/MiniMax-M2.5"],
+      runtime: "Onboarding/status only in this public branch; direct provider calls remain behind future routing gates.",
+      notes: "Matches the prototype MiniMax provider slot without adding browser credential entry or storage."
+    },
+    {
+      id: "xai",
+      label: "xAI API",
+      status: "planned",
+      configured: false,
+      auth_mode: "env-api-key",
+      configuration: "environment",
+      credential_source: "XAI_API_KEY",
+      default_model: "xai/grok-4",
+      model_examples: ["xai/grok-4", "xai/grok-3-mini"],
+      runtime: "Onboarding/status only in this public branch; direct provider calls remain behind future routing gates.",
+      notes: "Matches the prototype xAI provider slot without adding browser credential entry or storage."
+    },
+    {
+      id: "openai-codex-subscription",
+      label: "OpenAI Codex Subscription",
+      status: "planned",
+      configured: false,
+      auth_mode: "codex-cli-sign-in",
+      configuration: "local-cli-sign-in",
+      credential_source: "CODEX_HOME auth file",
+      default_model: "openai-codex/gpt-5.3-codex",
+      model_examples: ["openai-codex/gpt-5.3-codex", "openai-codex/gpt-5.5", "openai-codex/gpt-5.4"],
+      runtime: "Sign-in detection only in this public branch. CLI dispatch requires the LIMA Guardian execution boundary.",
+      notes: "Run codex login with a ChatGPT/Codex subscription, then restart Sparkbot. Auth presence is detected without reading or returning the auth file."
+    },
+    {
+      id: "claude-subscription",
+      label: "Claude Subscription",
+      status: "planned",
+      configured: false,
+      auth_mode: "claude-cli-sign-in",
+      configuration: "local-cli-sign-in",
+      credential_source: "Claude Code local sign-in",
+      default_model: "claude-sub/sonnet",
+      model_examples: ["claude-sub/sonnet", "claude-sub/opus", "claude-sub/haiku", "claude-sub/opus-1m"],
+      runtime: "Sign-in detection only in this public branch. CLI dispatch requires the LIMA Guardian execution boundary.",
+      notes: "Install Claude Code, sign in locally, and set SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED=true when using this public shell status path."
     }
   ]
 };
@@ -705,7 +805,7 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: /Round Table.*Preview/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Model Seats.*Preview/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Task Lanes.*Preview/i })).toBeDefined();
-    expect(screen.getByRole("button", { name: /Provider Setup.*Preview/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Provider Setup.*Available/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Guardian Controls.*Preview/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Local Chat.*Available/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Memory Notes.*Available/i })).toBeDefined();
@@ -725,7 +825,7 @@ describe("App", () => {
     expect(screen.getByText(/Configuration remains environment-driven/i)).toBeDefined();
     expect(screen.getByRole("heading", { name: "Local Ollama Adapter" })).toBeDefined();
     expect(screen.getByText(/Local-only prompt adapter for Ollama on localhost/i)).toBeDefined();
-    expect(screen.getByText(/SPARKBOT_LOCAL_MODELS_ENABLED=true/)).toBeDefined();
+    expect(screen.getAllByText(/SPARKBOT_LOCAL_MODELS_ENABLED=true/).length).toBeGreaterThanOrEqual(1);
     expect((screen.getByRole("button", { name: "Run local prompt" }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getAllByText("Available").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByRole("heading", { name: "Backend health endpoint" })).toBeDefined();
@@ -734,9 +834,9 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Cloud model calls" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Credential storage" })).toBeDefined();
     expect(screen.getAllByRole("heading", { name: "Tool execution" }).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(4);
+    expect(screen.getAllByText("Planned").length).toBeGreaterThanOrEqual(6);
     expect(screen.getByText("No connector calls or external sends.")).toBeDefined();
-    expect(screen.getByText("No cloud provider runtime or production model routing.")).toBeDefined();
+    expect(screen.getAllByText(/Only explicit OpenRouter prompt calls are available/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("No credential entry or storage path.")).toBeDefined();
     expect(screen.getByText("No terminal, tool, or automation execution.")).toBeDefined();
     expect(screen.getAllByRole("heading", { name: "Chat shell" }).length).toBeGreaterThanOrEqual(1);
@@ -800,18 +900,20 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Review Lane" })).toBeDefined();
     expect(screen.getByText(/does not create tasks, store tasks, run a scheduler/i)).toBeDefined();
     expect(screen.getAllByText("Preview").length).toBeGreaterThanOrEqual(6);
-    expect(screen.getByRole("heading", { name: "Provider Setup Preview" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Local provider" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "OpenAI-compatible provider" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Anthropic-compatible provider" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Google-compatible provider" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Custom endpoint" })).toBeDefined();
-    expect(screen.getByText(/provider configuration status is read-only/i)).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Provider Setup" })).toBeDefined();
+    expect(screen.getAllByRole("heading", { name: "Local Ollama" }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole("heading", { name: "OpenAI API" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Anthropic API" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Google Gemini API" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "OpenRouter" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "OpenAI Codex Subscription" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Claude Subscription" })).toBeDefined();
+    expect(screen.getByText(/Provider onboarding is env-driven/i)).toBeDefined();
     expect(screen.getByText("Using local provider status fallback.")).toBeDefined();
     expect(screen.getAllByText("Credential storage").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Provider calls")).toBeDefined();
     expect(screen.getAllByText("Model routing").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("not implemented").length).toBeGreaterThanOrEqual(3);
+    expect(screen.getAllByText("not implemented").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/no API key fields, no password or token fields/i)).toBeDefined();
     expect(screen.getByRole("heading", { name: "Connector Status Preview" })).toBeDefined();
     expect(screen.getByText("Using local connector status fallback.")).toBeDefined();
@@ -860,7 +962,7 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Backend health endpoint" })).toBeDefined();
     expect(screen.getByText("Read-only local health check.")).toBeDefined();
     expect(screen.getByText("No connector calls or external sends.")).toBeDefined();
-    expect(screen.getByText("No cloud provider runtime or production model routing.")).toBeDefined();
+    expect(screen.getAllByText(/Only explicit OpenRouter prompt calls are available/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("No credential entry or storage path.")).toBeDefined();
     expect(screen.getByText("No terminal, tool, or automation execution.")).toBeDefined();
     expect(screen.getByText("Future local action")).toBeDefined();
@@ -975,13 +1077,15 @@ describe("App", () => {
     expect(screen.getByText("Provider calls")).toBeDefined();
     expect(screen.getAllByText("Model routing").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("not implemented").length).toBeGreaterThanOrEqual(3);
-    expect(screen.getByRole("heading", { name: "Local provider" })).toBeDefined();
-    expect(screen.getByText("Local provider configuration is planned. No runtime provider calls are made.")).toBeDefined();
-    expect(screen.getByRole("heading", { name: "OpenAI-compatible provider" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Anthropic-compatible provider" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Google-compatible provider" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Custom endpoint" })).toBeDefined();
-    expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(4);
+    expect(screen.getAllByRole("heading", { name: "Local Ollama" }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Active localhost-only adapter/i)).toBeDefined();
+    expect(screen.getByRole("heading", { name: "OpenAI API" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Anthropic API" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Google Gemini API" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "OpenRouter" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "OpenAI Codex Subscription" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Claude Subscription" })).toBeDefined();
+    expect(screen.getAllByText("Planned").length).toBeGreaterThanOrEqual(6);
   });
 
   it("renders backend connector status when the connector status API responds", async () => {
@@ -1227,7 +1331,7 @@ describe("App", () => {
     expect(screen.getAllByText("Preview").length).toBeGreaterThanOrEqual(6);
     expect(screen.getAllByText("Planned").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Disabled by default").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(4);
+    expect(screen.getAllByText("Planned").length).toBeGreaterThanOrEqual(6);
   });
 
   it("keeps provider, connector, chat, Round Table, Task Lane, and guardian surfaces inert", () => {

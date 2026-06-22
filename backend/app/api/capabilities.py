@@ -109,8 +109,8 @@ CAPABILITIES: list[Capability] = [
     {
         "id": "provider-setup",
         "label": "Provider Setup shell",
-        "status": "preview",
-        "notes": "No credential storage or provider calls.",
+        "status": "available",
+        "notes": "Env-driven provider onboarding and CLI sign-in status without browser credential storage.",
     },
     {
         "id": "model-seats",
@@ -145,8 +145,8 @@ CAPABILITIES: list[Capability] = [
     {
         "id": "model-calls",
         "label": "Cloud model calls",
-        "status": "guarded-future",
-        "notes": "No cloud provider runtime or production model routing.",
+        "status": "disabled-by-default",
+        "notes": "Only explicit OpenRouter prompt calls are available when SPARKBOT_PROVIDER_CALLS_ENABLED=true and an env key is configured.",
     },
     {
         "id": "credential-storage",

@@ -99,8 +99,8 @@ def test_capabilities_are_static_and_public_safe() -> None:
         {
             "id": "provider-setup",
             "label": "Provider Setup shell",
-            "status": "preview",
-            "notes": "No credential storage or provider calls.",
+            "status": "available",
+            "notes": "Env-driven provider onboarding and CLI sign-in status without browser credential storage.",
         },
         {
             "id": "model-seats",
@@ -135,8 +135,8 @@ def test_capabilities_are_static_and_public_safe() -> None:
         {
             "id": "model-calls",
             "label": "Cloud model calls",
-            "status": "guarded-future",
-            "notes": "No cloud provider runtime or production model routing.",
+            "status": "disabled-by-default",
+            "notes": "Only explicit OpenRouter prompt calls are available when SPARKBOT_PROVIDER_CALLS_ENABLED=true and an env key is configured.",
         },
         {
             "id": "credential-storage",
@@ -175,18 +175,18 @@ def test_guarded_future_capabilities_are_present_and_inactive() -> None:
     payload = client.get("/capabilities").json()
     capabilities = _capability_by_id(payload)
 
-    for capability_id in ["connectors", "model-calls", "credential-storage", "tool-execution"]:
+    for capability_id in ["connectors", "credential-storage", "tool-execution"]:
         assert capabilities[capability_id]["status"] == "guarded-future"
+    assert capabilities["model-calls"]["status"] == "disabled-by-default"
 
     inactive_notes = " ".join(item["notes"].lower() for item in payload["capabilities"])
     assert "no connector calls" in inactive_notes
     assert "external sends" in inactive_notes
-    assert "no cloud provider runtime" in inactive_notes
+    assert "explicit openrouter prompt calls" in inactive_notes
     assert "no credential entry" in inactive_notes
     assert "no terminal" in inactive_notes
     assert "available" not in {
         capabilities["connectors"]["status"],
-        capabilities["model-calls"]["status"],
         capabilities["credential-storage"]["status"],
         capabilities["tool-execution"]["status"],
     }
@@ -200,7 +200,6 @@ def test_preview_shell_capabilities_do_not_claim_runtime_operation() -> None:
     preview_expectations = {
         "chat": ["no model calls", "message persistence"],
         "round-table": ["no meeting engine", "agent orchestration"],
-        "provider-setup": ["no credential storage", "provider calls"],
         "model-seats": ["no model assignment", "routing", "seat persistence"],
         "work-lanes": ["no scheduler", "background jobs", "task persistence"],
         "guardian-controls": ["no policy enforcement runtime"],
@@ -213,3 +212,8 @@ def test_preview_shell_capabilities_do_not_claim_runtime_operation() -> None:
         notes = capability["notes"].lower()
         for fragment in expected_note_fragments:
             assert fragment in notes
+
+    provider_setup = capabilities["provider-setup"]
+    assert provider_setup["status"] == "available"
+    assert "env-driven provider onboarding" in provider_setup["notes"].lower()
+    assert "without browser credential storage" in provider_setup["notes"].lower()

@@ -85,8 +85,8 @@ export const shellSections: ShellSection[] = [
   {
     id: "provider-setup",
     label: "Provider Setup",
-    status: "preview",
-    summary: "Read-only provider planning cards with credentials inactive."
+    status: "available",
+    summary: "Env-driven provider catalog with backend-owned configuration status."
   },
   {
     id: "guardian-controls",

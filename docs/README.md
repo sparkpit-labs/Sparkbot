@@ -19,7 +19,7 @@ This index groups the public Sparkbot documentation for first-time visitors, loc
 - [Workstation Shell](WORKSTATION_SHELL.md): current read-only workstation layout and status model.
 - [Chat Shell](CHAT_SHELL.md): static chat preview and excluded runtime behavior.
 - [Round Table Shell](ROUND_TABLE_SHELL.md): inert planned seats for future multi-agent collaboration.
-- [Provider Setup Shell](PROVIDER_SETUP_SHELL.md): provider setup preview with no credential handling.
+- [Provider Setup](PROVIDER_SETUP_SHELL.md): env-driven provider onboarding, guarded OpenRouter free-model path, and subscription sign-in boundaries.
 - [Guardian Controls Shell](GUARDIAN_CONTROLS_SHELL.md): planned control categories with no active enforcement.
 
 ## Release and readiness
@@ -46,4 +46,4 @@ This index groups the public Sparkbot documentation for first-time visitors, loc
 
 ## Current boundary
 
-The current public shell baseline is safe for review and local validation. It does not include model calls, provider credentials, credential storage, chat runtime, Round Table meeting runtime, Guardian policy enforcement, tool execution, connector calls, desktop packaging, or deployment workflows. The public contracts define the gates future branches must satisfy before any of those behaviors can be promoted.
+The current public shell baseline is safe for review and local validation. It includes env-driven provider onboarding and an explicitly enabled OpenRouter prompt path, but it does not include browser credential storage, broad provider routing, chat runtime, Round Table meeting runtime, Guardian policy enforcement, tool execution, connector calls, desktop packaging, or deployment workflows. The public contracts define the gates future branches must satisfy before those behaviors can be promoted.

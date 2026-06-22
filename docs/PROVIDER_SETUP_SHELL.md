@@ -1,36 +1,51 @@
-# Provider Setup Shell
+# Provider Setup
 
-This slice adds a static Provider Setup shell preview to the public Sparkbot Workstation shell.
+Provider Setup is now an environment-driven onboarding surface for local models, OpenRouter, API-key providers, and subscription CLI providers. It still does not collect or store credentials in the browser.
 
-The preview is intentionally read-only and does not implement credential storage, provider calls, model routing, or backend secret handling.
+## Current provider cards
 
-## Preview provider cards
+- Local Ollama: localhost-only prompt adapter, disabled unless `SPARKBOT_LOCAL_MODELS_ENABLED=true`.
+- OpenRouter: backend-owned env key with explicit prompt calls, disabled unless `SPARKBOT_PROVIDER_CALLS_ENABLED=true` and `OPENROUTER_API_KEY` is configured.
+- OpenAI API: env-driven onboarding/status using `OPENAI_API_KEY`.
+- Anthropic API: env-driven onboarding/status using `ANTHROPIC_API_KEY`.
+- Google Gemini API: env-driven onboarding/status using `GOOGLE_API_KEY`.
+- Groq API: env-driven onboarding/status using `GROQ_API_KEY`.
+- MiniMax API: env-driven onboarding/status using `MINIMAX_API_KEY`.
+- xAI API: env-driven onboarding/status using `XAI_API_KEY`.
+- OpenAI Codex Subscription: detects local Codex sign-in state through `CODEX_HOME` or `SPARKBOT_CODEX_AUTH_FILE` without reading or returning the auth file.
+- Claude Subscription: detects operator-declared Claude Code sign-in state through local CLI configuration and `SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED=true`.
 
-- Local model provider
-- OpenAI-compatible provider
-- Anthropic-compatible provider
-- Google-compatible provider
-- Custom endpoint
+## OpenRouter free model path
 
-## Current behavior
+OpenRouter is the first cloud prompt path in the public shell. It is guarded and off by default.
 
-- Provider cards render with `skeleton` or `planned` status labels.
-- The preview includes no API key input fields.
-- The preview includes no save actions.
-- The preview includes no test connection actions.
-- Existing backend `GET /health` check remains unchanged as the only frontend network call.
+Required environment:
 
-## Excluded from this baseline
+```bash
+SPARKBOT_PROVIDER_CALLS_ENABLED=true
+OPENROUTER_API_KEY=...
+SPARKBOT_OPENROUTER_MODEL=meta-llama/llama-3.2-3b-instruct:free
+```
 
-- Real provider configuration
-- Credential entry or persistence
-- Vault or secret management
-- Provider authentication
-- Model calls or routing
-- Chat integration
-- Tool execution
-- Guardian runtime controls
+Sparkbot enforces OpenRouter model IDs ending in `:free` by default. To opt into paid OpenRouter models for a local test, set `SPARKBOT_ALLOW_PAID_OPENROUTER_MODELS=true` and use an explicit model ID.
 
-## Follow-up direction
+Manual smoke request:
 
-A later slice should define a public-safe provider configuration contract before any runtime behavior or credential workflow is enabled.
+```bash
+curl -i -X POST http://127.0.0.1:8000/provider-config/openrouter/prompt \
+  -H 'Content-Type: application/json' \
+  -d '{"prompt":"Say OK.","model":"mistralai/mistral-7b-instruct:free"}'
+```
+
+## Subscription provider boundary
+
+Codex and Claude subscription cards are onboarding/status surfaces in this branch. They do not execute local CLIs from the public shell yet. Direct CLI dispatch must go through the LIMA Guardian boundary with capability checks, audit logs, and fail-closed behavior before it is promoted.
+
+## Still not included
+
+- Browser credential entry.
+- Browser credential storage.
+- Provider key save buttons.
+- Hidden provider health checks.
+- Automatic model calls from Chat, Round Table, startup, tests, or validation.
+- Silent fallback from one provider to another.

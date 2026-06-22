@@ -1,76 +1,36 @@
-from typing import Literal, TypedDict
+from fastapi import APIRouter, HTTPException, status
+from pydantic import BaseModel, Field
 
-from fastapi import APIRouter
-
-from app.api.capabilities import ALLOWED_CAPABILITY_STATUSES, CapabilityStatus
+from app.api.capabilities import ALLOWED_CAPABILITY_STATUSES
+from app.services import provider_runtime
+from app.services.provider_runtime import ProviderConfigError, ProviderUnavailableError
 
 router = APIRouter()
 
-ImplementationStatus = Literal["not-implemented"]
 
-
-class ProviderStatus(TypedDict):
-    id: str
-    label: str
-    status: CapabilityStatus
-    notes: str
-
-
-class ProviderConfigStatusResponse(TypedDict):
-    service: str
-    mode: str
-    status: CapabilityStatus
-    credential_storage: ImplementationStatus
-    provider_calls: ImplementationStatus
-    model_routing: ImplementationStatus
-    providers: list[ProviderStatus]
-
-
-PROVIDERS: list[ProviderStatus] = [
-    {
-        "id": "local",
-        "label": "Local provider",
-        "status": "planned",
-        "notes": "Local provider configuration is planned. No runtime provider calls are made.",
-    },
-    {
-        "id": "openai-compatible",
-        "label": "OpenAI-compatible provider",
-        "status": "guarded-future",
-        "notes": "Cloud provider configuration will require explicit setup and safety gates.",
-    },
-    {
-        "id": "anthropic-compatible",
-        "label": "Anthropic-compatible provider",
-        "status": "guarded-future",
-        "notes": "Cloud provider configuration will require explicit setup and safety gates.",
-    },
-    {
-        "id": "google-compatible",
-        "label": "Google-compatible provider",
-        "status": "guarded-future",
-        "notes": "Cloud provider configuration will require explicit setup and safety gates.",
-    },
-    {
-        "id": "custom-endpoint",
-        "label": "Custom endpoint",
-        "status": "guarded-future",
-        "notes": "Custom endpoints are planned for future guarded configuration.",
-    },
-]
+class ProviderPromptRequest(BaseModel):
+    prompt: str = Field(min_length=1, max_length=8000)
+    model: str | None = Field(default=None, min_length=1, max_length=160)
 
 
 @router.get("/provider-config/status")
-def provider_config_status() -> ProviderConfigStatusResponse:
-    return {
-        "service": "sparkbot-server",
-        "mode": "local",
-        "status": "preview",
-        "credential_storage": "not-implemented",
-        "provider_calls": "not-implemented",
-        "model_routing": "not-implemented",
-        "providers": PROVIDERS,
-    }
+def provider_config_status() -> provider_runtime.ProviderConfigStatusResponse:
+    return provider_runtime.get_provider_config_status()
 
 
-assert {provider["status"] for provider in PROVIDERS} <= ALLOWED_CAPABILITY_STATUSES
+@router.post("/provider-config/openrouter/prompt")
+def run_openrouter_prompt(payload: ProviderPromptRequest) -> dict:
+    if not provider_runtime.provider_calls_enabled():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Provider prompt calls are disabled. Set SPARKBOT_PROVIDER_CALLS_ENABLED=true to enable explicit OpenRouter prompt calls.",
+        )
+    try:
+        return provider_runtime.run_openrouter_prompt(payload.prompt, payload.model)
+    except ProviderConfigError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except ProviderUnavailableError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+
+
+assert {provider["status"] for provider in provider_runtime.get_provider_config_status()["providers"]} <= ALLOWED_CAPABILITY_STATUSES

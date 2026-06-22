@@ -8,7 +8,7 @@ The current repository is a validated shell baseline. It is useful for review, l
 
 - Hobbyists and tinkerers who want to inspect and run the local shell baseline.
 - Developers evaluating the project structure, validation path, and public roadmap.
-- Security-conscious users who want clear boundaries before provider credentials, cloud model calls, or sensitive actions exist.
+- Security-conscious users who want clear boundaries around provider credentials, explicitly enabled model calls, and sensitive actions.
 - Future contributors who want to understand what is implemented, what is preview-only, and what is intentionally excluded.
 
 ## Current status at a glance
@@ -30,11 +30,11 @@ The current repository is a validated shell baseline. It is useful for review, l
 | Round Table | Preview | Read-only status surface; no meeting engine, agent orchestration, model calls, or turn persistence. |
 | Model Seats | Preview | Read-only model seat status surface; no model assignment, routing, calls, credentials, or seat persistence. |
 | Task Lanes | Preview | Read-only task lane status surface; no scheduler, background jobs, notifications, task execution, or persistence. |
-| Provider Setup | Preview | Read-only provider status surface; no API key fields, save action, or provider calls. |
+| Provider Setup | Available | Env-driven provider onboarding/status for local Ollama, OpenRouter, API-key providers, and Codex/Claude subscription sign-in. No browser credential fields or save action. |
 | Guardian Controls | Preview | Read-only Guardian policy status surface; no approvals, enforcement, or sensitive actions. |
 | Desktop packaging | Planned | No installer or desktop binary exists yet. |
 | Connectors | Guarded future | Read-only connector status surface; no connector calls or external sends. |
-| Model calls | Guarded future | No model routing or provider runtime is active. |
+| Model calls | Disabled by default | Local Ollama and OpenRouter prompt calls are disabled unless explicitly enabled by environment. Chat and Round Table do not auto-call models. |
 | Credential storage | Guarded future | No secrets are accepted, stored, or transmitted. |
 | Tool execution | Guarded future | No terminal, tool execution, connector calls, or external sends. |
 
@@ -189,6 +189,23 @@ http://127.0.0.1:8000/local-models/status
 
 Local Ollama prompt calls remain disabled by default. To test the local-only response flow, create or select a local chat session, optionally check local memory notes to include in that one prompt, start Ollama locally, and run the backend with `SPARKBOT_LOCAL_MODELS_ENABLED=true` plus a configured or typed local model name. Successful responses are stored as `assistant-local` messages in the selected session.
 
+OpenRouter prompt calls also remain disabled by default. To test the guarded free-model path, configure backend environment values and submit an explicit prompt to the OpenRouter endpoint:
+
+```bash
+SPARKBOT_PROVIDER_CALLS_ENABLED=true \
+OPENROUTER_API_KEY=... \
+SPARKBOT_OPENROUTER_MODEL=meta-llama/llama-3.2-3b-instruct:free \
+bash scripts/start-backend-dev.sh
+```
+
+```bash
+curl -i -X POST http://127.0.0.1:8000/provider-config/openrouter/prompt \
+  -H 'Content-Type: application/json' \
+  -d '{"prompt":"Say OK.","model":"mistralai/mistral-7b-instruct:free"}'
+```
+
+OpenRouter defaults to model IDs ending in `:free`. Paid OpenRouter models require `SPARKBOT_ALLOW_PAID_OPENROUTER_MODELS=true` plus an explicit model selection.
+
 ### 5. Start the frontend manually in terminal 2
 
 ```bash
@@ -233,15 +250,16 @@ Open `http://127.0.0.1:15173` for the browser check. See `docs/LOCAL_SMOKE_TEST.
 
 - No desktop installer or desktop binary.
 - Desktop readiness is limited to local development, validation, and smoke-test paths. No installer, desktop framework, signing, or auto-update behavior is included.
-- No cloud model calls or production model routing.
+- No automatic cloud model calls or production model routing.
 - Local Ollama prompt calls are disabled by default and require `SPARKBOT_LOCAL_MODELS_ENABLED=true`.
+- OpenRouter prompt calls are disabled by default and require `SPARKBOT_PROVIDER_CALLS_ENABLED=true`, `OPENROUTER_API_KEY`, and an explicit operator prompt.
 - Local chat drafts, local assistant responses, memory notes, and work lane cards are stored only in the local SQLite Workstation store. Work lane card links point only to local chat sessions.
 - Local data export is a read-only JSON download for backup/testing. There is no import path, cloud sync, external upload, credential export, or provider call.
 - Local runtime settings are read-only and environment-driven. There are no credential fields, secret save buttons, or runtime config writes.
 - Local memory notes are included in prompts only when explicitly selected; there is no automatic memory retrieval, model memory write, embeddings service, or vector database.
 - No model seat assignment or seat persistence.
-- No provider SDK dependencies or credential-backed provider setup.
-- No provider credential setup.
+- No provider SDK dependencies.
+- Provider setup is environment-driven only; there are no browser credential fields or save buttons.
 - No credential storage.
 - No Round Table meeting engine.
 - No Guardian policy enforcement runtime.
@@ -266,7 +284,8 @@ Key docs:
 - `docs/LOCAL_RUNTIME_SETTINGS.md` for the read-only local runtime settings surface.
 - `docs/PUBLIC_CAPABILITY_CONTRACTS.md` for capability status definitions and promotion gates.
 - `docs/CONNECTOR_SAFETY_CONTRACT.md` for future connector safety gates.
-- `docs/PROVIDER_CONFIG_CONTRACT.md` for future provider setup and model-call gates.
+- `docs/PROVIDER_CONFIG_CONTRACT.md` for provider setup and model-call gates.
+- `docs/PROVIDER_SETUP_SHELL.md` for OpenRouter, API-key provider, and subscription sign-in setup boundaries.
 - `docs/GUARDIAN_POLICY_CONTRACT.md` for future sensitive-action policy gates.
 - `docs/ROADMAP.md` for staged product direction.
 - `docs/RELEASE_READINESS.md` for current release-readiness boundaries.
@@ -275,9 +294,9 @@ Key docs:
 
 ## Security and privacy posture
 
-Current validation does not require secrets. The repository does not accept provider credentials, store credentials, call cloud models, execute tools, run connectors, or send data to external services. Local Workstation CRUD stores user-entered drafts, notes, and planning cards in SQLite only. The local data export reads that SQLite data and downloads JSON in the browser without import, sync, or upload behavior. Local runtime settings show local paths and env-driven Ollama configuration without accepting credentials or writing settings. The local Ollama adapter is localhost-only, disabled by default, and has no credential support. Product surfaces beyond the backend health endpoint and frontend shell are previews until explicit public contracts and runtime gates are added.
+Current validation does not require secrets. The repository does not accept or store provider credentials in the browser. Provider credentials, when used, are backend environment values owned by the operator. Local Workstation CRUD stores user-entered drafts, notes, and planning cards in SQLite only. The local data export reads that SQLite data and downloads JSON in the browser without import, sync, or upload behavior. Local runtime settings show local paths and env-driven Ollama configuration without accepting credentials or writing settings. Local Ollama and OpenRouter prompt calls are disabled by default and require explicit environment enablement. Codex and Claude subscription cards detect sign-in readiness only; unguarded CLI dispatch remains out of scope until the LIMA Guardian execution boundary is defined.
 
-Future provider, connector, model-call, credential, and Guardian runtime work must satisfy the public contracts in `docs/` before implementation branches can claim active behavior.
+Future connector, broad model routing, credential storage, and Guardian runtime work must satisfy the public contracts in `docs/` before implementation branches can claim active behavior.
 
 ## Repository standards
 

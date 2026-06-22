@@ -61,13 +61,13 @@ Status labels in the UI mean:
 - Workstation agent orchestration
 - Model-generated chat runtime implementation
 - Round Table runtime implementation
-- Cloud model calls and production model routing
+- Automatic cloud model calls and production model routing
 - Model seat assignment or persistence
 - Task scheduling, reminders, notifications, background jobs, or execution
 - Tool execution
 - Local data import, cloud sync, external upload, credential export, or settings writes
 - Runtime settings credential fields or secret save buttons
-- Provider setup runtime forms
+- Provider credential forms or browser-side credential storage
 - Guardian runtime controls and policy enforcement
 - Desktop and Tauri surfaces
 
@@ -87,4 +87,4 @@ pytest backend/tests -q
 
 ## Scope Notes
 
-This is a product-direction shell slice only. It does not claim release readiness and activates only local SQLite CRUD for Workstation drafts, notes, and planning cards. It activates only optional links between local work lane cards and local chat sessions. It activates only a read-only JSON export of local Workstation data for backup and testing; it does not activate import, cloud sync, external upload, or credential export. It activates only read-only runtime settings display for local paths and env-driven Ollama configuration; it does not activate credential fields, secret save buttons, or runtime config writes. It activates only default-off localhost Ollama prompt calls when explicitly enabled by environment variable. Local memory notes are added to a prompt only when the operator selects them manually. It does not activate automatic memory retrieval, model memory writes, embeddings, vector databases, cloud model calls, external sends, provider credentials, connectors, schedulers, reminders, background jobs, task execution, tool execution, Guardian runtime enforcement, or LIMA AI OS integration.
+This is a product-direction shell slice only. It does not claim release readiness and activates only local SQLite CRUD for Workstation drafts, notes, and planning cards. It activates only optional links between local work lane cards and local chat sessions. It activates only a read-only JSON export of local Workstation data for backup and testing; it does not activate import, cloud sync, external upload, or credential export. It activates only read-only runtime settings display for local paths and env-driven Ollama configuration; it does not activate credential fields, secret save buttons, or runtime config writes. It activates only default-off localhost Ollama prompt calls when explicitly enabled by environment variable. It also exposes env-driven provider onboarding and a default-off OpenRouter prompt endpoint for explicit free-model calls when `SPARKBOT_PROVIDER_CALLS_ENABLED=true` and a backend env key is configured. Local memory notes are added to a prompt only when the operator selects them manually. It does not activate automatic memory retrieval, model memory writes, embeddings, vector databases, automatic cloud model calls, broad provider routing, browser credential storage, external sends, connectors, schedulers, reminders, background jobs, task execution, tool execution, Guardian runtime enforcement, or LIMA AI OS integration.

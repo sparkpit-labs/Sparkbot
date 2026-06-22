@@ -18,6 +18,10 @@ function formatImplementationStatus(status: string) {
   return status.replace(/-/g, " ");
 }
 
+function formatBool(value: boolean) {
+  return value ? "configured" : "not configured";
+}
+
 export default function ProviderSetupPreview() {
   const [providerStatusState, setProviderStatusState] = useState<ProviderStatusState>(fallbackProviderStatusState);
 
@@ -47,7 +51,7 @@ export default function ProviderSetupPreview() {
     <section className="provider-setup-preview section-panel" id="provider-setup" aria-labelledby="provider-setup-heading">
       <div className="provider-setup-copy">
         <p className="eyebrow">{formatShellStatus(payload.status)}</p>
-        <h2 id="provider-setup-heading">Provider Setup Preview</h2>
+        <h2 id="provider-setup-heading">Provider Setup</h2>
         <p>{providerPreviewSummary}</p>
         <p className="capabilities-source">{providerStatusState.sourceLabel}</p>
       </div>
@@ -67,21 +71,49 @@ export default function ProviderSetupPreview() {
         </div>
       </dl>
 
-      <div className="provider-layout" aria-label="Read-only provider setup preview">
+      <div className="provider-layout" aria-label="Provider setup status">
         {payload.providers.map((provider) => (
           <article className="provider-card" key={provider.id}>
             <div className="provider-card-top">
               <h3>{provider.label}</h3>
               <span className={`status-badge status-${provider.status}`}>{formatShellStatus(provider.status)}</span>
             </div>
+            <dl className="provider-card-meta" aria-label={`${provider.label} configuration`}>
+              <div>
+                <dt>State</dt>
+                <dd>{formatBool(provider.configured)}</dd>
+              </div>
+              <div>
+                <dt>Auth</dt>
+                <dd>{formatImplementationStatus(provider.auth_mode)}</dd>
+              </div>
+              <div>
+                <dt>Config</dt>
+                <dd>{formatImplementationStatus(provider.configuration)}</dd>
+              </div>
+              <div>
+                <dt>Source</dt>
+                <dd>{provider.credential_source}</dd>
+              </div>
+              {provider.default_model ? (
+                <div>
+                  <dt>Default model</dt>
+                  <dd>{provider.default_model}</dd>
+                </div>
+              ) : null}
+            </dl>
+            <p>{provider.runtime}</p>
             <p>{provider.notes}</p>
+            {provider.model_examples.length ? (
+              <p className="provider-model-list">Models: {provider.model_examples.join(", ")}</p>
+            ) : null}
           </article>
         ))}
       </div>
 
       <p className="provider-note">
-        This preview includes no API key fields, no password or token fields, no save actions, no test-connection
-        actions, and no provider calls.
+        This setup surface includes no API key fields, no password or token fields, no save actions, and no hidden
+        provider health checks. OpenRouter calls require explicit backend env enablement and an operator-submitted prompt.
       </p>
     </section>
   );

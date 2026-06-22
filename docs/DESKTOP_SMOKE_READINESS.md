@@ -49,8 +49,8 @@ This smoke path is not an installer. It does not add:
 - Installer generation.
 - Code signing.
 - Auto-update behavior.
-- Provider credentials.
-- Cloud model calls.
+- Browser provider credential entry or storage.
+- Enabled cloud model calls.
 - Enabled Ollama prompt calls.
 - Connector sends or tool execution.
 

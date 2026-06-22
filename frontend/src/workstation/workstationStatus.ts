@@ -92,8 +92,8 @@ export const workstationStatusItems: WorkstationStatusItem[] = [
   {
     id: "provider-setup",
     name: "Provider Setup shell",
-    status: "preview",
-    summary: "No credential storage or provider calls."
+    status: "available",
+    summary: "Env-driven provider onboarding and CLI sign-in status without browser credential storage."
   },
   {
     id: "model-seats",
@@ -128,8 +128,8 @@ export const workstationStatusItems: WorkstationStatusItem[] = [
   {
     id: "model-calls",
     name: "Cloud model calls",
-    status: "guarded-future",
-    summary: "No cloud provider runtime or production model routing."
+    status: "disabled-by-default",
+    summary: "Only explicit OpenRouter prompt calls are available when SPARKBOT_PROVIDER_CALLS_ENABLED=true and an env key is configured."
   },
   {
     id: "credential-storage",

@@ -43,13 +43,13 @@ A capability may move to a more active status only when all of the following are
 | Workstation shell | `preview` | Product shell preview only. |
 | Chat shell | `preview` | Read-only status may be shown; no send action, chat runtime, model call, streaming, provider routing, or message persistence. |
 | Round Table shell | `preview` | Read-only status may be shown; no meeting engine, agent orchestration, model calls, or turn persistence. |
-| Provider Setup shell | `preview` | Read-only provider status is allowed. No credential entry, storage, test call, or provider call. |
+| Provider Setup shell | `available` | Env-driven provider onboarding/status is available. No browser credential entry or storage. |
 | Model Seat preview | `preview` | Read-only seat status is allowed. No model assignment, routing, calls, credentials, or seat persistence. |
 | Task Lane preview | `preview` | Read-only lane status is allowed. No scheduler, background jobs, task execution, notifications, or task persistence. |
 | Guardian Controls shell | `preview` | Read-only policy status may be shown; no runtime approval or enforcement path. |
 | Desktop packaging | `planned` | No installer, desktop binary, signing, or auto-update path. |
 | Connectors | `guarded-future` | Read-only status may be shown; must satisfy `CONNECTOR_SAFETY_CONTRACT.md` before any runtime behavior. |
-| Cloud model calls | `guarded-future` | Must satisfy provider configuration and Guardian policy contracts before runtime behavior. |
+| Cloud model calls | `disabled-by-default` | Explicit OpenRouter prompt calls are available only when env-enabled; Chat and Round Table must not call models automatically. |
 | Credential storage | `guarded-future` | Must satisfy provider configuration and secret handling gates before any storage path. |
 | Tool execution | `guarded-future` | Must satisfy Guardian policy gates before any execution path. |
 

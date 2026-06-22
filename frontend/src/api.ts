@@ -19,7 +19,7 @@ export type CapabilitiesPayload = {
   capabilities: PublicCapability[];
 };
 
-export type ProviderImplementationStatus = "not-implemented";
+export type ProviderImplementationStatus = "not-implemented" | "env-driven" | "disabled-by-default" | "guarded-manual";
 export type ChatImplementationStatus = "not-implemented";
 export type RoundTableImplementationStatus = "not-implemented";
 export type ModelSeatImplementationStatus = "not-implemented";
@@ -108,6 +108,13 @@ export type ProviderStatusItem = {
   id: string;
   label: string;
   status: PublicCapabilityStatus;
+  configured: boolean;
+  auth_mode: string;
+  configuration: string;
+  credential_source: string;
+  default_model: string | null;
+  model_examples: string[];
+  runtime: string;
   notes: string;
 };
 
@@ -160,6 +167,7 @@ export type GuardianStatusPayload = {
 
 const DEFAULT_API_BASE_URL = "http://127.0.0.1:8000";
 const publicCapabilityStatuses = new Set(["available", "preview", "planned", "disabled-by-default", "guarded-future"]);
+const providerImplementationStatuses = new Set(["not-implemented", "env-driven", "disabled-by-default", "guarded-manual"]);
 
 export const API_BASE_URL =
   import.meta.env.VITE_SPARKBOT_API_BASE_URL?.trim() || DEFAULT_API_BASE_URL;
@@ -481,9 +489,9 @@ export async function fetchProviderConfigStatus(signal?: AbortSignal): Promise<P
     !payload.service ||
     !payload.mode ||
     !payload.status ||
-    payload.credential_storage !== "not-implemented" ||
-    payload.provider_calls !== "not-implemented" ||
-    payload.model_routing !== "not-implemented" ||
+    !providerImplementationStatuses.has(payload.credential_storage ?? "") ||
+    !providerImplementationStatuses.has(payload.provider_calls ?? "") ||
+    !providerImplementationStatuses.has(payload.model_routing ?? "") ||
     !Array.isArray(payload.providers) ||
     !publicCapabilityStatuses.has(payload.status)
   ) {
@@ -496,6 +504,12 @@ export async function fetchProviderConfigStatus(signal?: AbortSignal): Promise<P
       !provider.id ||
       !provider.label ||
       !provider.notes ||
+      typeof provider.configured !== "boolean" ||
+      !provider.auth_mode ||
+      !provider.configuration ||
+      !provider.credential_source ||
+      !Array.isArray(provider.model_examples) ||
+      !provider.runtime ||
       !publicCapabilityStatuses.has(provider.status ?? "")
     ) {
       throw new Error("Provider config status response includes an invalid provider item");
@@ -505,6 +519,13 @@ export async function fetchProviderConfigStatus(signal?: AbortSignal): Promise<P
       id: provider.id,
       label: provider.label,
       status: provider.status,
+      configured: provider.configured,
+      auth_mode: provider.auth_mode,
+      configuration: provider.configuration,
+      credential_source: provider.credential_source,
+      default_model: provider.default_model ?? null,
+      model_examples: provider.model_examples,
+      runtime: provider.runtime,
       notes: provider.notes
     };
   });

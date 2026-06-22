@@ -74,12 +74,12 @@ Start the frontend development server:
 bash scripts/start-frontend-dev.sh
 ```
 
-The frontend development server binds to `127.0.0.1` through Vite. The frontend currently presents static shell previews for Workstation, Chat Shell, Round Table, Provider Setup, and Guardian Controls.
+The frontend development server binds to `127.0.0.1` through Vite. The frontend currently presents the Workstation shell, local Workstation tools, Provider Setup status, and previews for Chat Shell, Round Table, Model Seats, Task Lanes, connectors, and Guardian Controls.
 
 ## Current limitations
 
-- No provider credentials are accepted, stored, or transmitted.
-- No model calls or model routing are active.
+- No provider credentials are accepted, stored, or transmitted through the browser. Backend provider setup is environment-driven.
+- No automatic model calls or broad model routing are active. OpenRouter prompt calls require explicit env enablement and an operator-submitted prompt.
 - No chat runtime or message persistence is active.
 - No approval or policy enforcement runtime is active.
 - No sensitive action execution path is active.
