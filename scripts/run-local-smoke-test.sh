@@ -8,6 +8,15 @@ SPARKBOT_SMOKE_BACKEND_HOST="${SPARKBOT_SMOKE_BACKEND_HOST:-127.0.0.1}"
 SPARKBOT_SMOKE_FRONTEND_HOST="${SPARKBOT_SMOKE_FRONTEND_HOST:-127.0.0.1}"
 SPARKBOT_SMOKE_OLLAMA_MODEL="${SPARKBOT_SMOKE_OLLAMA_MODEL:-llama3.2}"
 SPARKBOT_SMOKE_DATA_DIR="${SPARKBOT_SMOKE_DATA_DIR:-}"
+SPARKBOT_SMOKE_USE_HOST_SUBSCRIPTIONS="${SPARKBOT_SMOKE_USE_HOST_SUBSCRIPTIONS:-false}"
+
+case "${SPARKBOT_SMOKE_USE_HOST_SUBSCRIPTIONS}" in
+  true|false) ;;
+  *)
+    echo "SPARKBOT_SMOKE_USE_HOST_SUBSCRIPTIONS must be true or false." >&2
+    exit 1
+    ;;
+esac
 
 case "${SPARKBOT_SMOKE_BACKEND_HOST}" in
   127.0.0.1|localhost) ;;
@@ -31,6 +40,19 @@ BACKEND_LOG="${WORK_DIR}/backend.log"
 FRONTEND_LOG="${WORK_DIR}/frontend.log"
 BACKEND_PID=""
 FRONTEND_PID=""
+
+BACKEND_SUBSCRIPTION_ENV=()
+if [[ "${SPARKBOT_SMOKE_USE_HOST_SUBSCRIPTIONS}" == "true" ]]; then
+  echo "Smoke test will use host Codex/Claude subscription sign-in state if present."
+else
+  BACKEND_SUBSCRIPTION_ENV=(
+    "CODEX_HOME=${WORK_DIR}/codex-home"
+    "SPARKBOT_CODEX_AUTH_FILE="
+    "CLAUDE_HOME=${WORK_DIR}/claude-home"
+    "SPARKBOT_CLAUDE_AUTH_FILE="
+    "SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED=false"
+  )
+fi
 
 backend_url="http://${SPARKBOT_SMOKE_BACKEND_HOST}:${SPARKBOT_SMOKE_BACKEND_PORT}"
 frontend_url="http://${SPARKBOT_SMOKE_FRONTEND_HOST}:${SPARKBOT_SMOKE_FRONTEND_PORT}"
@@ -106,6 +128,7 @@ start_backend_disabled() {
   echo "Starting backend disabled-mode smoke server at ${backend_url}"
   env \
     SPARKBOT_DATA_DIR="${DATA_DIR}" \
+    "${BACKEND_SUBSCRIPTION_ENV[@]}" \
     SPARKBOT_BACKEND_HOST="${SPARKBOT_SMOKE_BACKEND_HOST}" \
     SPARKBOT_BACKEND_PORT="${SPARKBOT_SMOKE_BACKEND_PORT}" \
     bash "${ROOT_DIR}/scripts/start-backend-dev.sh" >"${BACKEND_LOG}" 2>&1 &
@@ -118,6 +141,7 @@ start_backend_enabled() {
   echo "Starting backend enabled-mode status smoke server at ${backend_url}"
   env \
     SPARKBOT_DATA_DIR="${DATA_DIR}" \
+    "${BACKEND_SUBSCRIPTION_ENV[@]}" \
     SPARKBOT_LOCAL_MODELS_ENABLED=true \
     SPARKBOT_OLLAMA_MODEL="${SPARKBOT_SMOKE_OLLAMA_MODEL}" \
     SPARKBOT_BACKEND_HOST="${SPARKBOT_SMOKE_BACKEND_HOST}" \

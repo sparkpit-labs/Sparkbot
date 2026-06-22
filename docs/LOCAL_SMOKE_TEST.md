@@ -10,7 +10,7 @@ For the current one-command desktop-readiness path, run:
 bash scripts/run-local-smoke-test.sh
 ```
 
-That wrapper prepares missing local dev dependencies, starts backend and frontend on alternate localhost ports, uses a temporary local data directory, runs this smoke check, verifies the reported data directory, restarts the backend with local models enabled, verifies the enabled local-model status path, and stops the smoke servers. It does not run an Ollama prompt.
+That wrapper prepares missing local dev dependencies, starts backend and frontend on alternate localhost ports, uses a temporary local data directory, runs this smoke check, verifies the reported data directory, restarts the backend with local models enabled, verifies the enabled local-model status path, and stops the smoke servers. It isolates Codex and Claude subscription homes by default so validation does not depend on the host user. It does not run an Ollama prompt.
 
 ## Default ports
 
@@ -21,6 +21,16 @@ By default, the development scripts use:
 - Frontend API base URL: `http://127.0.0.1:8000`
 
 Use alternate ports when either default port is already occupied. The one-command smoke wrapper defaults to backend port `18080` and frontend port `15180`; override those with `SPARKBOT_SMOKE_BACKEND_PORT` and `SPARKBOT_SMOKE_FRONTEND_PORT`.
+
+## Subscription sign-in smoke option
+
+The one-command wrapper isolates `CODEX_HOME` and `CLAUDE_HOME` by default so local validation is reproducible and does not depend on host subscription sign-ins. To verify an already signed-in host Codex or Claude setup during a LIMA/operator test, opt in explicitly:
+
+```bash
+SPARKBOT_SMOKE_USE_HOST_SUBSCRIPTIONS=true bash scripts/run-local-smoke-test.sh
+```
+
+This still does not dispatch Codex or Claude prompts. It only allows Provider Setup to report host CLI/sign-in readiness.
 
 ## Start backend on an alternate port
 

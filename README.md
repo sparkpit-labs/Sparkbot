@@ -76,7 +76,7 @@ This checks for blocked private references, unexpected publishing identity refer
 bash scripts/run-local-smoke-test.sh
 ```
 
-This prepares missing local dev dependencies, starts backend and frontend dev servers on alternate localhost ports, uses a temporary `SPARKBOT_DATA_DIR`, checks the default Ollama-disabled path, restarts the backend with local models enabled, verifies the enabled local-model status path, and then stops the smoke servers.
+This prepares missing local dev dependencies, starts backend and frontend dev servers on alternate localhost ports, uses a temporary `SPARKBOT_DATA_DIR`, isolates Codex/Claude subscription homes by default, checks the default Ollama-disabled and OpenRouter-disabled paths, restarts the backend with local models enabled, verifies the enabled local-model status path, and then stops the smoke servers. Set `SPARKBOT_SMOKE_USE_HOST_SUBSCRIPTIONS=true` only when intentionally checking host Codex/Claude sign-in readiness.
 
 Default smoke ports:
 

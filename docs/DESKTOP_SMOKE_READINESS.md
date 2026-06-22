@@ -39,6 +39,7 @@ Use these environment variables to override the defaults:
 | `SPARKBOT_SMOKE_FRONTEND_PORT` | Frontend smoke port. |
 | `SPARKBOT_SMOKE_DATA_DIR` | Optional data directory to preserve after the run. |
 | `SPARKBOT_SMOKE_OLLAMA_MODEL` | Model name used only for enabled local-model status configuration. |
+| `SPARKBOT_SMOKE_USE_HOST_SUBSCRIPTIONS` | Defaults to `false`; set `true` only to let the smoke backend report host Codex/Claude sign-in readiness. |
 
 ## Scope Boundary
 
