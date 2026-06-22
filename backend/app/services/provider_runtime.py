@@ -166,6 +166,14 @@ def _configured_model(env_name: str, fallback: str | None) -> str | None:
     return value or fallback
 
 
+def _first_configured_env(names: list[str], fallback: str | None) -> str | None:
+    for name in names:
+        value = os.environ.get(name, "").strip()
+        if value:
+            return value
+    return fallback
+
+
 def _provider_status_from_env(item: dict[str, Any]) -> ProviderStatus:
     configured = _env_has_value(str(item["env"]))
     calls_enabled = provider_calls_enabled()
@@ -200,24 +208,40 @@ def _codex_auth_file_exists() -> bool:
     return (codex_home / "auth.json").is_file()
 
 
-def _codex_cli_available() -> bool:
-    configured = os.environ.get("SPARKBOT_CODEX_CLI", "").strip()
+def _common_cli_candidates(name: str) -> list[pathlib.Path]:
+    home = pathlib.Path.home()
+    return [
+        home / ".local" / "bin" / name,
+        home / "AppData" / "Roaming" / "npm" / f"{name}.cmd",
+        home / "AppData" / "Roaming" / "npm" / f"{name}.ps1",
+    ]
+
+
+def _cli_available(env_name: str, executable: str) -> bool:
+    configured = os.environ.get(env_name, "").strip()
     if configured:
         return pathlib.Path(configured).expanduser().is_file() or shutil.which(configured) is not None
-    return shutil.which("codex") is not None
+    if shutil.which(executable) is not None:
+        return True
+    return any(candidate.is_file() for candidate in _common_cli_candidates(executable))
+
+
+def _codex_cli_available() -> bool:
+    return _cli_available("SPARKBOT_CODEX_CLI", "codex")
 
 
 def _claude_cli_available() -> bool:
-    configured = os.environ.get("SPARKBOT_CLAUDE_CLI", "").strip()
-    if configured:
-        return pathlib.Path(configured).expanduser().is_file() or shutil.which(configured) is not None
-    return shutil.which("claude") is not None
+    return _cli_available("SPARKBOT_CLAUDE_CLI", "claude")
 
 
 def _claude_subscription_hint_present() -> bool:
     if env_enabled("SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED"):
         return True
-    return pathlib.Path.home().joinpath("." + "claude").exists()
+    override = os.environ.get("SPARKBOT_CLAUDE_AUTH_FILE", "").strip()
+    if override:
+        return pathlib.Path(override).expanduser().is_file()
+    claude_home = pathlib.Path(os.environ.get("CLAUDE_HOME", str(pathlib.Path.home() / ("." + "claude")))).expanduser()
+    return claude_home.exists()
 
 
 def _subscription_statuses() -> list[ProviderStatus]:
@@ -235,8 +259,8 @@ def _subscription_statuses() -> list[ProviderStatus]:
             "configured": codex_configured,
             "auth_mode": "codex-cli-sign-in",
             "configuration": "local-cli-sign-in",
-            "credential_source": "CODEX_HOME auth file",
-            "default_model": os.environ.get("SPARKBOT_CODEX_MODEL", "openai-codex/gpt-5.3-codex").strip(),
+            "credential_source": "CODEX_HOME or SPARKBOT_CODEX_AUTH_FILE",
+            "default_model": _first_configured_env(["SPARKBOT_CODEX_MODEL", "SPARKBOT_CODEX_SUBSCRIPTION_MODEL"], "openai-codex/gpt-5.3-codex"),
             "model_examples": ["openai-codex/gpt-5.3-codex", "openai-codex/gpt-5.5", "openai-codex/gpt-5.4"],
             "runtime": "Sign-in readiness only in this public branch. CLI dispatch requires the LIMA Guardian execution boundary.",
             "notes": "Run codex login with a ChatGPT/Codex subscription, then restart Sparkbot. Auth presence is detected without reading or returning the auth file.",
@@ -257,11 +281,11 @@ def _subscription_statuses() -> list[ProviderStatus]:
             "configured": claude_configured,
             "auth_mode": "claude-cli-sign-in",
             "configuration": "local-cli-sign-in",
-            "credential_source": "Claude Code local sign-in",
-            "default_model": os.environ.get("SPARKBOT_CLAUDE_SUB_MODEL", "claude-sub/sonnet").strip(),
+            "credential_source": "CLAUDE_HOME or SPARKBOT_CLAUDE_AUTH_FILE",
+            "default_model": _first_configured_env(["SPARKBOT_CLAUDE_SUB_MODEL", "SPARKBOT_CLAUDE_SUBSCRIPTION_MODEL"], "claude-sub/sonnet"),
             "model_examples": ["claude-sub/sonnet", "claude-sub/opus", "claude-sub/haiku", "claude-sub/opus-1m"],
             "runtime": "Sign-in readiness only in this public branch. CLI dispatch requires the LIMA Guardian execution boundary.",
-            "notes": "Install Claude Code, sign in locally, and set SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED=true when using this public shell status path.",
+            "notes": "Install Claude Code and sign in locally. Sparkbot detects CLAUDE_HOME, SPARKBOT_CLAUDE_AUTH_FILE, or the operator-declared SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED=true flag without reading or returning auth contents.",
             "cli_available": claude_cli_available,
             "sign_in_detected": claude_sign_in_detected,
             "runtime_gate": "lima-guardian-required",

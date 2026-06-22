@@ -29,9 +29,9 @@ This is not a complete production product. It provides a local-first Workstation
 
 - No desktop installer or desktop binary.
 - No desktop framework, signing, or auto-update behavior.
-- No cloud model calls, production model routing, or provider SDK runtime.
-- No provider credential setup or credential storage.
-- No OpenRouter, direct cloud-provider, subscription, or custom-endpoint runtime calls.
+- No automatic cloud model calls, production model routing, broad provider routing, or provider SDK runtime.
+- No browser provider credential setup or credential storage.
+- No direct API-key provider, subscription-provider, or custom-endpoint runtime calls beyond the separately documented, disabled-by-default OpenRouter free-model prompt path on provider-onboarding branches.
 - No connector sends or external actions.
 - No terminal, tool execution, scheduler, reminders, background jobs, or task execution.
 - No Round Table meeting engine or agent orchestration runtime.

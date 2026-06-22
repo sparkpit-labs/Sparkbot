@@ -13,7 +13,7 @@ Provider Setup is now an environment-driven onboarding surface for local models,
 - MiniMax API: env-driven onboarding/status using `MINIMAX_API_KEY`.
 - xAI API: env-driven onboarding/status using `XAI_API_KEY`.
 - OpenAI Codex Subscription: reports whether the Codex CLI is available and whether local sign-in state is detected through `CODEX_HOME` or `SPARKBOT_CODEX_AUTH_FILE` without reading or returning the auth file.
-- Claude Subscription: reports whether Claude Code is available and whether operator-declared sign-in state is detected through local CLI configuration and `SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED=true`.
+- Claude Subscription: reports whether Claude Code is available and whether local sign-in state is detected through `CLAUDE_HOME`, `SPARKBOT_CLAUDE_AUTH_FILE`, or the operator-declared `SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED=true` flag without reading or returning auth contents.
 
 ## OpenRouter free model path
 
@@ -38,6 +38,12 @@ curl -i -X POST http://127.0.0.1:8000/provider-config/openrouter/prompt \
   -H 'Content-Type: application/json' \
   -d '{"prompt":"Say OK.","model":"mistralai/mistral-7b-instruct:free"}'
 ```
+
+## Subscription sign-in readiness
+
+For Codex subscription readiness, install the Codex CLI, run `codex login`, choose ChatGPT sign-in, finish the browser login, and restart Sparkbot. If the backend runs under a different user or profile, set `CODEX_HOME` to the signed-in profile directory or `SPARKBOT_CODEX_AUTH_FILE` to the auth file path. Use `SPARKBOT_CODEX_CLI` only when the CLI is not on `PATH`. `SPARKBOT_CODEX_MODEL` is the public-shell default model setting; `SPARKBOT_CODEX_SUBSCRIPTION_MODEL` is accepted as a prototype-compatible alias.
+
+For Claude subscription readiness, install Claude Code, run `claude auth login`, finish the browser sign-in, and restart Sparkbot. If the backend runs under a different user or profile, set `CLAUDE_HOME` to the signed-in profile directory or `SPARKBOT_CLAUDE_AUTH_FILE` to a local auth-state file whose presence should count as operator-declared sign-in. `SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED=true` remains available as an explicit operator readiness flag. Use `SPARKBOT_CLAUDE_CLI` only when the CLI is not on `PATH`. `SPARKBOT_CLAUDE_SUB_MODEL` is the public-shell default model setting; `SPARKBOT_CLAUDE_SUBSCRIPTION_MODEL` is accepted as a prototype-compatible alias.
 
 ## Subscription provider boundary
 

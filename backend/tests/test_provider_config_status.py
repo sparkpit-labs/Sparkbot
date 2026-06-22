@@ -119,6 +119,54 @@ def test_subscription_provider_requires_cli_and_sign_in(monkeypatch) -> None:
     assert "Sign in with Claude Code" in claude["operator_action"]
 
 
+def test_subscription_provider_detects_portable_cli_and_auth_paths(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("CODEX_HOME", str(tmp_path / "codex-profile"))
+    monkeypatch.setenv("CLAUDE_HOME", str(tmp_path / "claude-profile"))
+    monkeypatch.delenv("SPARKBOT_CODEX_CLI", raising=False)
+    monkeypatch.delenv("SPARKBOT_CLAUDE_CLI", raising=False)
+    monkeypatch.delenv("SPARKBOT_CLAUDE_AUTH_FILE", raising=False)
+    monkeypatch.setattr(provider_runtime.shutil, "which", lambda executable: None)
+
+    codex_auth = tmp_path / "codex-profile" / "auth.json"
+    codex_auth.parent.mkdir()
+    codex_auth.write_text("{}")
+    claude_home = tmp_path / "claude-profile"
+    claude_home.mkdir()
+    local_bin = tmp_path / ".local" / "bin"
+    local_bin.mkdir(parents=True)
+    (local_bin / "codex").write_text("")
+    (local_bin / "claude").write_text("")
+
+    assert provider_runtime._codex_cli_available() is True
+    assert provider_runtime._codex_auth_file_exists() is True
+    assert provider_runtime._claude_cli_available() is True
+    assert provider_runtime._claude_subscription_hint_present() is True
+
+
+def test_subscription_provider_supports_auth_file_and_model_alias_envs(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("SPARKBOT_CODEX_SUBSCRIPTION_MODEL", "openai-codex/gpt-5.4")
+    monkeypatch.delenv("SPARKBOT_CODEX_MODEL", raising=False)
+    monkeypatch.setenv("SPARKBOT_CLAUDE_SUBSCRIPTION_MODEL", "claude-sub/opus")
+    monkeypatch.delenv("SPARKBOT_CLAUDE_SUB_MODEL", raising=False)
+    monkeypatch.setattr(provider_runtime, "_codex_cli_available", lambda: True)
+    monkeypatch.setattr(provider_runtime, "_codex_auth_file_exists", lambda: True)
+    monkeypatch.setattr(provider_runtime, "_claude_cli_available", lambda: True)
+    claude_auth = tmp_path / "claude-auth.json"
+    claude_auth.write_text("{}")
+    monkeypatch.setenv("SPARKBOT_CLAUDE_AUTH_FILE", str(claude_auth))
+    monkeypatch.delenv("SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED", raising=False)
+
+    payload = provider_runtime.get_provider_config_status()
+    providers = _provider_by_id(payload)
+
+    assert providers["openai-codex-subscription"]["default_model"] == "openai-codex/gpt-5.4"
+    assert providers["openai-codex-subscription"]["credential_source"] == "CODEX_HOME or SPARKBOT_CODEX_AUTH_FILE"
+    assert providers["claude-subscription"]["default_model"] == "claude-sub/opus"
+    assert providers["claude-subscription"]["credential_source"] == "CLAUDE_HOME or SPARKBOT_CLAUDE_AUTH_FILE"
+    assert providers["claude-subscription"]["sign_in_detected"] is True
+
+
 def test_provider_statuses_use_contract_values_and_reflect_enabled_openrouter(monkeypatch) -> None:
     monkeypatch.setenv("SPARKBOT_PROVIDER_CALLS_ENABLED", "true")
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter-key")
