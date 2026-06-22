@@ -12,7 +12,7 @@ OpenRouter has one guarded backend prompt endpoint for explicit operator calls:
 POST /provider-config/openrouter/prompt
 ```
 
-That endpoint is disabled unless `SPARKBOT_PROVIDER_CALLS_ENABLED=true` and `OPENROUTER_API_KEY` is configured in the backend environment. OpenRouter model IDs ending in `:free` are enforced unless the operator explicitly sets `SPARKBOT_ALLOW_PAID_OPENROUTER_MODELS=true`.
+That endpoint is disabled unless `SPARKBOT_PROVIDER_CALLS_ENABLED=true` and `OPENROUTER_API_KEY` is configured in the backend environment. OpenRouter model IDs ending in `:free` are enforced unless the operator explicitly sets `SPARKBOT_ALLOW_PAID_OPENROUTER_MODELS=true`. The frontend may expose an explicit OpenRouter smoke form for this endpoint, but it may send only prompt text and model ID; credentials remain backend environment values.
 
 Other API-key providers are onboarding/status only in this branch. Codex and Claude subscription providers expose CLI availability, sign-in detection, runtime-gate status, and next operator action until LIMA Guardian execution contracts are available.
 

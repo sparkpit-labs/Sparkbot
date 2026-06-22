@@ -449,6 +449,14 @@ const providerConfigStatusPayload = {
   ]
 };
 
+const openRouterPromptResponsePayload = {
+  provider: "openrouter",
+  model: "mistralai/mistral-7b-instruct:free",
+  request_model: "mistralai/mistral-7b-instruct:free",
+  response: "OK from OpenRouter",
+  usage: { prompt_tokens: 3, completion_tokens: 4 }
+};
+
 const connectorStatusPayload = {
   service: "sparkbot-server",
   mode: "local",
@@ -686,6 +694,24 @@ const localPromptResponsePayload = {
   }
 };
 
+function enabledOpenRouterProviderConfigStatusPayload() {
+  return {
+    ...providerConfigStatusPayload,
+    status: "available",
+    provider_calls: "guarded-manual",
+    providers: providerConfigStatusPayload.providers.map((provider) =>
+      provider.id === "openrouter"
+        ? {
+            ...provider,
+            status: "available",
+            configured: true,
+            default_model: "mistralai/mistral-7b-instruct:free"
+          }
+        : provider
+    )
+  };
+}
+
 function mockJsonResponse(payload: unknown) {
   return Promise.resolve(
     new Response(JSON.stringify(payload), {
@@ -766,6 +792,10 @@ function mockBackendStatusFetch() {
 
     if (url.includes("/connector-status")) {
       return mockJsonResponse(connectorStatusPayload);
+    }
+
+    if (url.includes("/provider-config/openrouter/prompt")) {
+      return mockJsonResponse(openRouterPromptResponsePayload);
     }
 
     if (url.includes("/provider-config/status")) {
@@ -925,6 +955,9 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Anthropic API" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Google Gemini API" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "OpenRouter" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "OpenRouter Free Model Smoke" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Run OpenRouter smoke" })).toHaveProperty("disabled", true);
+    expect(screen.getAllByText(/SPARKBOT_PROVIDER_CALLS_ENABLED=true/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("heading", { name: "OpenAI Codex Subscription" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Claude Subscription" })).toBeDefined();
     expect(screen.getByText(/Provider onboarding is env-driven/i)).toBeDefined();
@@ -1102,12 +1135,51 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Anthropic API" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Google Gemini API" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "OpenRouter" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "OpenRouter Free Model Smoke" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Run OpenRouter smoke" })).toHaveProperty("disabled", true);
+    expect(screen.getAllByText(/SPARKBOT_PROVIDER_CALLS_ENABLED=true/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("heading", { name: "OpenAI Codex Subscription" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Claude Subscription" })).toBeDefined();
     expect(screen.getAllByText("lima guardian required").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText(/Install the Codex CLI/i)).toBeDefined();
     expect(screen.getAllByText(/Install Claude Code/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Planned").length).toBeGreaterThanOrEqual(6);
+  });
+
+  it("runs the enabled OpenRouter smoke prompt from Provider Setup", async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = input.toString();
+      if (url.includes("/provider-config/openrouter/prompt")) {
+        return mockJsonResponse(openRouterPromptResponsePayload);
+      }
+      if (url.includes("/provider-config/status")) {
+        return mockJsonResponse(enabledOpenRouterProviderConfigStatusPayload());
+      }
+      return mockBackendStatusFetch()(input, init);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+
+    expect(await screen.findByText("Using backend provider configuration status.")).toBeDefined();
+    const smokeForm = screen.getByRole("form", { name: "OpenRouter free model smoke test" });
+    expect(within(smokeForm).getByText("Available")).toBeDefined();
+    fireEvent.change(within(smokeForm).getByLabelText("OpenRouter smoke prompt"), { target: { value: "Say OK from UI." } });
+    fireEvent.change(within(smokeForm).getByLabelText("OpenRouter smoke model"), {
+      target: { value: "mistralai/mistral-7b-instruct:free" }
+    });
+    fireEvent.click(within(smokeForm).getByRole("button", { name: "Run OpenRouter smoke" }));
+
+    expect(await screen.findByText("OK from OpenRouter")).toBeDefined();
+    const promptCall = fetchMock.mock.calls.find(([input]) => input.toString().includes("/provider-config/openrouter/prompt"));
+    expect(promptCall).toBeDefined();
+    expect(promptCall?.[1]).toEqual(
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ prompt: "Say OK from UI.", model: "mistralai/mistral-7b-instruct:free" })
+      })
+    );
+    expect(JSON.stringify(promptCall?.[1])).not.toContain("OPENROUTER_API_KEY");
   });
 
   it("renders backend connector status when the connector status API responds", async () => {

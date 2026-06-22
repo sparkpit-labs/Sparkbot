@@ -132,6 +132,14 @@ export type ProviderConfigStatusPayload = {
   providers: ProviderStatusItem[];
 };
 
+export type OpenRouterPromptResponse = {
+  provider: "openrouter";
+  model: string;
+  request_model: string;
+  response: string;
+  usage: Record<string, unknown> | null;
+};
+
 export type ConnectorStatusItem = {
   id: string;
   label: string;
@@ -558,6 +566,49 @@ export async function fetchProviderConfigStatus(signal?: AbortSignal): Promise<P
     provider_calls: payload.provider_calls,
     model_routing: payload.model_routing,
     providers
+  };
+}
+
+export async function runOpenRouterPrompt(
+  prompt: string,
+  model: string,
+  signal?: AbortSignal
+): Promise<OpenRouterPromptResponse> {
+  const endpoint = new URL("/provider-config/openrouter/prompt", API_BASE_URL).toString();
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ prompt, model }),
+    cache: "no-store",
+    signal
+  });
+
+  const payload = (await response.json().catch(() => null)) as Partial<OpenRouterPromptResponse> & { detail?: unknown } | null;
+  if (!response.ok) {
+    const detail = typeof payload?.detail === "string" ? payload.detail : `OpenRouter prompt request failed with status ${response.status}`;
+    throw new Error(detail);
+  }
+
+  if (
+    !payload ||
+    payload.provider !== "openrouter" ||
+    !payload.model ||
+    !payload.request_model ||
+    !payload.response ||
+    (payload.usage != null && typeof payload.usage !== "object")
+  ) {
+    throw new Error("OpenRouter prompt response is missing required fields");
+  }
+
+  return {
+    provider: payload.provider,
+    model: payload.model,
+    request_model: payload.request_model,
+    response: payload.response,
+    usage: payload.usage ?? null
   };
 }
 

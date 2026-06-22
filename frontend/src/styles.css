@@ -881,6 +881,77 @@ h3 {
   gap: 10px;
 }
 
+.provider-smoke-panel {
+  border: 1px solid #c8d3df;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.provider-smoke-fields {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(260px, 1.2fr);
+  gap: 12px;
+}
+
+.provider-smoke-fields label {
+  display: grid;
+  gap: 6px;
+  color: #4b5b6c;
+  font-weight: 700;
+}
+
+.provider-smoke-fields input,
+.provider-smoke-fields textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #c8d3df;
+  border-radius: 8px;
+  background: #fff;
+  color: #1c2530;
+  font: inherit;
+  padding: 10px 12px;
+}
+
+.provider-smoke-panel button {
+  justify-self: start;
+  border: 1px solid #1f6fb2;
+  border-radius: 8px;
+  background: #1f6fb2;
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  padding: 10px 14px;
+}
+
+.provider-smoke-panel button:disabled {
+  border-color: #b6c3d0;
+  background: #d9e1ea;
+  color: #647386;
+}
+
+.provider-error {
+  border: 1px solid #d49a9a;
+  border-radius: 8px;
+  background: #fff7f7;
+  color: #8d2f2f;
+  margin: 0;
+  padding: 10px 12px;
+}
+
+.provider-smoke-result {
+  border: 1px solid #bdd8c7;
+  border-radius: 8px;
+  background: #f6fff9;
+  color: #1f3e2b;
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  overflow-wrap: anywhere;
+}
+
 .provider-card-top {
   display: grid;
   gap: 8px;
@@ -1123,6 +1194,7 @@ dd {
   .work-lane-layout,
   .provider-status-grid,
   .provider-layout,
+  .provider-smoke-fields,
   .connector-status-grid,
   .connector-layout {
     grid-template-columns: 1fr;

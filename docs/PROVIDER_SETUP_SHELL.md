@@ -29,6 +29,8 @@ SPARKBOT_OPENROUTER_MODEL=meta-llama/llama-3.2-3b-instruct:free
 
 Sparkbot enforces OpenRouter model IDs ending in `:free` by default. To opt into paid OpenRouter models for a local test, set `SPARKBOT_ALLOW_PAID_OPENROUTER_MODELS=true` and use an explicit model ID.
 
+Provider Setup also includes an OpenRouter Free Model Smoke panel. The panel is enabled only when the backend reports OpenRouter as available, and it submits only an operator prompt and model ID to the backend; it does not accept or display keys.
+
 Manual smoke request:
 
 ```bash
