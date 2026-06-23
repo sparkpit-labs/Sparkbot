@@ -991,6 +991,16 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Google Gemini API" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "OpenRouter" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Provider Prompt Smoke" })).toBeDefined();
+    const smokeForm = screen.getByRole("form", { name: "Provider prompt smoke test" });
+    const modelInput = within(smokeForm).getByLabelText("Smoke model") as HTMLInputElement;
+    const modelListId = modelInput.getAttribute("list");
+    expect(modelListId).toBe("provider-smoke-models-openrouter");
+    const modelSuggestions = Array.from(document.getElementById(modelListId || "")?.querySelectorAll("option") || []).map(
+      (option) => option.getAttribute("value")
+    );
+    expect(modelSuggestions).toEqual(
+      expect.arrayContaining(["meta-llama/llama-3.2-3b-instruct:free", "mistralai/mistral-7b-instruct:free"])
+    );
     expect(screen.getByRole("button", { name: "Run provider smoke" })).toHaveProperty("disabled", true);
     expect(screen.getAllByText(/SPARKBOT_PROVIDER_CALLS_ENABLED=true/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("heading", { name: "OpenAI Codex Subscription" })).toBeDefined();
@@ -1203,6 +1213,8 @@ describe("App", () => {
     expect(await screen.findByText("Using backend provider configuration status.")).toBeDefined();
     const smokeForm = screen.getByRole("form", { name: "Provider prompt smoke test" });
     expect(within(smokeForm).getByLabelText("Smoke provider")).toHaveProperty("value", "openrouter");
+    const enabledModelInput = within(smokeForm).getByLabelText("Smoke model") as HTMLInputElement;
+    expect(enabledModelInput.getAttribute("list")).toBe("provider-smoke-models-openrouter");
     expect(within(smokeForm).getByText("Available")).toBeDefined();
     fireEvent.change(within(smokeForm).getByLabelText("Smoke prompt"), { target: { value: "Say OK from UI." } });
     fireEvent.change(within(smokeForm).getByLabelText("Smoke model"), {

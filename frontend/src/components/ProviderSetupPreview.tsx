@@ -65,6 +65,12 @@ export default function ProviderSetupPreview() {
     promptProviders[0];
   const providerReady = selectedPromptProvider?.status === "available" && payload.provider_calls === "guarded-manual";
   const providerDefaultModel = selectedPromptProvider?.default_model || DEFAULT_PROVIDER_SMOKE_MODEL;
+  const providerModelSuggestions = Array.from(
+    new Set([providerDefaultModel, ...(selectedPromptProvider?.model_examples || [])].filter(Boolean))
+  );
+  const providerModelListId = selectedPromptProvider
+    ? `provider-smoke-models-${selectedPromptProvider.id}`
+    : "provider-smoke-models";
   const selectedProviderAction =
     selectedPromptProvider?.operator_action ||
     `Set SPARKBOT_PROVIDER_CALLS_ENABLED=true and ${selectedPromptProvider?.credential_source || "the provider environment"} in the backend environment.`;
@@ -145,8 +151,16 @@ export default function ProviderSetupPreview() {
               value={providerModel}
               onChange={(event) => setProviderModel(event.target.value)}
               placeholder={providerDefaultModel}
+              list={providerModelSuggestions.length ? providerModelListId : undefined}
               autoComplete="off"
             />
+            {providerModelSuggestions.length ? (
+              <datalist id={providerModelListId}>
+                {providerModelSuggestions.map((model) => (
+                  <option value={model} key={model} />
+                ))}
+              </datalist>
+            ) : null}
           </label>
           <label>
             <span>Smoke prompt</span>

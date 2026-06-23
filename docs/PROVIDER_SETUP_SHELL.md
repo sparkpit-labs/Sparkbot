@@ -33,7 +33,7 @@ Sparkbot enforces OpenRouter model IDs ending in `:free` by default. To opt into
 
 Provider model examples mirror the prototype catalogue for operator familiarity: OpenRouter keeps free `:free` examples by default, Codex uses `openai-codex/gpt-5.3-codex`, Claude subscription uses `claude-sub/...` IDs, Anthropic includes Claude Sonnet 4.6/Opus 4.6 examples, Google includes Gemini 3.1 examples, MiniMax includes M2.5/M2.7, and xAI includes Grok 4.20/4.1 examples.
 
-Provider Setup includes a Provider Prompt Smoke panel. The panel defaults to OpenRouter and is enabled only when the selected provider reports available; it submits only provider ID, operator prompt, and model ID to the backend; it does not accept or display keys.
+Provider Setup includes a Provider Prompt Smoke panel. The panel defaults to OpenRouter and is enabled only when the selected provider reports available; it suggests backend-provided model examples in the model field; it submits only provider ID, operator prompt, and model ID to the backend; it does not accept or display keys.
 
 Manual OpenRouter smoke request:
 
