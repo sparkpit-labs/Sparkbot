@@ -14,7 +14,7 @@ POST /provider-config/{provider_id}/prompt
 
 Provider prompt endpoints are disabled unless `SPARKBOT_PROVIDER_CALLS_ENABLED=true` and the selected provider env key is configured in the backend environment. OpenRouter model IDs ending in `:free` are enforced unless the operator explicitly sets `SPARKBOT_ALLOW_PAID_OPENROUTER_MODELS=true`. The frontend exposes an explicit provider smoke form for these endpoints, but it may send only provider ID, prompt text, and model ID; credentials remain backend environment values.
 
-Codex and Claude subscription providers expose CLI availability, sign-in detection, runtime-gate status, and next operator action until the LIMA Guardian provider adapter contract is implemented. See `LIMA_PROVIDER_GUARDIAN_ADAPTER.md` for the public dispatch boundary.
+Codex and Claude subscription providers expose CLI availability, sign-in detection, runtime-gate status, LIMA adapter configuration state, and next operator action. Their prompt endpoints are supported only as fail-closed delegation to a configured localhost LIMA Guardian provider adapter. See `LIMA_PROVIDER_GUARDIAN_ADAPTER.md` for the public dispatch boundary.
 
 ## Provider Setup Rules
 
@@ -26,7 +26,7 @@ Codex and Claude subscription providers expose CLI availability, sign-in detecti
 - OpenRouter defaults to free `:free` models to avoid accidental spend.
 - Provider errors must avoid exposing secrets or private request content.
 - The `GET /capabilities` response must identify provider setup and model-call status accurately.
-- Subscription CLI execution must be routed through LIMA Guardian or an equivalent explicit execution boundary before public promotion, following the public adapter contract in `LIMA_PROVIDER_GUARDIAN_ADAPTER.md`.
+- Subscription CLI execution must remain outside Sparkbot and route through LIMA Guardian or an equivalent explicit execution boundary, following the public adapter contract in `LIMA_PROVIDER_GUARDIAN_ADAPTER.md`.
 
 ## Required Gates Before Credential Handling
 

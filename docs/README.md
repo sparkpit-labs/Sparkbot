@@ -37,7 +37,7 @@ This index groups the public Sparkbot documentation for first-time visitors, loc
 - [Connector Safety Contract](CONNECTOR_SAFETY_CONTRACT.md): disabled-by-default connector rules and future live-action gates.
 - [Provider Configuration Contract](PROVIDER_CONFIG_CONTRACT.md): provider setup, credential boundary, and model-call gates.
 - [Guardian Policy Contract](GUARDIAN_POLICY_CONTRACT.md): future sensitive-action policy and approval gates.
-- [LIMA Guardian Provider Adapter](LIMA_PROVIDER_GUARDIAN_ADAPTER.md): public contract for future Codex/Claude subscription dispatch through Guardian.
+- [LIMA Guardian Provider Adapter](LIMA_PROVIDER_GUARDIAN_ADAPTER.md): public contract for Codex/Claude subscription dispatch through a configured localhost Guardian adapter.
 
 ## Roadmap and plans
 
@@ -47,4 +47,4 @@ This index groups the public Sparkbot documentation for first-time visitors, loc
 
 ## Current boundary
 
-The current public shell baseline is safe for review and local validation. It includes env-driven provider onboarding, an explicitly enabled OpenRouter prompt path, and a read-only Guardian provider adapter contract for LIMA install smoke checks. It does not include browser credential storage, broad provider routing, chat runtime, Round Table meeting runtime, Guardian policy enforcement, unguarded Codex/Claude subscription dispatch, tool execution, connector calls, desktop packaging, or deployment workflows. The public contracts define the gates future branches must satisfy before those behaviors can be promoted.
+The current public shell baseline is safe for review and local validation. It includes env-driven provider onboarding, an explicitly enabled OpenRouter prompt path, API-key provider prompt smokes when backend env is enabled, and a fail-closed Codex/Claude subscription client that delegates only to a configured localhost LIMA Guardian adapter. It does not include browser credential storage, broad automatic provider routing, chat runtime, Round Table meeting runtime, Guardian policy enforcement inside Sparkbot, unguarded Codex/Claude CLI execution, tool execution, connector calls, desktop packaging, or deployment workflows. The public contracts define the gates future branches must satisfy before those behaviors can be promoted.

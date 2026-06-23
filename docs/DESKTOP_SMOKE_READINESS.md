@@ -43,7 +43,7 @@ Use these environment variables to override the defaults:
 | `SPARKBOT_SMOKE_OLLAMA_MODEL` | Model name used only for enabled local-model status configuration. |
 | `SPARKBOT_SMOKE_OPENROUTER_MODEL` | Free `:free` OpenRouter model name used only for guarded status configuration. |
 | `SPARKBOT_SMOKE_USE_HOST_SUBSCRIPTIONS` | Defaults to `false`; set `true` only to let the smoke backend report host Codex/Claude sign-in readiness. |
-| `SPARKBOT_SMOKE_REQUIRE_SUBSCRIPTIONS` | Defaults to `false`; set `true` with host subscriptions during LIMA/operator install smoke to require Codex and Claude readiness while keeping dispatch LIMA-gated. |
+| `SPARKBOT_SMOKE_REQUIRE_SUBSCRIPTIONS` | Defaults to `false`; set `true` with host subscriptions during LIMA/operator install smoke to require Codex and Claude readiness while keeping default smoke dispatch-free. |
 
 ## Scope Boundary
 
@@ -59,7 +59,7 @@ This smoke path is not an installer. It does not add:
 - Enabled Ollama prompt calls.
 - Connector sends or tool execution.
 
-The enabled local-model check only verifies the read-only local status path with `SPARKBOT_LOCAL_MODELS_ENABLED=true`. It does not send a prompt to Ollama. The provider-onboarding check uses short placeholder backend keys and an intentionally rejected non-free OpenRouter model request; it does not send a successful cloud prompt by default. The subscription-readiness assertion only reads provider status from Sparkbot and does not dispatch Codex or Claude CLI prompts.
+The enabled local-model check only verifies the read-only local status path with `SPARKBOT_LOCAL_MODELS_ENABLED=true`. It does not send a prompt to Ollama. The provider-onboarding check uses short placeholder backend keys and an intentionally rejected non-free OpenRouter model request; it does not send a successful cloud prompt by default. The subscription-readiness assertion only reads provider status from Sparkbot and does not dispatch Codex or Claude CLI prompts. LIMA-side adapter dispatch must be verified separately with the manual subscription smoke in `LIMA_PROVIDER_GUARDIAN_ADAPTER.md` after `SPARKBOT_LIMA_PROVIDER_ADAPTER_URL` is configured.
 
 ## Manual Smoke Path
 

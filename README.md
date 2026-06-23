@@ -288,7 +288,7 @@ Key docs:
 - `docs/CONNECTOR_SAFETY_CONTRACT.md` for future connector safety gates.
 - `docs/PROVIDER_CONFIG_CONTRACT.md` for provider setup and model-call gates.
 - `docs/PROVIDER_SETUP_SHELL.md` for OpenRouter, API-key provider, and subscription sign-in setup boundaries.
-- `docs/LIMA_PROVIDER_GUARDIAN_ADAPTER.md` for the future Codex/Claude subscription dispatch boundary through LIMA Guardian.
+- `docs/LIMA_PROVIDER_GUARDIAN_ADAPTER.md` for the Codex/Claude subscription dispatch boundary through a configured localhost LIMA Guardian adapter.
 - `docs/GUARDIAN_POLICY_CONTRACT.md` for future sensitive-action policy gates.
 - `docs/ROADMAP.md` for staged product direction.
 - `docs/RELEASE_READINESS.md` for current release-readiness boundaries.
@@ -297,7 +297,7 @@ Key docs:
 
 ## Security and privacy posture
 
-Current validation does not require secrets. The repository does not accept or store provider credentials in the browser. Provider credentials, when used, are backend environment values owned by the operator. Local Workstation CRUD stores user-entered drafts, notes, and planning cards in SQLite only. The local data export reads that SQLite data and downloads JSON in the browser without import, sync, or upload behavior. Local runtime settings show local paths and env-driven Ollama configuration without accepting credentials or writing settings. Local Ollama and API provider prompt calls are disabled by default and require explicit environment enablement. Codex and Claude subscription cards report CLI availability, sign-in readiness, and next operator action; unguarded CLI dispatch remains out of scope until the LIMA Guardian execution boundary is defined.
+Current validation does not require secrets. The repository does not accept or store provider credentials in the browser. Provider credentials, when used, are backend environment values owned by the operator. Local Workstation CRUD stores user-entered drafts, notes, and planning cards in SQLite only. The local data export reads that SQLite data and downloads JSON in the browser without import, sync, or upload behavior. Local runtime settings show local paths and env-driven Ollama configuration without accepting credentials or writing settings. Local Ollama and API provider prompt calls are disabled by default and require explicit environment enablement. Codex and Claude subscription cards report CLI availability, sign-in readiness, LIMA adapter configuration, and next operator action; explicit subscription prompts can only delegate to a configured localhost LIMA Guardian adapter, and unguarded CLI dispatch remains out of scope.
 
 Future connector, broad model routing, credential storage, and Guardian runtime work must satisfy the public contracts in `docs/` before implementation branches can claim active behavior.
 

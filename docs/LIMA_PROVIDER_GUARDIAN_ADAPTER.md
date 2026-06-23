@@ -149,6 +149,22 @@ curl -i -X POST http://127.0.0.1:8000/provider-config/openai-codex-subscription/
 
 Use `/provider-config/claude-subscription/prompt` with a `claude-sub/...` model for Claude subscription testing.
 
+## LIMA Install-Test Acceptance Checklist
+
+For LIMA AI OS install testing, collect these results before claiming subscription dispatch is ready:
+
+| Check | Expected evidence |
+| --- | --- |
+| OpenRouter free path | `GET /provider-config/status` shows OpenRouter default model ending in `:free`; non-free OpenRouter smoke returns `400` unless paid models are explicitly enabled. |
+| API-key providers | With placeholder backend keys and `SPARKBOT_PROVIDER_CALLS_ENABLED=true`, OpenAI, Anthropic, Google, Groq, MiniMax, and xAI cards report `available` and expose prompt endpoints without leaking key values. |
+| Subscription readiness | With `SPARKBOT_SMOKE_USE_HOST_SUBSCRIPTIONS=true SPARKBOT_SMOKE_REQUIRE_SUBSCRIPTIONS=true`, Codex and Claude cards report CLI availability, sign-in detection, and `runtime_gate=lima-guardian-required`. |
+| Adapter gate | Without `SPARKBOT_LIMA_PROVIDER_ADAPTER_URL`, subscription prompt routes return a safe `400` and do not dispatch. |
+| Localhost-only adapter | Non-local adapter URLs are rejected before dispatch. |
+| Guarded success | With a localhost LIMA adapter configured, Codex and Claude prompt routes return a successful response only when the adapter returns matching `contract_version`, `request_id`, `provider_id`, `model`, `status=succeeded`, non-empty `response_text`, and non-empty `audit_id`. |
+| Guarded failure | Adapter statuses `denied`, `blocked`, `timeout`, and `failed` return safe unavailable errors from Sparkbot and include no secrets in the response. |
+| No direct CLI path | Sparkbot logs, docs, and tests show no direct Codex or Claude CLI subprocess execution in the public shell. |
+
+
 ## Audit Requirements
 
 Guardian must record an audit event for every request outcome before Sparkbot treats the outcome as final. The audit record should include:

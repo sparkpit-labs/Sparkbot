@@ -30,7 +30,7 @@ The one-command wrapper isolates `CODEX_HOME` and `CLAUDE_HOME` by default so lo
 SPARKBOT_SMOKE_USE_HOST_SUBSCRIPTIONS=true bash scripts/run-local-smoke-test.sh
 ```
 
-This still does not dispatch Codex or Claude prompts. It only allows Provider Setup to report host CLI/sign-in readiness. To make this an assertion during LIMA/operator install testing, require both subscription cards to be ready:
+This default host-subscription smoke still does not dispatch Codex or Claude prompts. It only allows Provider Setup to report host CLI/sign-in readiness. To make this an assertion during LIMA/operator install testing, require both subscription cards to be ready:
 
 ```bash
 SPARKBOT_SMOKE_USE_HOST_SUBSCRIPTIONS=true \
@@ -38,7 +38,7 @@ SPARKBOT_SMOKE_REQUIRE_SUBSCRIPTIONS=true \
 bash scripts/run-local-smoke-test.sh
 ```
 
-That mode fails unless Codex and Claude each report CLI availability, sign-in detection, `configured=true`, `status=disabled-by-default`, and `runtime_gate=lima-guardian-required`. It confirms readiness for the LIMA Guardian adapter without running either CLI.
+That mode fails unless Codex and Claude each report CLI availability, sign-in detection, `configured=true`, `status=disabled-by-default`, and `runtime_gate=lima-guardian-required`. It confirms sign-in readiness for the LIMA Guardian adapter without running either CLI. Once the LIMA adapter is running, perform the manual subscription smoke documented in `LIMA_PROVIDER_GUARDIAN_ADAPTER.md`; that is the step that verifies guarded adapter dispatch.
 
 ## Start backend on an alternate port
 
@@ -90,7 +90,7 @@ The smoke check script supports:
 - `SPARKBOT_BACKEND_URL`, default `http://127.0.0.1:8000`
 - `SPARKBOT_FRONTEND_URL`, default `http://127.0.0.1:5173`
 
-It verifies backend `/health`, backend `/capabilities`, backend `/chat/status`, backend `/provider-config/status`, provider cards for local Ollama, OpenRouter, API-key providers, Codex subscription, and Claude subscription, disabled-mode `POST /provider-config/openrouter/prompt` returning 403 when provider calls are off, backend `/connector-status`, backend `/guardian/status` including the LIMA provider execution boundary, backend `/round-table/status`, backend `/model-seats/status`, `/work-lanes/status`, `/local/chat/sessions`, `/local/memory-notes`, `/local/work-lane-cards`, `/local/export`, `/local/runtime/settings`, `/local-models/status`, disabled-mode `POST /local-models/ollama/prompt` returning 403, and the frontend HTTP response. The one-command wrapper also verifies all API-key provider cards with placeholder backend keys, OpenRouter guarded-manual status with `SPARKBOT_PROVIDER_CALLS_ENABLED=true`, all API-key providers exposing prompt endpoints when env-enabled, and a non-free OpenRouter model request returning 400 before provider dispatch.
+It verifies backend `/health`, backend `/capabilities`, backend `/chat/status`, backend `/provider-config/status`, provider cards for local Ollama, OpenRouter, API-key providers, Codex subscription, and Claude subscription, disabled-mode `POST /provider-config/openrouter/prompt`, `POST /provider-config/openai/prompt`, and `POST /provider-config/openai-codex-subscription/prompt` returning 403 when provider calls are off, backend `/connector-status`, backend `/guardian/status` including the LIMA provider execution boundary and adapter contract, backend `/round-table/status`, backend `/model-seats/status`, `/work-lanes/status`, `/local/chat/sessions`, `/local/memory-notes`, `/local/work-lane-cards`, `/local/export`, `/local/runtime/settings`, `/local-models/status`, disabled-mode `POST /local-models/ollama/prompt` returning 403, and the frontend HTTP response. The one-command wrapper also verifies all API-key provider cards with placeholder backend keys, OpenRouter guarded-manual status with `SPARKBOT_PROVIDER_CALLS_ENABLED=true`, all API-key providers exposing prompt endpoints when env-enabled, and a non-free OpenRouter model request returning 400 before provider dispatch.
 
 Expected result:
 

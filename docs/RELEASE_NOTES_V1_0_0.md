@@ -31,7 +31,7 @@ This is not a complete production product. It provides a local-first Workstation
 - No desktop framework, signing, or auto-update behavior.
 - No automatic cloud model calls, production model routing, broad provider routing, or provider SDK runtime.
 - No browser provider credential setup or credential storage.
-- No direct API-key provider, subscription-provider, or custom-endpoint runtime calls beyond the separately documented, disabled-by-default OpenRouter free-model prompt path on provider-onboarding branches.
+- No automatic provider runtime calls. API-key provider prompt smokes and Codex/Claude subscription delegation are explicit, disabled by default, and available only on provider-onboarding branches with backend env enablement; OpenRouter remains free-model-only by default, and subscription prompts require a localhost LIMA Guardian adapter.
 - No connector sends or external actions.
 - No terminal, tool execution, scheduler, reminders, background jobs, or task execution.
 - No Round Table meeting engine or agent orchestration runtime.
