@@ -139,21 +139,16 @@ bash scripts/run-lima-provider-adapter-contract-smoke.sh
 
 This starts a localhost contract adapter, starts a temporary Sparkbot backend with provider calls enabled, runs `scripts/smoke-check-lima-provider-adapter.sh`, verifies the success contract, verifies `denied`, `blocked`, `timeout`, and `failed` adapter statuses fail closed with safe Sparkbot errors, and then stops both processes. It verifies Sparkbot's guarded delegation path and response contract only. It does not run Codex, Claude, LIMA Guardian, or any subscription CLI.
 
-## Manual Subscription Smoke
+## Real LIMA Install Smoke
 
-After the real LIMA adapter is running locally and subscription sign-in readiness is detected, a manual smoke can be run with:
+After the real LIMA adapter is running locally and subscription sign-in readiness is detected, run the one-command guarded install smoke:
 
 ```bash
-SPARKBOT_PROVIDER_CALLS_ENABLED=true \
 SPARKBOT_LIMA_PROVIDER_ADAPTER_URL=http://127.0.0.1:18099/provider-adapter/dispatch \
-bash scripts/start-backend-dev.sh
+bash scripts/run-lima-install-provider-smoke.sh
 ```
 
-Then run the guarded adapter smoke verifier:
-
-```bash
-bash scripts/smoke-check-lima-provider-adapter.sh
-```
+The wrapper starts a temporary Sparkbot backend on `127.0.0.1:18280` with `SPARKBOT_PROVIDER_CALLS_ENABLED=true`, uses the host Codex/Claude sign-in state, runs `scripts/smoke-check-lima-provider-adapter.sh`, and then stops the backend. Override the backend port with `SPARKBOT_LIMA_INSTALL_SMOKE_BACKEND_PORT` if needed. The adapter URL must be an `http://localhost...` or `http://127.0.0.1...` endpoint with no credentials, query parameters, or fragments.
 
 The verifier checks both `openai-codex-subscription` and `claude-subscription` by default. It also accepts prototype aliases `openai_codex` and `claude_sub`, then normalizes them to the canonical adapter contract IDs before preflight and response validation. It validates provider readiness, adapter configuration, HTTP success, matching provider/model metadata, non-empty response text, non-empty `audit_id`, and absence of common secret markers in the Sparkbot response. It prints the `audit_id` but does not print the model response text.
 
@@ -187,7 +182,7 @@ For LIMA AI OS install testing, collect these results before claiming subscripti
 | Adapter gate | Without `SPARKBOT_LIMA_PROVIDER_ADAPTER_URL`, subscription prompt routes return a safe `400` and do not dispatch. |
 | Localhost-only adapter | Non-local adapter URLs are rejected before dispatch. |
 | Sparkbot contract path | `bash scripts/run-lima-provider-adapter-contract-smoke.sh` passes with a local mock adapter and fake sign-in markers, including success and non-success adapter statuses; this proves Sparkbot wiring only. |
-| Guarded success | `bash scripts/smoke-check-lima-provider-adapter.sh` passes against a backend started with `SPARKBOT_PROVIDER_CALLS_ENABLED=true` and a configured localhost LIMA adapter. |
+| Guarded success | `SPARKBOT_LIMA_PROVIDER_ADAPTER_URL=http://127.0.0.1:<port>/<path> bash scripts/run-lima-install-provider-smoke.sh` passes against the real localhost LIMA adapter. |
 | Guarded failure | Adapter statuses `denied`, `blocked`, `timeout`, and `failed` return safe unavailable errors from Sparkbot and include no secrets in the response. |
 | No direct CLI path | Sparkbot logs, docs, and tests show no direct Codex or Claude CLI subprocess execution in the public shell. |
 
