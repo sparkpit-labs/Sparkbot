@@ -24,6 +24,10 @@ function formatBool(value: boolean) {
   return value ? "configured" : "not configured";
 }
 
+function formatProviderLabel(label: string, aliases?: string[]) {
+  return aliases?.length ? `${label} (${aliases.join(", ")})` : label;
+}
+
 export default function ProviderSetupPreview() {
   const [providerStatusState, setProviderStatusState] = useState<ProviderStatusState>(fallbackProviderStatusState);
   const [selectedPromptProviderId, setSelectedPromptProviderId] = useState("openrouter");
@@ -129,7 +133,9 @@ export default function ProviderSetupPreview() {
               onChange={(event) => setSelectedPromptProviderId(event.target.value)}
             >
               {promptProviders.map((provider) => (
-                <option value={provider.id} key={provider.id}>{provider.label}</option>
+                <option value={provider.id} key={provider.id}>
+                  {formatProviderLabel(provider.label, provider.provider_aliases)}
+                </option>
               ))}
             </select>
           </label>
@@ -216,6 +222,12 @@ export default function ProviderSetupPreview() {
                 <div>
                   <dt>Runtime gate</dt>
                   <dd>{formatImplementationStatus(provider.runtime_gate)}</dd>
+                </div>
+              ) : null}
+              {provider.provider_aliases?.length ? (
+                <div>
+                  <dt>Aliases</dt>
+                  <dd>{provider.provider_aliases.join(", ")}</dd>
                 </div>
               ) : null}
               {typeof provider.adapter_configured === "boolean" ? (

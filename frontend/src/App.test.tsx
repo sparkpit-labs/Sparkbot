@@ -1178,6 +1178,10 @@ describe("App", () => {
     expect(screen.getAllByText("lima guardian required").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText(/Install the Codex CLI/i)).toBeDefined();
     expect(screen.getAllByText(/Install Claude Code/i).length).toBeGreaterThanOrEqual(1);
+    expect(await screen.findByText("openai_codex")).toBeDefined();
+    expect(await screen.findByText("claude_sub")).toBeDefined();
+    expect(await screen.findByRole("option", { name: "OpenAI Codex Subscription (openai_codex)" })).toBeDefined();
+    expect(await screen.findByRole("option", { name: "Claude Subscription (claude_sub)" })).toBeDefined();
     expect(screen.getAllByText("Planned").length).toBeGreaterThanOrEqual(6);
   });
 

@@ -579,7 +579,10 @@ export async function fetchProviderConfigStatus(signal?: AbortSignal): Promise<P
       operator_action: provider.operator_action,
       prompt_endpoint: provider.prompt_endpoint,
       prompt_adapter: provider.prompt_adapter,
-      adapter_configured: typeof provider.adapter_configured === "boolean" ? provider.adapter_configured : undefined
+      adapter_configured: typeof provider.adapter_configured === "boolean" ? provider.adapter_configured : undefined,
+      provider_aliases: Array.isArray(provider.provider_aliases)
+        ? provider.provider_aliases.filter((alias): alias is string => typeof alias === "string" && alias.trim().length > 0)
+        : undefined
     };
   });
 

@@ -108,7 +108,7 @@ Open:
 http://127.0.0.1:15173
 ```
 
-The page should show the Sparkbot shell with Workstation navigation, local runtime panels, local data export, local runtime settings, disabled-by-default Local Ollama adapter status, preview-only Chat status, Round Table, Model Seats, Provider Setup with the Provider Prompt Smoke panel and Codex/Claude subscription readiness cards, Connector Status, Guardian Controls with the LIMA provider execution boundary, backend capability statuses when available, and the read-only backend health panel.
+The page should show the Sparkbot shell with Workstation navigation, local runtime panels, local data export, local runtime settings, disabled-by-default Local Ollama adapter status, preview-only Chat status, Round Table, Model Seats, Provider Setup with the Provider Prompt Smoke panel, Codex/Claude subscription readiness cards, and prototype alias labels, Connector Status, Guardian Controls with the LIMA provider execution boundary, backend capability statuses when available, and the read-only backend health panel.
 
 ## Cleanup
 
