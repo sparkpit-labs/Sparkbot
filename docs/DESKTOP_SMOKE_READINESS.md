@@ -20,6 +20,8 @@ The script:
 - Runs `scripts/smoke-check-local.sh` against the running services.
 - Verifies `/local/runtime/settings` reports the smoke data directory.
 - Verifies the default Ollama-disabled prompt path returns `403`.
+- Restarts the backend with provider calls enabled and a placeholder OpenRouter backend key.
+- Verifies OpenRouter reports guarded-manual status and rejects a non-free model with `400` before provider dispatch.
 - Restarts the backend with local models enabled.
 - Verifies enabled local-model status is still localhost-only.
 - Stops the smoke backend and frontend processes that it started.
@@ -39,6 +41,7 @@ Use these environment variables to override the defaults:
 | `SPARKBOT_SMOKE_FRONTEND_PORT` | Frontend smoke port. |
 | `SPARKBOT_SMOKE_DATA_DIR` | Optional data directory to preserve after the run. |
 | `SPARKBOT_SMOKE_OLLAMA_MODEL` | Model name used only for enabled local-model status configuration. |
+| `SPARKBOT_SMOKE_OPENROUTER_MODEL` | Free `:free` OpenRouter model name used only for guarded status configuration. |
 | `SPARKBOT_SMOKE_USE_HOST_SUBSCRIPTIONS` | Defaults to `false`; set `true` only to let the smoke backend report host Codex/Claude sign-in readiness. |
 
 ## Scope Boundary
@@ -55,7 +58,7 @@ This smoke path is not an installer. It does not add:
 - Enabled Ollama prompt calls.
 - Connector sends or tool execution.
 
-The enabled local-model check only verifies the read-only local status path with `SPARKBOT_LOCAL_MODELS_ENABLED=true`. It does not send a prompt to Ollama.
+The enabled local-model check only verifies the read-only local status path with `SPARKBOT_LOCAL_MODELS_ENABLED=true`. It does not send a prompt to Ollama. The OpenRouter guarded-mode check uses a placeholder backend key and intentionally rejected non-free model request; it does not send a successful cloud prompt by default.
 
 ## Manual Smoke Path
 

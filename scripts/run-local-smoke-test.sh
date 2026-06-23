@@ -7,6 +7,7 @@ SPARKBOT_SMOKE_FRONTEND_PORT="${SPARKBOT_SMOKE_FRONTEND_PORT:-15180}"
 SPARKBOT_SMOKE_BACKEND_HOST="${SPARKBOT_SMOKE_BACKEND_HOST:-127.0.0.1}"
 SPARKBOT_SMOKE_FRONTEND_HOST="${SPARKBOT_SMOKE_FRONTEND_HOST:-127.0.0.1}"
 SPARKBOT_SMOKE_OLLAMA_MODEL="${SPARKBOT_SMOKE_OLLAMA_MODEL:-llama3.2}"
+SPARKBOT_SMOKE_OPENROUTER_MODEL="${SPARKBOT_SMOKE_OPENROUTER_MODEL:-mistralai/mistral-7b-instruct:free}"
 SPARKBOT_SMOKE_DATA_DIR="${SPARKBOT_SMOKE_DATA_DIR:-}"
 SPARKBOT_SMOKE_USE_HOST_SUBSCRIPTIONS="${SPARKBOT_SMOKE_USE_HOST_SUBSCRIPTIONS:-false}"
 
@@ -151,6 +152,22 @@ start_backend_enabled() {
   wait_for_url "backend" "${backend_url}/health" "${BACKEND_LOG}"
 }
 
+start_backend_openrouter_enabled() {
+  : >"${BACKEND_LOG}"
+  echo "Starting backend OpenRouter guarded-mode smoke server at ${backend_url}"
+  env \
+    SPARKBOT_DATA_DIR="${DATA_DIR}" \
+    "${BACKEND_SUBSCRIPTION_ENV[@]}" \
+    SPARKBOT_PROVIDER_CALLS_ENABLED=true \
+    OPENROUTER_API_KEY=smoke-key \
+    SPARKBOT_OPENROUTER_MODEL="${SPARKBOT_SMOKE_OPENROUTER_MODEL}" \
+    SPARKBOT_BACKEND_HOST="${SPARKBOT_SMOKE_BACKEND_HOST}" \
+    SPARKBOT_BACKEND_PORT="${SPARKBOT_SMOKE_BACKEND_PORT}" \
+    bash "${ROOT_DIR}/scripts/start-backend-dev.sh" >"${BACKEND_LOG}" 2>&1 &
+  BACKEND_PID="$!"
+  wait_for_url "backend" "${backend_url}/health" "${BACKEND_LOG}"
+}
+
 start_frontend() {
   : >"${FRONTEND_LOG}"
   echo "Starting frontend smoke server at ${frontend_url}"
@@ -172,6 +189,58 @@ check_runtime_data_dir() {
     *)
       echo "Runtime settings did not report the smoke data directory ${DATA_DIR}." >&2
       echo "${response}" >&2
+      exit 1
+      ;;
+  esac
+}
+
+check_openrouter_guarded_status() {
+  local response
+  local paid_model_code
+  response="$(curl -fsS "${backend_url}/provider-config/status")"
+  printf "%s\n" "${response}"
+  case "${response}" in
+    *\"provider_calls\":\"guarded-manual\"*|*\"provider_calls\":\ \"guarded-manual\"*) ;;
+    *)
+      echo "OpenRouter guarded-mode status did not report provider_calls=guarded-manual." >&2
+      exit 1
+      ;;
+  esac
+  case "${response}" in
+    *\"id\":\"openrouter\"*|*\"id\":\ \"openrouter\"*) ;;
+    *)
+      echo "OpenRouter guarded-mode status did not include the OpenRouter provider card." >&2
+      exit 1
+      ;;
+  esac
+  case "${response}" in
+    *\"configured\":true*|*\"configured\":\ true*) ;;
+    *)
+      echo "OpenRouter guarded-mode status did not report a configured provider." >&2
+      exit 1
+      ;;
+  esac
+  case "${response}" in
+    *\"status\":\"available\"*|*\"status\":\ \"available\"*) ;;
+    *)
+      echo "OpenRouter guarded-mode status did not include an available provider status." >&2
+      exit 1
+      ;;
+  esac
+  case "${response}" in
+    *"${SPARKBOT_SMOKE_OPENROUTER_MODEL}"*) ;;
+    *)
+      echo "OpenRouter guarded-mode status did not report the smoke free model ${SPARKBOT_SMOKE_OPENROUTER_MODEL}." >&2
+      exit 1
+      ;;
+  esac
+
+  echo "Checking OpenRouter non-free model is rejected before provider dispatch"
+  paid_model_code="$(curl -sS -o /dev/null -w "%{http_code}" -X POST "${backend_url}/provider-config/openrouter/prompt" -H "Content-Type: application/json" -d '{"prompt":"smoke","model":"openrouter/openai/gpt-4o-mini"}')"
+  case "${paid_model_code}" in
+    400) ;;
+    *)
+      echo "OpenRouter non-free model guard did not return 400 before provider dispatch; got ${paid_model_code}." >&2
       exit 1
       ;;
   esac
@@ -212,6 +281,10 @@ start_backend_disabled
 start_frontend
 SPARKBOT_BACKEND_URL="${backend_url}" SPARKBOT_FRONTEND_URL="${frontend_url}" bash "${ROOT_DIR}/scripts/smoke-check-local.sh"
 check_runtime_data_dir
+
+stop_backend
+start_backend_openrouter_enabled
+check_openrouter_guarded_status
 
 stop_backend
 start_backend_enabled
