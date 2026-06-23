@@ -126,15 +126,22 @@ class Handler(BaseHTTPRequestHandler):
         if errors:
             self._send_json(422, {"detail": "contract validation failed", "fields": errors})
             return
+        adapter_status = "succeeded"
+        prompt = payload.get("prompt")
+        status_prefix = "__sparkbot_contract_status:"
+        if isinstance(prompt, str) and prompt.startswith(status_prefix) and prompt.endswith("__"):
+            requested_status = prompt[len(status_prefix):-2]
+            if requested_status in {"denied", "blocked", "timeout", "failed"}:
+                adapter_status = requested_status
         self._send_json(200, {
             "contract_version": 1,
             "request_id": request_id,
             "provider_id": provider_id,
-            "status": "succeeded",
+            "status": adapter_status,
             "model": model,
-            "response_text": "OK from contract adapter.",
+            "response_text": "OK from contract adapter." if adapter_status == "succeeded" else "",
             "usage": None,
-            "audit_id": f"contract-audit-{provider_id}",
+            "audit_id": f"contract-audit-{provider_id}-{adapter_status}",
             "redactions_applied": True,
             "runtime": {
                 "adapter": "sparkbot-contract-test-adapter",
@@ -164,6 +171,67 @@ start_contract_adapter() {
     "${ROOT_DIR}/.venv-local/bin/python" "${WORK_DIR}/contract_adapter.py" >"${ADAPTER_LOG}" 2>&1 &
   ADAPTER_PID="$!"
   wait_for_url "contract adapter" "http://127.0.0.1:${SPARKBOT_CONTRACT_SMOKE_ADAPTER_PORT}/health" "${ADAPTER_LOG}"
+}
+
+json_request_body() {
+  local prompt="$1"
+  local model="$2"
+  PROMPT="${prompt}" MODEL="${model}" python3 - <<'PYJSON'
+import json
+import os
+print(json.dumps({"prompt": os.environ["PROMPT"], "model": os.environ["MODEL"]}, separators=(",", ":")))
+PYJSON
+}
+
+check_fail_closed_adapter_statuses() {
+  local provider_id="openai-codex-subscription"
+  local model="${SPARKBOT_CONTRACT_SMOKE_CODEX_MODEL}"
+  local adapter_status
+  local response_json
+  local request_body
+  local http_code
+
+  for adapter_status in denied blocked timeout failed; do
+    response_json="${WORK_DIR}/fail-closed-${adapter_status}.json"
+    request_body="$(json_request_body "__sparkbot_contract_status:${adapter_status}__" "${model}")"
+    echo "Checking fail-closed adapter status ${adapter_status} through ${provider_id}"
+    http_code="$(curl -sS -o "${response_json}" -w "%{http_code}" -X POST "${backend_url}/provider-config/${provider_id}/prompt" -H "Accept: application/json" -H "Content-Type: application/json" -d "${request_body}")"
+    if [[ "${http_code}" != "503" ]]; then
+      echo "Expected ${provider_id} ${adapter_status} smoke to return HTTP 503; got ${http_code}." >&2
+      RESPONSE_JSON_PATH="${response_json}" python3 - <<'PYJSON' >&2
+import json
+import os
+from pathlib import Path
+try:
+    print(json.dumps(json.loads(Path(os.environ["RESPONSE_JSON_PATH"]).read_text()), sort_keys=True))
+except Exception:
+    print("Response body was not JSON.")
+PYJSON
+      exit 1
+    fi
+    ADAPTER_STATUS="${adapter_status}" RESPONSE_JSON_PATH="${response_json}" python3 - <<'PYJSON'
+import json
+import os
+import sys
+from pathlib import Path
+status = os.environ["ADAPTER_STATUS"]
+payload = json.loads(Path(os.environ["RESPONSE_JSON_PATH"]).read_text())
+expected_detail = f"LIMA Guardian provider adapter returned status {status}."
+errors = []
+if payload.get("detail") != expected_detail:
+    errors.append(f"expected safe detail {expected_detail!r}, got {payload.get('detail')!r}")
+serialized = json.dumps(payload, sort_keys=True).lower()
+for forbidden in ("api_key", "apikey", "authorization", "bearer ", "password", "secret", "contract-audit"):
+    if forbidden in serialized:
+        errors.append(f"response includes forbidden marker {forbidden!r}")
+if errors:
+    print(f"Fail-closed {status} response contract failed:", file=sys.stderr)
+    for error in errors:
+        print(f"- {error}", file=sys.stderr)
+    raise SystemExit(1)
+print(f"PASS: adapter status {status} failed closed with a safe Sparkbot response")
+PYJSON
+  done
 }
 
 start_backend() {
@@ -197,6 +265,7 @@ SPARKBOT_BACKEND_URL="${backend_url}" \
 SPARKBOT_LIMA_SMOKE_CODEX_MODEL="${SPARKBOT_CONTRACT_SMOKE_CODEX_MODEL}" \
 SPARKBOT_LIMA_SMOKE_CLAUDE_MODEL="${SPARKBOT_CONTRACT_SMOKE_CLAUDE_MODEL}" \
 bash "${ROOT_DIR}/scripts/smoke-check-lima-provider-adapter.sh"
+check_fail_closed_adapter_statuses
 
 echo "PASS: Sparkbot LIMA provider adapter contract smoke completed"
 echo "This contract smoke used a local mock adapter and fake sign-in markers; it did not run Codex or Claude CLIs."

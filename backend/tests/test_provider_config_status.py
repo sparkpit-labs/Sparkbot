@@ -2,6 +2,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from fastapi.testclient import TestClient
+import pytest
 
 from app.api.capabilities import ALLOWED_CAPABILITY_STATUSES
 from app.main import app
@@ -399,17 +400,18 @@ def test_mocked_subscription_provider_prompt_success_uses_lima_adapter_contract(
     assert not {"shell", "command"} & set(_walk_keys(adapter_request))
 
 
-def test_subscription_provider_blocked_adapter_response_returns_safe_error(monkeypatch) -> None:
+@pytest.mark.parametrize("adapter_status", ["denied", "blocked", "timeout", "failed"])
+def test_subscription_provider_non_success_adapter_status_returns_safe_error(monkeypatch, adapter_status: str) -> None:
     def fake_post(url: str, payload: dict[str, Any]) -> dict[str, Any]:
         return {
             "contract_version": 1,
             "request_id": payload["request_id"],
             "provider_id": payload["provider_id"],
-            "status": "blocked",
+            "status": adapter_status,
             "model": payload["model"],
             "response_text": "",
             "usage": None,
-            "audit_id": "audit-blocked",
+            "audit_id": f"audit-{adapter_status}",
         }
 
     monkeypatch.setenv("SPARKBOT_PROVIDER_CALLS_ENABLED", "true")
@@ -425,8 +427,8 @@ def test_subscription_provider_blocked_adapter_response_returns_safe_error(monke
     )
 
     assert response.status_code == 503
-    assert response.json()["detail"] == "LIMA Guardian provider adapter returned status blocked."
-    assert "audit-blocked" not in str(response.json())
+    assert response.json()["detail"] == f"LIMA Guardian provider adapter returned status {adapter_status}."
+    assert f"audit-{adapter_status}" not in str(response.json())
 
 
 def test_provider_prompt_requires_configured_key(monkeypatch) -> None:
