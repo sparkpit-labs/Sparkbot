@@ -44,10 +44,10 @@ Required Guardian controls:
 
 The adapter contract covers these Sparkbot provider IDs:
 
-| Provider ID | Runtime | Readiness source |
-| --- | --- | --- |
-| `openai-codex-subscription` | Codex CLI subscription runtime through LIMA Guardian | `CODEX_HOME`, `SPARKBOT_CODEX_AUTH_FILE`, `SPARKBOT_CODEX_CLI` |
-| `claude-subscription` | Claude Code subscription runtime through LIMA Guardian | `CLAUDE_HOME`, `SPARKBOT_CLAUDE_AUTH_FILE`, `SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED`, `SPARKBOT_CLAUDE_CLI` |
+| Provider ID | Prototype alias | Runtime | Readiness source |
+| --- | --- | --- | --- |
+| `openai-codex-subscription` | `openai_codex` | Codex CLI subscription runtime through LIMA Guardian | `CODEX_HOME`, `SPARKBOT_CODEX_AUTH_FILE`, `SPARKBOT_CODEX_CLI` |
+| `claude-subscription` | `claude_sub` | Claude Code subscription runtime through LIMA Guardian | `CLAUDE_HOME`, `SPARKBOT_CLAUDE_AUTH_FILE`, `SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED`, `SPARKBOT_CLAUDE_CLI` |
 
 OpenRouter remains a separate backend API-key prompt path and is not a subscription CLI adapter.
 
@@ -155,7 +155,7 @@ Then run the guarded adapter smoke verifier:
 bash scripts/smoke-check-lima-provider-adapter.sh
 ```
 
-The verifier checks both `openai-codex-subscription` and `claude-subscription` by default. It validates provider readiness, adapter configuration, HTTP success, matching provider/model metadata, non-empty response text, non-empty `audit_id`, and absence of common secret markers in the Sparkbot response. It prints the `audit_id` but does not print the model response text.
+The verifier checks both `openai-codex-subscription` and `claude-subscription` by default. It also accepts prototype aliases `openai_codex` and `claude_sub`, then normalizes them to the canonical adapter contract IDs before preflight and response validation. It validates provider readiness, adapter configuration, HTTP success, matching provider/model metadata, non-empty response text, non-empty `audit_id`, and absence of common secret markers in the Sparkbot response. It prints the `audit_id` but does not print the model response text.
 
 To check one provider or override models:
 
@@ -173,7 +173,7 @@ curl -i -X POST http://127.0.0.1:8000/provider-config/openai-codex-subscription/
   -d '{"prompt":"Say OK.","model":"openai-codex/gpt-5.3-codex"}'
 ```
 
-Use `/provider-config/claude-subscription/prompt` with a `claude-sub/...` model for Claude subscription testing.
+Use `/provider-config/claude-subscription/prompt` with a `claude-sub/...` model for Claude subscription testing. Prototype-compatible route aliases `/provider-config/openai_codex/prompt` and `/provider-config/claude_sub/prompt` are accepted by Sparkbot, but adapter requests still carry the canonical provider IDs above.
 
 ## LIMA Install-Test Acceptance Checklist
 

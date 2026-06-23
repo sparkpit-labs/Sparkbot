@@ -22,6 +22,10 @@ GROQ_CHAT_COMPLETIONS_URL = "https://api.groq.com/openai/v1/chat/completions"
 MINIMAX_CHAT_COMPLETIONS_URL = "https://api.minimax.io/v1/chat/completions"
 XAI_CHAT_COMPLETIONS_URL = "https://api.x.ai/v1/chat/completions"
 SUBSCRIPTION_PROVIDER_IDS = {"openai-codex-subscription", "claude-subscription"}
+SUBSCRIPTION_PROVIDER_ALIASES = {
+    "openai_codex": "openai-codex-subscription",
+    "claude_sub": "claude-subscription",
+}
 LIMA_ADAPTER_RESPONSE_STATUSES = {"succeeded", "denied", "blocked", "timeout", "failed"}
 DEFAULT_OPENROUTER_FREE_MODEL = "meta-llama/llama-3.2-3b-instruct:free"
 OPENROUTER_TIMEOUT_SECONDS = 30
@@ -67,6 +71,7 @@ class ProviderStatus(TypedDict):
     prompt_endpoint: NotRequired[str]
     prompt_adapter: NotRequired[str]
     adapter_configured: NotRequired[bool]
+    provider_aliases: NotRequired[list[str]]
 
 
 class ProviderConfigStatusResponse(TypedDict):
@@ -340,7 +345,7 @@ def _subscription_status(
         status = "disabled-by-default"
     else:
         status = "planned"
-    return {
+    provider: ProviderStatus = {
         "id": provider_id,
         "label": label,
         "status": status,
@@ -366,6 +371,10 @@ def _subscription_status(
         "prompt_adapter": "lima-guardian-provider-adapter",
         "adapter_configured": adapter_configured,
     }
+    aliases = _subscription_provider_aliases(provider_id)
+    if aliases:
+        provider["provider_aliases"] = aliases
+    return provider
 
 
 def _subscription_operator_action(
@@ -385,8 +394,17 @@ def _subscription_operator_action(
     return "Ready for explicit LIMA Guardian adapter dispatch; direct CLI dispatch remains disabled in the public shell."
 
 
-def _api_provider_by_id(provider_id: str) -> dict[str, Any] | None:
+def canonical_provider_id(provider_id: str) -> str:
     normalized = provider_id.strip().lower()
+    return SUBSCRIPTION_PROVIDER_ALIASES.get(normalized, normalized)
+
+
+def _subscription_provider_aliases(provider_id: str) -> list[str]:
+    return sorted(alias for alias, canonical in SUBSCRIPTION_PROVIDER_ALIASES.items() if canonical == provider_id)
+
+
+def _api_provider_by_id(provider_id: str) -> dict[str, Any] | None:
+    normalized = canonical_provider_id(provider_id)
     for item in API_KEY_PROVIDERS:
         if item["id"] == normalized:
             return item
@@ -394,7 +412,7 @@ def _api_provider_by_id(provider_id: str) -> dict[str, Any] | None:
 
 
 def provider_prompt_supported(provider_id: str) -> bool:
-    normalized = provider_id.strip().lower()
+    normalized = canonical_provider_id(provider_id)
     return _api_provider_by_id(normalized) is not None or normalized in SUBSCRIPTION_PROVIDER_IDS
 
 
@@ -492,7 +510,7 @@ def _post_lima_guardian_adapter(url: str, payload: dict[str, Any]) -> dict[str, 
 
 
 def run_subscription_provider_prompt(provider_id: str, prompt: str, model: str | None = None) -> dict[str, Any]:
-    provider_id = provider_id.strip().lower()
+    provider_id = canonical_provider_id(provider_id)
     prompt = prompt.strip()
     if provider_id not in SUBSCRIPTION_PROVIDER_IDS:
         raise ProviderNotFoundError(f"Provider {provider_id} is not a subscription prompt provider.")
@@ -648,7 +666,7 @@ def _openai_compatible_url(provider: dict[str, Any]) -> str:
 
 
 def run_provider_prompt(provider_id: str, prompt: str, model: str | None = None) -> dict[str, Any]:
-    provider_id = provider_id.strip().lower()
+    provider_id = canonical_provider_id(provider_id)
     if provider_id in SUBSCRIPTION_PROVIDER_IDS:
         return run_subscription_provider_prompt(provider_id, prompt, model)
     provider = _api_provider_by_id(provider_id)

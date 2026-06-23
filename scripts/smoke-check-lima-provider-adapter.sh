@@ -15,13 +15,27 @@ case "${SPARKBOT_BACKEND_URL}" in
     ;;
 esac
 
-case " ${SPARKBOT_LIMA_SMOKE_PROVIDERS} " in
-  *" openai-codex-subscription "*|*" claude-subscription "*) ;;
-  *)
-    echo "SPARKBOT_LIMA_SMOKE_PROVIDERS must include openai-codex-subscription and/or claude-subscription." >&2
+canonical_provider_id() {
+  case "$1" in
+    openai-codex-subscription|openai_codex) printf "%s" "openai-codex-subscription" ;;
+    claude-subscription|claude_sub) printf "%s" "claude-subscription" ;;
+    *) return 1 ;;
+  esac
+}
+
+canonical_smoke_providers=""
+for requested_provider_id in ${SPARKBOT_LIMA_SMOKE_PROVIDERS}; do
+  if ! canonical_provider="$(canonical_provider_id "${requested_provider_id}")"; then
+    echo "Unsupported subscription provider ${requested_provider_id}. Use openai-codex-subscription, openai_codex, claude-subscription, or claude_sub." >&2
     exit 1
-    ;;
-esac
+  fi
+  canonical_smoke_providers="${canonical_smoke_providers} ${canonical_provider}"
+done
+SPARKBOT_LIMA_CANONICAL_SMOKE_PROVIDERS="${canonical_smoke_providers# }"
+if [[ -z "${SPARKBOT_LIMA_CANONICAL_SMOKE_PROVIDERS}" ]]; then
+  echo "SPARKBOT_LIMA_SMOKE_PROVIDERS must include at least one supported subscription provider." >&2
+  exit 1
+fi
 
 backend_base="${SPARKBOT_BACKEND_URL%/}"
 status_url="${backend_base}/provider-config/status"
@@ -56,7 +70,7 @@ PYJSON
 echo "Checking Sparkbot provider status at ${status_url}"
 curl -fsS "${status_url}" >"${status_json}"
 
-SPARKBOT_PROVIDER_STATUS_JSON="$(cat "${status_json}")" SPARKBOT_LIMA_SMOKE_PROVIDERS="${SPARKBOT_LIMA_SMOKE_PROVIDERS}" python3 - <<'PYJSON'
+SPARKBOT_PROVIDER_STATUS_JSON="$(cat "${status_json}")" SPARKBOT_LIMA_SMOKE_PROVIDERS="${SPARKBOT_LIMA_CANONICAL_SMOKE_PROVIDERS}" python3 - <<'PYJSON'
 import json
 import os
 
@@ -91,14 +105,15 @@ if errors:
 print("PASS: subscription provider status is ready for guarded LIMA adapter dispatch.")
 PYJSON
 
-for provider_id in ${SPARKBOT_LIMA_SMOKE_PROVIDERS}; do
+for requested_provider_id in ${SPARKBOT_LIMA_SMOKE_PROVIDERS}; do
+  provider_id="$(canonical_provider_id "${requested_provider_id}")"
   model="$(provider_model "${provider_id}")"
-  prompt_url="${backend_base}/provider-config/${provider_id}/prompt"
+  prompt_url="${backend_base}/provider-config/${requested_provider_id}/prompt"
   request_body="$(json_payload "${model}")"
-  echo "Checking guarded subscription prompt for ${provider_id} at ${prompt_url}"
+  echo "Checking guarded subscription prompt for ${requested_provider_id} at ${prompt_url}"
   http_code="$(curl -sS -o "${response_json}" -w "%{http_code}" -X POST "${prompt_url}" -H "Accept: application/json" -H "Content-Type: application/json" -d "${request_body}")"
   if [[ "${http_code}" != "200" ]]; then
-    echo "${provider_id} prompt smoke failed with HTTP ${http_code}." >&2
+    echo "${requested_provider_id} prompt smoke failed with HTTP ${http_code}." >&2
     RESPONSE_JSON_PATH="${response_json}" python3 - <<'PYJSON'
 import json
 import os

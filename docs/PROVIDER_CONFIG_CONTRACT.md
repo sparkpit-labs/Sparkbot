@@ -14,7 +14,7 @@ POST /provider-config/{provider_id}/prompt
 
 Provider prompt endpoints are disabled unless `SPARKBOT_PROVIDER_CALLS_ENABLED=true` and the selected provider env key is configured in the backend environment. OpenRouter model IDs ending in `:free` are enforced unless the operator explicitly sets `SPARKBOT_ALLOW_PAID_OPENROUTER_MODELS=true`. The frontend exposes an explicit provider smoke form for these endpoints, but it may send only provider ID, prompt text, and model ID; credentials remain backend environment values.
 
-Codex and Claude subscription providers expose CLI availability, sign-in detection, runtime-gate status, LIMA adapter configuration state, and next operator action. Their prompt endpoints are supported only as fail-closed delegation to a configured localhost LIMA Guardian provider adapter. See `LIMA_PROVIDER_GUARDIAN_ADAPTER.md` for the public dispatch boundary.
+Codex and Claude subscription providers expose CLI availability, sign-in detection, runtime-gate status, LIMA adapter configuration state, prototype-compatible aliases, and next operator action. Their prompt endpoints are supported only as fail-closed delegation to a configured localhost LIMA Guardian provider adapter. Public canonical IDs are `openai-codex-subscription` and `claude-subscription`; prototype aliases `openai_codex` and `claude_sub` may be used at the Sparkbot route boundary but are normalized before adapter dispatch. See `LIMA_PROVIDER_GUARDIAN_ADAPTER.md` for the public dispatch boundary.
 
 ## Provider Setup Rules
 

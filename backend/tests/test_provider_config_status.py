@@ -66,11 +66,13 @@ def test_provider_config_status_exposes_env_and_cli_onboarding(monkeypatch) -> N
     assert isinstance(codex["cli_available"], bool)
     assert isinstance(codex["sign_in_detected"], bool)
     assert codex["operator_action"]
+    assert codex["provider_aliases"] == ["openai_codex"]
     assert claude["auth_mode"] == "claude-cli-sign-in"
     assert claude["runtime_gate"] == "lima-guardian-required"
     assert isinstance(claude["cli_available"], bool)
     assert isinstance(claude["sign_in_detected"], bool)
     assert claude["operator_action"]
+    assert claude["provider_aliases"] == ["claude_sub"]
 
 
 def test_subscription_provider_readiness_tracks_cli_sign_in_and_adapter_gate(monkeypatch) -> None:
@@ -308,6 +310,45 @@ def test_subscription_prompt_rejects_non_local_adapter_url(monkeypatch) -> None:
 
     assert response.status_code == 400
     assert "http localhost" in response.json()["detail"]
+
+
+def test_subscription_prompt_accepts_prototype_provider_aliases(monkeypatch) -> None:
+    captured: list[dict[str, Any]] = []
+
+    def fake_post(url: str, payload: dict[str, Any]) -> dict[str, Any]:
+        captured.append(payload)
+        return {
+            "contract_version": 1,
+            "request_id": payload["request_id"],
+            "provider_id": payload["provider_id"],
+            "status": "succeeded",
+            "model": payload["model"],
+            "response_text": "OK from LIMA",
+            "usage": None,
+            "audit_id": f"audit-{payload['provider_id']}",
+        }
+
+    monkeypatch.setenv("SPARKBOT_PROVIDER_CALLS_ENABLED", "true")
+    monkeypatch.setenv("SPARKBOT_LIMA_PROVIDER_ADAPTER_URL", "http://127.0.0.1:18099/provider-adapter/dispatch")
+    monkeypatch.setattr(provider_runtime, "_codex_cli_available", lambda: True)
+    monkeypatch.setattr(provider_runtime, "_codex_auth_file_exists", lambda: True)
+    monkeypatch.setattr(provider_runtime, "_claude_cli_available", lambda: True)
+    monkeypatch.setattr(provider_runtime, "_claude_subscription_hint_present", lambda: True)
+    monkeypatch.setattr(provider_runtime, "_post_lima_guardian_adapter", fake_post)
+    client = TestClient(app)
+
+    cases = [
+        ("openai_codex", "openai-codex-subscription", "openai-codex/gpt-5.3-codex"),
+        ("claude_sub", "claude-subscription", "claude-sub/sonnet"),
+    ]
+    for alias, canonical, model in cases:
+        response = client.post(f"/provider-config/{alias}/prompt", json={"prompt": "Say OK.", "model": model})
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["provider"] == canonical
+        assert payload["model"] == model
+        assert payload["request_model"] == model
+        assert captured[-1]["provider_id"] == canonical
 
 
 def test_mocked_subscription_provider_prompt_success_uses_lima_adapter_contract(monkeypatch) -> None:
