@@ -17,6 +17,8 @@ SPARKBOT_SMOKE_USE_HOST_SUBSCRIPTIONS=true SPARKBOT_SMOKE_REQUIRE_SUBSCRIPTIONS=
 
 That smoke confirms readiness only. It does not dispatch prompts.
 
+`GET /guardian/status` also exposes a read-only `provider_adapter_contract` object with contract version, covered provider IDs, required request fields, allowed response statuses, audit posture, and this document path. That object is machine-readable install-test metadata only; it is not a dispatch endpoint.
+
 ## Boundary Rule
 
 Sparkbot may call a LIMA Guardian adapter only after Guardian owns the execution boundary. Sparkbot must not expose a direct subprocess, terminal, shell, or local CLI dispatch path for subscription providers.

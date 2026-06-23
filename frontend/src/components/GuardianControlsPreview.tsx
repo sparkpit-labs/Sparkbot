@@ -119,6 +119,43 @@ export default function GuardianControlsPreview() {
         <p>{payload.provider_execution_boundary.notes}</p>
       </article>
 
+
+      <article className="guardian-boundary-card" aria-label="Provider adapter contract">
+        <div className="guardian-card-top">
+          <h3>{payload.provider_adapter_contract.label}</h3>
+          <span className={`status-badge status-${payload.provider_adapter_contract.status}`}>
+            {formatShellStatus(payload.provider_adapter_contract.status)}
+          </span>
+        </div>
+        <dl className="guardian-boundary-grid">
+          <div>
+            <dt>Contract version</dt>
+            <dd>{payload.provider_adapter_contract.contract_version}</dd>
+          </div>
+          <div>
+            <dt>Dispatch</dt>
+            <dd>{formatImplementationStatus(payload.provider_adapter_contract.dispatch)}</dd>
+          </div>
+          <div>
+            <dt>Provider IDs</dt>
+            <dd>{payload.provider_adapter_contract.provider_ids.join(", ")}</dd>
+          </div>
+          <div>
+            <dt>Required request fields</dt>
+            <dd>{payload.provider_adapter_contract.required_request_fields.join(", ")}</dd>
+          </div>
+          <div>
+            <dt>Response statuses</dt>
+            <dd>{payload.provider_adapter_contract.allowed_response_statuses.join(", ")}</dd>
+          </div>
+          <div>
+            <dt>Audit</dt>
+            <dd>{formatImplementationStatus(payload.provider_adapter_contract.audit)}</dd>
+          </div>
+        </dl>
+        <p>{payload.provider_adapter_contract.notes}</p>
+      </article>
+
       <div className="guardian-sensitive-layout" aria-label="Read-only sensitive action category status">
         {payload.sensitive_action_categories.map((category) => (
           <article className="guardian-card" key={category.id}>

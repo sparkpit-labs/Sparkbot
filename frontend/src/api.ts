@@ -176,6 +176,20 @@ export type ProviderExecutionBoundary = {
   notes: string;
 };
 
+export type ProviderAdapterContract = {
+  id: string;
+  label: string;
+  status: PublicCapabilityStatus;
+  contract_version: number;
+  dispatch: string;
+  provider_ids: string[];
+  required_request_fields: string[];
+  allowed_response_statuses: string[];
+  audit: string;
+  documentation: string;
+  notes: string;
+};
+
 export type GuardianStatusPayload = {
   service: string;
   mode: string;
@@ -186,6 +200,7 @@ export type GuardianStatusPayload = {
   audit_trail: GuardianAuditTrailStatus;
   default_posture: GuardianDefaultPosture;
   provider_execution_boundary: ProviderExecutionBoundary;
+  provider_adapter_contract: ProviderAdapterContract;
   sensitive_action_categories: SensitiveActionCategory[];
 };
 
@@ -699,6 +714,7 @@ export async function fetchGuardianStatus(signal?: AbortSignal): Promise<Guardia
     payload.audit_trail !== "planned" ||
     payload.default_posture !== "deny-sensitive-actions" ||
     !payload.provider_execution_boundary ||
+    !payload.provider_adapter_contract ||
     !Array.isArray(payload.sensitive_action_categories) ||
     !publicCapabilityStatuses.has(payload.status)
   ) {
@@ -717,6 +733,23 @@ export async function fetchGuardianStatus(signal?: AbortSignal): Promise<Guardia
     !providerExecutionBoundary.notes
   ) {
     throw new Error("Guardian status response includes an invalid provider execution boundary");
+  }
+
+  const providerAdapterContract = payload.provider_adapter_contract;
+  if (
+    !providerAdapterContract.id ||
+    !providerAdapterContract.label ||
+    !publicCapabilityStatuses.has(providerAdapterContract.status ?? "") ||
+    providerAdapterContract.contract_version !== 1 ||
+    !providerAdapterContract.dispatch ||
+    !Array.isArray(providerAdapterContract.provider_ids) ||
+    !Array.isArray(providerAdapterContract.required_request_fields) ||
+    !Array.isArray(providerAdapterContract.allowed_response_statuses) ||
+    !providerAdapterContract.audit ||
+    !providerAdapterContract.documentation ||
+    !providerAdapterContract.notes
+  ) {
+    throw new Error("Guardian status response includes an invalid provider adapter contract");
   }
 
   const sensitiveActionCategories = payload.sensitive_action_categories.map((category) => {
@@ -756,6 +789,19 @@ export async function fetchGuardianStatus(signal?: AbortSignal): Promise<Guardia
       required_controls: providerExecutionBoundary.required_controls,
       blocked_until: providerExecutionBoundary.blocked_until,
       notes: providerExecutionBoundary.notes
+    },
+    provider_adapter_contract: {
+      id: providerAdapterContract.id,
+      label: providerAdapterContract.label,
+      status: providerAdapterContract.status,
+      contract_version: providerAdapterContract.contract_version,
+      dispatch: providerAdapterContract.dispatch,
+      provider_ids: providerAdapterContract.provider_ids,
+      required_request_fields: providerAdapterContract.required_request_fields,
+      allowed_response_statuses: providerAdapterContract.allowed_response_statuses,
+      audit: providerAdapterContract.audit,
+      documentation: providerAdapterContract.documentation,
+      notes: providerAdapterContract.notes
     },
     sensitive_action_categories: sensitiveActionCategories
   };

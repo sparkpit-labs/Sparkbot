@@ -513,6 +513,19 @@ const guardianStatusPayload = {
     notes:
       "Sparkbot may report subscription sign-in readiness, but direct Codex or Claude CLI execution remains disabled until LIMA provides guarded dispatch with audit and fail-closed behavior."
   },
+  provider_adapter_contract: {
+    id: "lima-guardian-provider-adapter-contract",
+    label: "LIMA Guardian provider adapter contract",
+    status: "guarded-future",
+    contract_version: 1,
+    dispatch: "not-implemented",
+    provider_ids: ["openai-codex-subscription", "claude-subscription"],
+    required_request_fields: ["contract_version", "request_id", "provider_id", "model", "prompt", "operator_approval", "limits", "audit"],
+    allowed_response_statuses: ["succeeded", "denied", "blocked", "timeout", "failed"],
+    audit: "required-before-final",
+    documentation: "docs/LIMA_PROVIDER_GUARDIAN_ADAPTER.md",
+    notes: "Read-only contract metadata for future guarded subscription dispatch; no adapter runtime or CLI dispatch is implemented in Sparkbot."
+  },
   sensitive_action_categories: [
     {
       id: "external-sends",
@@ -1220,7 +1233,12 @@ describe("App", () => {
     expect(screen.getByText("fail closed")).toBeDefined();
     expect(screen.getByText(/capability-check, operator-approval, audit-log/i)).toBeDefined();
     expect(screen.getByText(/Codex and Claude subscription CLI dispatch requires/i)).toBeDefined();
-    expect(screen.getAllByText("not implemented").length).toBeGreaterThanOrEqual(8);
+    expect(screen.getByRole("heading", { name: "LIMA Guardian provider adapter contract" })).toBeDefined();
+    expect(screen.getByText("openai-codex-subscription, claude-subscription")).toBeDefined();
+    expect(screen.getByText(/contract_version, request_id, provider_id, model, prompt, operator_approval/i)).toBeDefined();
+    expect(screen.getByText("succeeded, denied, blocked, timeout, failed")).toBeDefined();
+    expect(screen.getByText("required before final")).toBeDefined();
+    expect(screen.getAllByText("not implemented").length).toBeGreaterThanOrEqual(9);
     expect(screen.getByRole("heading", { name: "External sends" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Connector calls" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Credential use" })).toBeDefined();

@@ -280,6 +280,38 @@ case "${guardian_status_response}" in
     ;;
 esac
 
+case "${guardian_status_response}" in
+  *\"provider_adapter_contract\"*) ;;
+  *)
+    echo "Guardian status response did not include the provider adapter contract." >&2
+    exit 1
+    ;;
+esac
+
+case "${guardian_status_response}" in
+  *\"contract_version\":1*|*\"contract_version\":\ 1*) ;;
+  *)
+    echo "Guardian provider adapter contract did not report contract_version=1." >&2
+    exit 1
+    ;;
+esac
+
+case "${guardian_status_response}" in
+  *\"provider_ids\"*\"openai-codex-subscription\"*\"claude-subscription\"*) ;;
+  *)
+    echo "Guardian provider adapter contract did not report subscription provider IDs." >&2
+    exit 1
+    ;;
+esac
+
+case "${guardian_status_response}" in
+  *\"allowed_response_statuses\"*\"succeeded\"*\"denied\"*\"blocked\"*\"timeout\"*\"failed\"*) ;;
+  *)
+    echo "Guardian provider adapter contract did not report expected response statuses." >&2
+    exit 1
+    ;;
+esac
+
 echo "Checking local chat sessions at ${local_chat_sessions_url}"
 local_chat_sessions_response="$(curl -fsS "${local_chat_sessions_url}")"
 printf "%s\n" "${local_chat_sessions_response}"

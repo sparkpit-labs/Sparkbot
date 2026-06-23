@@ -29,6 +29,20 @@ class ProviderExecutionBoundary(TypedDict):
     notes: str
 
 
+class ProviderAdapterContract(TypedDict):
+    id: str
+    label: str
+    status: CapabilityStatus
+    contract_version: int
+    dispatch: str
+    provider_ids: list[str]
+    required_request_fields: list[str]
+    allowed_response_statuses: list[str]
+    audit: str
+    documentation: str
+    notes: str
+
+
 class GuardianStatusResponse(TypedDict):
     service: str
     mode: str
@@ -39,6 +53,7 @@ class GuardianStatusResponse(TypedDict):
     audit_trail: AuditTrailStatus
     default_posture: DefaultPosture
     provider_execution_boundary: ProviderExecutionBoundary
+    provider_adapter_contract: ProviderAdapterContract
     sensitive_action_categories: list[SensitiveActionCategory]
 
 
@@ -58,6 +73,30 @@ PROVIDER_EXECUTION_BOUNDARY: ProviderExecutionBoundary = {
     ],
     "blocked_until": "Codex and Claude subscription CLI dispatch requires a LIMA Guardian execution adapter.",
     "notes": "Sparkbot may report subscription sign-in readiness, but direct Codex or Claude CLI execution remains disabled until LIMA provides guarded dispatch with audit and fail-closed behavior.",
+}
+
+
+PROVIDER_ADAPTER_CONTRACT: ProviderAdapterContract = {
+    "id": "lima-guardian-provider-adapter-contract",
+    "label": "LIMA Guardian provider adapter contract",
+    "status": "guarded-future",
+    "contract_version": 1,
+    "dispatch": "not-implemented",
+    "provider_ids": ["openai-codex-subscription", "claude-subscription"],
+    "required_request_fields": [
+        "contract_version",
+        "request_id",
+        "provider_id",
+        "model",
+        "prompt",
+        "operator_approval",
+        "limits",
+        "audit",
+    ],
+    "allowed_response_statuses": ["succeeded", "denied", "blocked", "timeout", "failed"],
+    "audit": "required-before-final",
+    "documentation": "docs/LIMA_PROVIDER_GUARDIAN_ADAPTER.md",
+    "notes": "Read-only contract metadata for future guarded subscription dispatch; no adapter runtime or CLI dispatch is implemented in Sparkbot.",
 }
 
 
@@ -113,9 +152,11 @@ def guardian_status() -> GuardianStatusResponse:
         "audit_trail": "planned",
         "default_posture": "deny-sensitive-actions",
         "provider_execution_boundary": PROVIDER_EXECUTION_BOUNDARY,
+        "provider_adapter_contract": PROVIDER_ADAPTER_CONTRACT,
         "sensitive_action_categories": SENSITIVE_ACTION_CATEGORIES,
     }
 
 
 assert {category["status"] for category in SENSITIVE_ACTION_CATEGORIES} <= ALLOWED_CAPABILITY_STATUSES
 assert PROVIDER_EXECUTION_BOUNDARY["status"] in ALLOWED_CAPABILITY_STATUSES
+assert PROVIDER_ADAPTER_CONTRACT["status"] in ALLOWED_CAPABILITY_STATUSES

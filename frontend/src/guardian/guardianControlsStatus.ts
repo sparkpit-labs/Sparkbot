@@ -103,6 +103,19 @@ export const fallbackGuardianStatus: GuardianStatusPayload = {
     notes:
       "Sparkbot may report subscription sign-in readiness, but direct Codex or Claude CLI execution remains disabled until LIMA provides guarded dispatch with audit and fail-closed behavior."
   },
+  provider_adapter_contract: {
+    id: "lima-guardian-provider-adapter-contract",
+    label: "LIMA Guardian provider adapter contract",
+    status: "guarded-future",
+    contract_version: 1,
+    dispatch: "not-implemented",
+    provider_ids: ["openai-codex-subscription", "claude-subscription"],
+    required_request_fields: ["contract_version", "request_id", "provider_id", "model", "prompt", "operator_approval", "limits", "audit"],
+    allowed_response_statuses: ["succeeded", "denied", "blocked", "timeout", "failed"],
+    audit: "required-before-final",
+    documentation: "docs/LIMA_PROVIDER_GUARDIAN_ADAPTER.md",
+    notes: "Read-only contract metadata for future guarded subscription dispatch; no adapter runtime or CLI dispatch is implemented in Sparkbot."
+  },
   sensitive_action_categories: guardianSensitiveActionCategories
 };
 
