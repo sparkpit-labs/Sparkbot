@@ -10,6 +10,7 @@ SPARKBOT_SMOKE_OLLAMA_MODEL="${SPARKBOT_SMOKE_OLLAMA_MODEL:-llama3.2}"
 SPARKBOT_SMOKE_OPENROUTER_MODEL="${SPARKBOT_SMOKE_OPENROUTER_MODEL:-mistralai/mistral-7b-instruct:free}"
 SPARKBOT_SMOKE_DATA_DIR="${SPARKBOT_SMOKE_DATA_DIR:-}"
 SPARKBOT_SMOKE_USE_HOST_SUBSCRIPTIONS="${SPARKBOT_SMOKE_USE_HOST_SUBSCRIPTIONS:-false}"
+SPARKBOT_SMOKE_REQUIRE_SUBSCRIPTIONS="${SPARKBOT_SMOKE_REQUIRE_SUBSCRIPTIONS:-false}"
 
 case "${SPARKBOT_SMOKE_USE_HOST_SUBSCRIPTIONS}" in
   true|false) ;;
@@ -18,6 +19,19 @@ case "${SPARKBOT_SMOKE_USE_HOST_SUBSCRIPTIONS}" in
     exit 1
     ;;
 esac
+
+case "${SPARKBOT_SMOKE_REQUIRE_SUBSCRIPTIONS}" in
+  true|false) ;;
+  *)
+    echo "SPARKBOT_SMOKE_REQUIRE_SUBSCRIPTIONS must be true or false." >&2
+    exit 1
+    ;;
+esac
+
+if [[ "${SPARKBOT_SMOKE_REQUIRE_SUBSCRIPTIONS}" == "true" && "${SPARKBOT_SMOKE_USE_HOST_SUBSCRIPTIONS}" != "true" ]]; then
+  echo "SPARKBOT_SMOKE_REQUIRE_SUBSCRIPTIONS=true requires SPARKBOT_SMOKE_USE_HOST_SUBSCRIPTIONS=true." >&2
+  exit 1
+fi
 
 case "${SPARKBOT_SMOKE_BACKEND_HOST}" in
   127.0.0.1|localhost) ;;
@@ -194,6 +208,46 @@ check_runtime_data_dir() {
   esac
 }
 
+check_subscription_readiness() {
+  local response
+  response="$(curl -fsS "${backend_url}/provider-config/status")"
+  SPARKBOT_PROVIDER_STATUS_JSON="${response}" python3 - <<'PY'
+import json
+import os
+import sys
+
+payload = json.loads(os.environ["SPARKBOT_PROVIDER_STATUS_JSON"])
+providers = {provider.get("id"): provider for provider in payload.get("providers", [])}
+required = {
+    "openai-codex-subscription": "OpenAI Codex Subscription",
+    "claude-subscription": "Claude Subscription",
+}
+errors = []
+for provider_id, label in required.items():
+    provider = providers.get(provider_id)
+    if not provider:
+        errors.append(f"{label} provider card is missing.")
+        continue
+    if provider.get("configured") is not True:
+        errors.append(f"{label} is not configured.")
+    if provider.get("cli_available") is not True:
+        errors.append(f"{label} CLI is not available.")
+    if provider.get("sign_in_detected") is not True:
+        errors.append(f"{label} sign-in state is not detected.")
+    if provider.get("runtime_gate") != "lima-guardian-required":
+        errors.append(f"{label} does not report the LIMA Guardian runtime gate.")
+    if provider.get("status") != "disabled-by-default":
+        errors.append(f"{label} should remain disabled-by-default until Guardian dispatch exists.")
+
+if errors:
+    print("Subscription readiness smoke failed:", file=sys.stderr)
+    for error in errors:
+        print(f"- {error}", file=sys.stderr)
+    raise SystemExit(1)
+print("PASS: Codex and Claude subscription sign-in readiness detected; CLI dispatch remains LIMA-gated.")
+PY
+}
+
 check_openrouter_guarded_status() {
   local response
   local paid_model_code
@@ -281,6 +335,9 @@ start_backend_disabled
 start_frontend
 SPARKBOT_BACKEND_URL="${backend_url}" SPARKBOT_FRONTEND_URL="${frontend_url}" bash "${ROOT_DIR}/scripts/smoke-check-local.sh"
 check_runtime_data_dir
+if [[ "${SPARKBOT_SMOKE_REQUIRE_SUBSCRIPTIONS}" == "true" ]]; then
+  check_subscription_readiness
+fi
 
 stop_backend
 start_backend_openrouter_enabled

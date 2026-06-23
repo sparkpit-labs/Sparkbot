@@ -30,7 +30,15 @@ The one-command wrapper isolates `CODEX_HOME` and `CLAUDE_HOME` by default so lo
 SPARKBOT_SMOKE_USE_HOST_SUBSCRIPTIONS=true bash scripts/run-local-smoke-test.sh
 ```
 
-This still does not dispatch Codex or Claude prompts. It only allows Provider Setup to report host CLI/sign-in readiness.
+This still does not dispatch Codex or Claude prompts. It only allows Provider Setup to report host CLI/sign-in readiness. To make this an assertion during LIMA/operator install testing, require both subscription cards to be ready:
+
+```bash
+SPARKBOT_SMOKE_USE_HOST_SUBSCRIPTIONS=true \
+SPARKBOT_SMOKE_REQUIRE_SUBSCRIPTIONS=true \
+bash scripts/run-local-smoke-test.sh
+```
+
+That mode fails unless Codex and Claude each report CLI availability, sign-in detection, `configured=true`, `status=disabled-by-default`, and `runtime_gate=lima-guardian-required`. It confirms readiness for the LIMA Guardian adapter without running either CLI.
 
 ## Start backend on an alternate port
 
