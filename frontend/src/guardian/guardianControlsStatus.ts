@@ -18,7 +18,7 @@ export const guardianControlItems: GuardianControlItem[] = [
   {
     name: "Provider access",
     status: "planned",
-    summary: "Planned control category for provider usage. OpenRouter prompt calls require explicit env enablement. Codex and Claude CLI dispatch require the LIMA Guardian boundary."
+    summary: "Planned control category for provider usage. API provider prompt calls require explicit env enablement. Codex and Claude CLI dispatch require the LIMA Guardian boundary."
   },
   {
     name: "Files and workspace",
@@ -67,7 +67,7 @@ export const guardianSensitiveActionCategories: GuardianSensitiveActionPreview[]
     id: "model-provider-calls",
     label: "Model provider calls",
     status: "guarded-future",
-    notes: "No model provider calls are implemented."
+    notes: "Automatic or Guardian-mediated model provider calls remain guarded future; explicit env-enabled provider prompt smokes are separate operator-initiated calls."
   },
   {
     id: "file-writes",

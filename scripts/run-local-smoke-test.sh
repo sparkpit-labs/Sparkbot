@@ -268,12 +268,12 @@ payload = json.loads(os.environ["SPARKBOT_PROVIDER_STATUS_JSON"])
 providers = {provider.get("id"): provider for provider in payload.get("providers", [])}
 expected = {
     "openrouter": ("OPENROUTER_API_KEY", "available"),
-    "openai": ("OPENAI_API_KEY", "disabled-by-default"),
-    "anthropic": ("ANTHROPIC_API_KEY", "disabled-by-default"),
-    "google": ("GOOGLE_API_KEY", "disabled-by-default"),
-    "groq": ("GROQ_API_KEY", "disabled-by-default"),
-    "minimax": ("MINIMAX_API_KEY", "disabled-by-default"),
-    "xai": ("XAI_API_KEY", "disabled-by-default"),
+    "openai": ("OPENAI_API_KEY", "available"),
+    "anthropic": ("ANTHROPIC_API_KEY", "available"),
+    "google": ("GOOGLE_API_KEY", "available"),
+    "groq": ("GROQ_API_KEY", "available"),
+    "minimax": ("MINIMAX_API_KEY", "available"),
+    "xai": ("XAI_API_KEY", "available"),
 }
 errors = []
 if payload.get("provider_calls") != "guarded-manual":
@@ -296,6 +296,10 @@ for provider_id, (credential_source, expected_status) in expected.items():
         errors.append(f"{provider_id} did not report credential source {credential_source}.")
     if provider.get("auth_mode") != "env-api-key":
         errors.append(f"{provider_id} did not report env-api-key auth mode.")
+    if provider.get("prompt_endpoint") != f"/provider-config/{provider_id}/prompt":
+        errors.append(f"{provider_id} did not report its prompt endpoint.")
+    if not provider.get("prompt_adapter"):
+        errors.append(f"{provider_id} did not report its prompt adapter.")
 openrouter = providers.get("openrouter", {})
 if openrouter.get("default_model") != os.environ["SPARKBOT_SMOKE_OPENROUTER_MODEL"]:
     errors.append("OpenRouter did not report the configured smoke free model.")
@@ -306,7 +310,7 @@ if errors:
     for error in errors:
         print(f"- {error}", file=sys.stderr)
     raise SystemExit(1)
-print("PASS: API-key provider onboarding cards configured; only OpenRouter is guarded-call available.")
+print("PASS: API-key provider onboarding cards configured; explicit guarded prompt endpoints are available when env-enabled.")
 PY
 
   echo "Checking OpenRouter non-free model is rejected before provider dispatch"

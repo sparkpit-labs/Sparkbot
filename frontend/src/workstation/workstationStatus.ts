@@ -129,7 +129,7 @@ export const workstationStatusItems: WorkstationStatusItem[] = [
     id: "model-calls",
     name: "Cloud model calls",
     status: "disabled-by-default",
-    summary: "Only explicit OpenRouter prompt calls are available when SPARKBOT_PROVIDER_CALLS_ENABLED=true and an env key is configured."
+    summary: "Explicit API provider prompt calls are available only when SPARKBOT_PROVIDER_CALLS_ENABLED=true and the provider env key is configured."
   },
   {
     id: "credential-storage",

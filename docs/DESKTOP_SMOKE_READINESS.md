@@ -21,7 +21,7 @@ The script:
 - Verifies `/local/runtime/settings` reports the smoke data directory.
 - Verifies the default Ollama-disabled prompt path returns `403`.
 - Restarts the backend with provider calls enabled and placeholder API-key provider backend env values.
-- Verifies all API-key provider cards report configured onboarding, OpenRouter reports guarded-manual status, non-OpenRouter API providers remain disabled-by-default, and a non-free OpenRouter model returns `400` before provider dispatch.
+- Verifies all API-key provider cards report configured onboarding, all API-key providers report guarded-manual status when env-enabled, and a non-free OpenRouter model returns `400` before provider dispatch.
 - Restarts the backend with local models enabled.
 - Verifies enabled local-model status is still localhost-only.
 - Stops the smoke backend and frontend processes that it started.

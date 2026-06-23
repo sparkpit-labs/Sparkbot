@@ -1,9 +1,9 @@
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from app.api.capabilities import ALLOWED_CAPABILITY_STATUSES
 from app.services import provider_runtime
-from app.services.provider_runtime import ProviderConfigError, ProviderUnavailableError
+from app.services.provider_runtime import ProviderConfigError, ProviderNotFoundError, ProviderUnavailableError
 
 router = APIRouter()
 
@@ -18,15 +18,26 @@ def provider_config_status() -> provider_runtime.ProviderConfigStatusResponse:
     return provider_runtime.get_provider_config_status()
 
 
-@router.post("/provider-config/openrouter/prompt")
-def run_openrouter_prompt(payload: ProviderPromptRequest) -> dict:
+@router.post("/provider-config/{provider_id}/prompt")
+def run_provider_prompt(provider_id: str, payload: dict) -> dict:
+    if not provider_runtime.provider_prompt_supported(provider_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Provider {provider_id} is not an API-key prompt provider.",
+        )
     if not provider_runtime.provider_calls_enabled():
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Provider prompt calls are disabled. Set SPARKBOT_PROVIDER_CALLS_ENABLED=true to enable explicit OpenRouter prompt calls.",
+            detail="Provider prompt calls are disabled. Set SPARKBOT_PROVIDER_CALLS_ENABLED=true to enable explicit provider prompt calls.",
         )
     try:
-        return provider_runtime.run_openrouter_prompt(payload.prompt, payload.model)
+        request = ProviderPromptRequest.model_validate(payload)
+    except ValidationError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.errors()) from exc
+    try:
+        return provider_runtime.run_provider_prompt(provider_id, request.prompt, request.model)
+    except ProviderNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except ProviderConfigError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except ProviderUnavailableError as exc:

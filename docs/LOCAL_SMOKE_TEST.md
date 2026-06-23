@@ -2,7 +2,7 @@
 
 This guide verifies that the public Sparkbot shell can run locally on alternate localhost ports without touching existing development or server processes.
 
-The manual smoke test starts only local development servers that you launch for the test. It does not configure real provider credentials, call cloud models by default, enable chat runtime behavior, run connectors, execute tools, or start deployment infrastructure. The provider check verifies the OpenRouter disabled gate unless the backend was explicitly started with provider calls enabled. The one-command wrapper additionally starts a backend with short placeholder keys for every API-key provider to verify all provider cards configure cleanly, OpenRouter reports guarded-manual availability, non-OpenRouter API providers remain onboarding/status-only, and free-model enforcement rejects one intentionally non-free OpenRouter request before provider dispatch. The local model check verifies disabled-mode behavior by default.
+The manual smoke test starts only local development servers that you launch for the test. It does not configure real provider credentials, call cloud models by default, enable chat runtime behavior, run connectors, execute tools, or start deployment infrastructure. The provider check verifies the OpenRouter disabled gate unless the backend was explicitly started with provider calls enabled. The one-command wrapper additionally starts a backend with short placeholder keys for every API-key provider to verify all provider cards configure cleanly, all API-key providers report guarded prompt availability when env-enabled, and free-model enforcement rejects one intentionally non-free OpenRouter request before provider dispatch. The local model check verifies disabled-mode behavior by default.
 
 For the current one-command desktop-readiness path, run:
 
@@ -90,7 +90,7 @@ The smoke check script supports:
 - `SPARKBOT_BACKEND_URL`, default `http://127.0.0.1:8000`
 - `SPARKBOT_FRONTEND_URL`, default `http://127.0.0.1:5173`
 
-It verifies backend `/health`, backend `/capabilities`, backend `/chat/status`, backend `/provider-config/status`, provider cards for local Ollama, OpenRouter, API-key providers, Codex subscription, and Claude subscription, disabled-mode `POST /provider-config/openrouter/prompt` returning 403 when provider calls are off, backend `/connector-status`, backend `/guardian/status` including the LIMA provider execution boundary, backend `/round-table/status`, backend `/model-seats/status`, `/work-lanes/status`, `/local/chat/sessions`, `/local/memory-notes`, `/local/work-lane-cards`, `/local/export`, `/local/runtime/settings`, `/local-models/status`, disabled-mode `POST /local-models/ollama/prompt` returning 403, and the frontend HTTP response. The one-command wrapper also verifies all API-key provider cards with placeholder backend keys, OpenRouter guarded-manual status with `SPARKBOT_PROVIDER_CALLS_ENABLED=true`, non-OpenRouter API providers staying `disabled-by-default`, and a non-free OpenRouter model request returning 400 before provider dispatch.
+It verifies backend `/health`, backend `/capabilities`, backend `/chat/status`, backend `/provider-config/status`, provider cards for local Ollama, OpenRouter, API-key providers, Codex subscription, and Claude subscription, disabled-mode `POST /provider-config/openrouter/prompt` returning 403 when provider calls are off, backend `/connector-status`, backend `/guardian/status` including the LIMA provider execution boundary, backend `/round-table/status`, backend `/model-seats/status`, `/work-lanes/status`, `/local/chat/sessions`, `/local/memory-notes`, `/local/work-lane-cards`, `/local/export`, `/local/runtime/settings`, `/local-models/status`, disabled-mode `POST /local-models/ollama/prompt` returning 403, and the frontend HTTP response. The one-command wrapper also verifies all API-key provider cards with placeholder backend keys, OpenRouter guarded-manual status with `SPARKBOT_PROVIDER_CALLS_ENABLED=true`, all API-key providers exposing prompt endpoints when env-enabled, and a non-free OpenRouter model request returning 400 before provider dispatch.
 
 Expected result:
 
@@ -106,7 +106,7 @@ Open:
 http://127.0.0.1:15173
 ```
 
-The page should show the Sparkbot shell with Workstation navigation, local runtime panels, local data export, local runtime settings, disabled-by-default Local Ollama adapter status, preview-only Chat status, Round Table, Model Seats, Provider Setup with the OpenRouter Free Model Smoke panel and Codex/Claude subscription readiness cards, Connector Status, Guardian Controls with the LIMA provider execution boundary, backend capability statuses when available, and the read-only backend health panel.
+The page should show the Sparkbot shell with Workstation navigation, local runtime panels, local data export, local runtime settings, disabled-by-default Local Ollama adapter status, preview-only Chat status, Round Table, Model Seats, Provider Setup with the Provider Prompt Smoke panel and Codex/Claude subscription readiness cards, Connector Status, Guardian Controls with the LIMA provider execution boundary, backend capability statuses when available, and the read-only backend health panel.
 
 ## Cleanup
 

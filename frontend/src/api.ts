@@ -120,6 +120,8 @@ export type ProviderStatusItem = {
   sign_in_detected?: boolean;
   runtime_gate?: string;
   operator_action?: string;
+  prompt_endpoint?: string;
+  prompt_adapter?: string;
 };
 
 export type ProviderConfigStatusPayload = {
@@ -132,13 +134,15 @@ export type ProviderConfigStatusPayload = {
   providers: ProviderStatusItem[];
 };
 
-export type OpenRouterPromptResponse = {
-  provider: "openrouter";
+export type ProviderPromptResponse = {
+  provider: string;
   model: string;
   request_model: string;
   response: string;
   usage: Record<string, unknown> | null;
 };
+
+export type OpenRouterPromptResponse = ProviderPromptResponse & { provider: "openrouter" };
 
 export type ConnectorStatusItem = {
   id: string;
@@ -569,7 +573,9 @@ export async function fetchProviderConfigStatus(signal?: AbortSignal): Promise<P
       cli_available: typeof provider.cli_available === "boolean" ? provider.cli_available : undefined,
       sign_in_detected: typeof provider.sign_in_detected === "boolean" ? provider.sign_in_detected : undefined,
       runtime_gate: provider.runtime_gate,
-      operator_action: provider.operator_action
+      operator_action: provider.operator_action,
+      prompt_endpoint: provider.prompt_endpoint,
+      prompt_adapter: provider.prompt_adapter
     };
   });
 
@@ -584,12 +590,13 @@ export async function fetchProviderConfigStatus(signal?: AbortSignal): Promise<P
   };
 }
 
-export async function runOpenRouterPrompt(
+export async function runProviderPrompt(
+  providerId: string,
   prompt: string,
   model: string,
   signal?: AbortSignal
-): Promise<OpenRouterPromptResponse> {
-  const endpoint = new URL("/provider-config/openrouter/prompt", API_BASE_URL).toString();
+): Promise<ProviderPromptResponse> {
+  const endpoint = new URL(`/provider-config/${providerId}/prompt`, API_BASE_URL).toString();
   const response = await fetch(endpoint, {
     method: "POST",
     headers: {
@@ -601,21 +608,21 @@ export async function runOpenRouterPrompt(
     signal
   });
 
-  const payload = (await response.json().catch(() => null)) as Partial<OpenRouterPromptResponse> & { detail?: unknown } | null;
+  const payload = (await response.json().catch(() => null)) as Partial<ProviderPromptResponse> & { detail?: unknown } | null;
   if (!response.ok) {
-    const detail = typeof payload?.detail === "string" ? payload.detail : `OpenRouter prompt request failed with status ${response.status}`;
+    const detail = typeof payload?.detail === "string" ? payload.detail : `Provider prompt request failed with status ${response.status}`;
     throw new Error(detail);
   }
 
   if (
     !payload ||
-    payload.provider !== "openrouter" ||
+    payload.provider !== providerId ||
     !payload.model ||
     !payload.request_model ||
     !payload.response ||
     (payload.usage != null && typeof payload.usage !== "object")
   ) {
-    throw new Error("OpenRouter prompt response is missing required fields");
+    throw new Error("Provider prompt response is missing required fields");
   }
 
   return {
@@ -625,6 +632,18 @@ export async function runOpenRouterPrompt(
     response: payload.response,
     usage: payload.usage ?? null
   };
+}
+
+export async function runOpenRouterPrompt(
+  prompt: string,
+  model: string,
+  signal?: AbortSignal
+): Promise<OpenRouterPromptResponse> {
+  const payload = await runProviderPrompt("openrouter", prompt, model, signal);
+  if (payload.provider !== "openrouter") {
+    throw new Error("OpenRouter prompt response is missing required fields");
+  }
+  return payload as OpenRouterPromptResponse;
 }
 
 export async function fetchConnectorStatus(signal?: AbortSignal): Promise<ConnectorStatusPayload> {

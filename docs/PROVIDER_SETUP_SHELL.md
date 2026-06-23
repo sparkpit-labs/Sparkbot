@@ -5,19 +5,19 @@ Provider Setup is now an environment-driven onboarding surface for local models,
 ## Current provider cards
 
 - Local Ollama: localhost-only prompt adapter, disabled unless `SPARKBOT_LOCAL_MODELS_ENABLED=true`.
-- OpenRouter: backend-owned env key with explicit prompt calls, disabled unless `SPARKBOT_PROVIDER_CALLS_ENABLED=true` and `OPENROUTER_API_KEY` is configured.
-- OpenAI API: env-driven onboarding/status using `OPENAI_API_KEY`.
-- Anthropic API: env-driven onboarding/status using `ANTHROPIC_API_KEY`.
-- Google Gemini API: env-driven onboarding/status using `GOOGLE_API_KEY`.
-- Groq API: env-driven onboarding/status using `GROQ_API_KEY`.
-- MiniMax API: env-driven onboarding/status using `MINIMAX_API_KEY`.
-- xAI API: env-driven onboarding/status using `XAI_API_KEY`.
+- OpenRouter: backend-owned env key with explicit prompt calls, disabled unless `SPARKBOT_PROVIDER_CALLS_ENABLED=true` and `OPENROUTER_API_KEY` is configured; `:free` models are enforced by default.
+- OpenAI API: env-driven onboarding plus explicit prompt calls using `OPENAI_API_KEY` when provider calls are enabled.
+- Anthropic API: env-driven onboarding plus explicit prompt calls using `ANTHROPIC_API_KEY` when provider calls are enabled.
+- Google Gemini API: env-driven onboarding plus explicit prompt calls using `GOOGLE_API_KEY` when provider calls are enabled.
+- Groq API: env-driven onboarding plus explicit prompt calls using `GROQ_API_KEY` when provider calls are enabled.
+- MiniMax API: env-driven onboarding plus explicit prompt calls using `MINIMAX_API_KEY` when provider calls are enabled; `SPARKBOT_MINIMAX_CHAT_COMPLETIONS_URL` can override the OpenAI-compatible endpoint.
+- xAI API: env-driven onboarding plus explicit prompt calls using `XAI_API_KEY` when provider calls are enabled.
 - OpenAI Codex Subscription: reports whether the Codex CLI is available and whether local sign-in state is detected through `CODEX_HOME` or `SPARKBOT_CODEX_AUTH_FILE` without reading or returning the auth file.
 - Claude Subscription: reports whether Claude Code is available and whether local sign-in state is detected through `CLAUDE_HOME`, `SPARKBOT_CLAUDE_AUTH_FILE`, or the operator-declared `SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED=true` flag without reading or returning auth contents.
 
 ## OpenRouter free model path
 
-OpenRouter is the first cloud prompt path in the public shell. It is guarded and off by default.
+OpenRouter is the default cloud prompt path in the public shell because free `:free` model IDs are enforced by default. Other API-key providers also expose explicit guarded prompt endpoints when backend env keys and `SPARKBOT_PROVIDER_CALLS_ENABLED=true` are set. All provider prompt calls are off by default.
 
 Required environment:
 
@@ -29,9 +29,9 @@ SPARKBOT_OPENROUTER_MODEL=meta-llama/llama-3.2-3b-instruct:free
 
 Sparkbot enforces OpenRouter model IDs ending in `:free` by default. To opt into paid OpenRouter models for a local test, set `SPARKBOT_ALLOW_PAID_OPENROUTER_MODELS=true` and use an explicit model ID.
 
-Provider Setup also includes an OpenRouter Free Model Smoke panel. The panel is enabled only when the backend reports OpenRouter as available, and it submits only an operator prompt and model ID to the backend; it does not accept or display keys.
+Provider Setup includes a Provider Prompt Smoke panel. The panel defaults to OpenRouter and is enabled only when the selected provider reports available; it submits only provider ID, operator prompt, and model ID to the backend; it does not accept or display keys.
 
-Manual smoke request:
+Manual OpenRouter smoke request:
 
 ```bash
 curl -i -X POST http://127.0.0.1:8000/provider-config/openrouter/prompt \

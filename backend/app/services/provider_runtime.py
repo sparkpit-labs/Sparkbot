@@ -13,8 +13,15 @@ from app.services import local_model_adapter
 
 ENABLE_VALUES = {"1", "true", "yes", "on"}
 OPENROUTER_CHAT_COMPLETIONS_URL = "https://openrouter.ai/api/v1/chat/completions"
+OPENAI_CHAT_COMPLETIONS_URL = "https://api.openai.com/v1/chat/completions"
+ANTHROPIC_MESSAGES_URL = "https://api.anthropic.com/v1/messages"
+GOOGLE_GENERATE_CONTENT_URL_TEMPLATE = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+GROQ_CHAT_COMPLETIONS_URL = "https://api.groq.com/openai/v1/chat/completions"
+MINIMAX_CHAT_COMPLETIONS_URL = "https://api.minimax.io/v1/chat/completions"
+XAI_CHAT_COMPLETIONS_URL = "https://api.x.ai/v1/chat/completions"
 DEFAULT_OPENROUTER_FREE_MODEL = "meta-llama/llama-3.2-3b-instruct:free"
 OPENROUTER_TIMEOUT_SECONDS = 30
+PROVIDER_TIMEOUT_SECONDS = 30
 MODEL_NAME_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$")
 
 ProviderImplementationStatus = Literal["not-implemented", "env-driven", "disabled-by-default", "guarded-manual"]
@@ -29,6 +36,10 @@ class ProviderConfigError(ProviderRuntimeError):
 
 
 class ProviderUnavailableError(ProviderRuntimeError):
+    pass
+
+
+class ProviderNotFoundError(ProviderRuntimeError):
     pass
 
 
@@ -48,6 +59,8 @@ class ProviderStatus(TypedDict):
     sign_in_detected: NotRequired[bool]
     runtime_gate: NotRequired[str]
     operator_action: NotRequired[str]
+    prompt_endpoint: NotRequired[str]
+    prompt_adapter: NotRequired[str]
 
 
 class ProviderConfigStatusResponse(TypedDict):
@@ -73,8 +86,9 @@ API_KEY_PROVIDERS = [
             "mistralai/mistral-7b-instruct:free",
             "openrouter/openai/gpt-4o-mini:free",
         ],
+        "adapter": "openrouter-chat",
         "runtime": "Guarded backend prompt endpoint for explicit operator calls. Free :free models are enforced by default.",
-        "notes": "Uses OpenRouter through a backend-only env key. Set SPARKBOT_PROVIDER_CALLS_ENABLED=true to enable explicit OpenRouter prompt calls.",
+        "notes": "Uses OpenRouter through a backend-only env key. Set SPARKBOT_PROVIDER_CALLS_ENABLED=true to enable explicit provider prompt calls.",
     },
     {
         "id": "openai",
@@ -84,7 +98,8 @@ API_KEY_PROVIDERS = [
         "default_model_env": "SPARKBOT_OPENAI_MODEL",
         "default_model": "gpt-5-mini",
         "examples": ["gpt-5-mini", "gpt-5.3-codex", "codex-mini-latest"],
-        "runtime": "Onboarding/status only in this public branch; direct provider calls remain behind future routing gates.",
+        "adapter": "openai-chat",
+        "runtime": "Guarded backend prompt endpoint for explicit operator calls using the OpenAI Chat Completions API.",
         "notes": "Matches the prototype provider slot for OpenAI API keys without adding browser credential entry or storage.",
     },
     {
@@ -95,7 +110,8 @@ API_KEY_PROVIDERS = [
         "default_model_env": "SPARKBOT_ANTHROPIC_MODEL",
         "default_model": "claude-sonnet-4-5",
         "examples": ["claude-sonnet-4-5", "claude-haiku-4-5", "claude-opus-4-6"],
-        "runtime": "Onboarding/status only in this public branch; direct provider calls remain behind future routing gates.",
+        "adapter": "anthropic-messages",
+        "runtime": "Guarded backend prompt endpoint for explicit operator calls using the Anthropic Messages API.",
         "notes": "Matches the prototype Anthropic provider slot without adding browser credential entry or storage.",
     },
     {
@@ -106,7 +122,8 @@ API_KEY_PROVIDERS = [
         "default_model_env": "SPARKBOT_GOOGLE_MODEL",
         "default_model": "gemini/gemini-2.0-flash",
         "examples": ["gemini/gemini-2.0-flash", "gemini/gemini-3-flash"],
-        "runtime": "Onboarding/status only in this public branch; direct provider calls remain behind future routing gates.",
+        "adapter": "google-generate-content",
+        "runtime": "Guarded backend prompt endpoint for explicit operator calls using the Google Gemini generateContent API.",
         "notes": "Matches the prototype Google provider slot without adding browser credential entry or storage.",
     },
     {
@@ -117,7 +134,8 @@ API_KEY_PROVIDERS = [
         "default_model_env": "SPARKBOT_GROQ_MODEL",
         "default_model": "groq/llama-3.3-70b-versatile",
         "examples": ["groq/llama-3.3-70b-versatile"],
-        "runtime": "Onboarding/status only in this public branch; direct provider calls remain behind future routing gates.",
+        "adapter": "groq-chat",
+        "runtime": "Guarded backend prompt endpoint for explicit operator calls using Groq OpenAI-compatible chat completions.",
         "notes": "Matches the prototype Groq provider slot without adding browser credential entry or storage.",
     },
     {
@@ -128,8 +146,10 @@ API_KEY_PROVIDERS = [
         "default_model_env": "SPARKBOT_MINIMAX_MODEL",
         "default_model": "minimax/MiniMax-M2.5",
         "examples": ["minimax/MiniMax-M2.5"],
-        "runtime": "Onboarding/status only in this public branch; direct provider calls remain behind future routing gates.",
-        "notes": "Matches the prototype MiniMax provider slot without adding browser credential entry or storage.",
+        "adapter": "minimax-chat",
+        "base_url_env": "SPARKBOT_MINIMAX_CHAT_COMPLETIONS_URL",
+        "runtime": "Guarded backend prompt endpoint for explicit operator calls using a MiniMax OpenAI-compatible chat adapter.",
+        "notes": "Matches the prototype MiniMax provider slot without adding browser credential entry or storage. Set SPARKBOT_MINIMAX_CHAT_COMPLETIONS_URL to override the default endpoint if needed.",
     },
     {
         "id": "xai",
@@ -139,7 +159,8 @@ API_KEY_PROVIDERS = [
         "default_model_env": "SPARKBOT_XAI_MODEL",
         "default_model": "xai/grok-4",
         "examples": ["xai/grok-4", "xai/grok-3-mini"],
-        "runtime": "Onboarding/status only in this public branch; direct provider calls remain behind future routing gates.",
+        "adapter": "xai-chat",
+        "runtime": "Guarded backend prompt endpoint for explicit operator calls using the xAI chat completions API.",
         "notes": "Matches the prototype xAI provider slot without adding browser credential entry or storage.",
     },
 ]
@@ -179,13 +200,13 @@ def _provider_status_from_env(item: dict[str, Any]) -> ProviderStatus:
     calls_enabled = provider_calls_enabled()
     provider_id = str(item["id"])
     status: CapabilityStatus
-    if provider_id == "openrouter" and configured and calls_enabled:
+    if configured and calls_enabled:
         status = "available"
     elif configured:
         status = "disabled-by-default"
     else:
         status = "planned"
-    return {
+    provider: ProviderStatus = {
         "id": provider_id,
         "label": str(item["label"]),
         "status": status,
@@ -197,7 +218,10 @@ def _provider_status_from_env(item: dict[str, Any]) -> ProviderStatus:
         "model_examples": list(item["examples"]),
         "runtime": str(item["runtime"]),
         "notes": str(item["notes"]),
+        "prompt_endpoint": f"/provider-config/{provider_id}/prompt",
+        "prompt_adapter": str(item["adapter"]),
     }
+    return provider
 
 
 def _codex_auth_file_exists() -> bool:
@@ -307,6 +331,192 @@ def _subscription_operator_action(*, cli_available: bool, sign_in_detected: bool
     return "Ready for LIMA Guardian runtime integration; direct CLI dispatch remains disabled in the public shell."
 
 
+def _api_provider_by_id(provider_id: str) -> dict[str, Any] | None:
+    normalized = provider_id.strip().lower()
+    for item in API_KEY_PROVIDERS:
+        if item["id"] == normalized:
+            return item
+    return None
+
+
+def provider_prompt_supported(provider_id: str) -> bool:
+    return _api_provider_by_id(provider_id) is not None
+
+
+def _provider_api_key(provider: dict[str, Any]) -> str:
+    return os.environ.get(str(provider["env"]), "").strip()
+
+
+def _strip_provider_prefix(model: str, prefix: str) -> str:
+    return model.removeprefix(prefix).strip()
+
+
+def _selected_provider_model(provider: dict[str, Any], model: str | None = None) -> tuple[str, str]:
+    selected = (model or os.environ.get(str(provider["default_model_env"])) or str(provider.get("default_model") or "")).strip()
+    if not selected:
+        raise ProviderConfigError(f"{provider['label']} model is required.")
+    if not MODEL_NAME_PATTERN.fullmatch(selected):
+        raise ProviderConfigError(f"{provider['label']} model must be a safe model identifier.")
+    provider_id = str(provider["id"])
+    if provider_id == "openrouter":
+        selected = validate_openrouter_model(selected)
+        return selected, _strip_provider_prefix(selected, "openrouter/")
+    if provider_id == "google":
+        return selected, _strip_provider_prefix(selected, "gemini/")
+    if provider_id == "groq":
+        return selected, _strip_provider_prefix(selected, "groq/")
+    if provider_id == "minimax":
+        return selected, _strip_provider_prefix(selected, "minimax/")
+    if provider_id == "xai":
+        return selected, _strip_provider_prefix(selected, "xai/")
+    return selected, selected
+
+
+def _post_provider_json(url: str, headers: dict[str, str], payload: dict[str, Any], provider_label: str) -> dict[str, Any]:
+    try:
+        with httpx.Client(timeout=PROVIDER_TIMEOUT_SECONDS, follow_redirects=False) as client:
+            response = client.post(url, headers=headers, json=payload)
+    except httpx.HTTPError as exc:
+        raise ProviderUnavailableError(f"{provider_label} endpoint is unavailable.") from exc
+    if response.status_code >= 400:
+        raise ProviderUnavailableError(f"{provider_label} request failed with status {response.status_code}.")
+    try:
+        data = response.json()
+    except ValueError as exc:
+        raise ProviderUnavailableError(f"{provider_label} returned invalid JSON.") from exc
+    if not isinstance(data, dict):
+        raise ProviderUnavailableError(f"{provider_label} returned an unexpected response.")
+    return data
+
+
+def _chat_headers(api_key: str) -> dict[str, str]:
+    return {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}",
+        "X-Title": "Sparkbot Public",
+    }
+
+
+def _extract_chat_completion_response(data: dict[str, Any], provider_label: str) -> str:
+    choices = data.get("choices")
+    if not isinstance(choices, list) or not choices:
+        raise ProviderUnavailableError(f"{provider_label} returned no choices.")
+    first = choices[0]
+    if not isinstance(first, dict):
+        raise ProviderUnavailableError(f"{provider_label} returned an unexpected choice.")
+    message = first.get("message")
+    if not isinstance(message, dict):
+        raise ProviderUnavailableError(f"{provider_label} returned an unexpected message.")
+    text = _content_to_text(message.get("content"))
+    if not text:
+        raise ProviderUnavailableError(f"{provider_label} returned an empty response.")
+    return text
+
+
+def _extract_anthropic_response(data: dict[str, Any]) -> str:
+    content = data.get("content")
+    if not isinstance(content, list):
+        raise ProviderUnavailableError("Anthropic returned an unexpected response.")
+    parts: list[str] = []
+    for item in content:
+        if isinstance(item, dict) and item.get("type") == "text" and isinstance(item.get("text"), str):
+            parts.append(item["text"])
+    text = "".join(parts).strip()
+    if not text:
+        raise ProviderUnavailableError("Anthropic returned an empty response.")
+    return text
+
+
+def _extract_google_response(data: dict[str, Any]) -> str:
+    candidates = data.get("candidates")
+    if not isinstance(candidates, list) or not candidates:
+        raise ProviderUnavailableError("Google Gemini returned no candidates.")
+    first = candidates[0]
+    if not isinstance(first, dict):
+        raise ProviderUnavailableError("Google Gemini returned an unexpected candidate.")
+    content = first.get("content")
+    if not isinstance(content, dict):
+        raise ProviderUnavailableError("Google Gemini returned an unexpected content block.")
+    text = _content_to_text(content.get("parts"))
+    if not text:
+        raise ProviderUnavailableError("Google Gemini returned an empty response.")
+    return text
+
+
+def _openai_compatible_url(provider: dict[str, Any]) -> str:
+    provider_id = str(provider["id"])
+    if provider_id == "openrouter":
+        return OPENROUTER_CHAT_COMPLETIONS_URL
+    if provider_id == "openai":
+        return OPENAI_CHAT_COMPLETIONS_URL
+    if provider_id == "groq":
+        return GROQ_CHAT_COMPLETIONS_URL
+    if provider_id == "minimax":
+        override = os.environ.get(str(provider.get("base_url_env") or ""), "").strip()
+        return override or MINIMAX_CHAT_COMPLETIONS_URL
+    if provider_id == "xai":
+        return XAI_CHAT_COMPLETIONS_URL
+    raise ProviderNotFoundError(f"Provider {provider_id} does not use an OpenAI-compatible adapter.")
+
+
+def run_provider_prompt(provider_id: str, prompt: str, model: str | None = None) -> dict[str, Any]:
+    provider = _api_provider_by_id(provider_id)
+    if provider is None:
+        raise ProviderNotFoundError(f"Provider {provider_id} is not a configured API-key prompt provider.")
+    prompt = prompt.strip()
+    if not prompt:
+        raise ProviderConfigError("Prompt is required.")
+    if not provider_calls_enabled():
+        raise ProviderConfigError("Provider prompt calls are disabled.")
+    api_key = _provider_api_key(provider)
+    if not api_key:
+        raise ProviderConfigError(f"{provider['label']} is not configured. Set {provider['env']} before enabling provider prompt calls.")
+    selected_model, request_model = _selected_provider_model(provider, model)
+    adapter = str(provider["adapter"])
+    label = str(provider["label"])
+    if adapter in {"openrouter-chat", "openai-chat", "groq-chat", "minimax-chat", "xai-chat"}:
+        payload = {
+            "model": request_model,
+            "messages": [{"role": "user", "content": prompt}],
+            "stream": False,
+        }
+        if adapter == "openrouter-chat":
+            data = _post_openrouter_chat(payload, api_key)
+        else:
+            data = _post_provider_json(_openai_compatible_url(provider), _chat_headers(api_key), payload, label)
+        response_text = _extract_chat_completion_response(data, label)
+    elif adapter == "anthropic-messages":
+        payload = {
+            "model": request_model,
+            "max_tokens": 1024,
+            "messages": [{"role": "user", "content": prompt}],
+        }
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+        }
+        data = _post_provider_json(ANTHROPIC_MESSAGES_URL, headers, payload, label)
+        response_text = _extract_anthropic_response(data)
+    elif adapter == "google-generate-content":
+        payload = {"contents": [{"parts": [{"text": prompt}]}]}
+        headers = {"Accept": "application/json", "Content-Type": "application/json"}
+        url = f"{GOOGLE_GENERATE_CONTENT_URL_TEMPLATE.format(model=request_model)}?key={api_key}"
+        data = _post_provider_json(url, headers, payload, label)
+        response_text = _extract_google_response(data)
+    else:
+        raise ProviderNotFoundError(f"Provider {provider_id} does not have a prompt adapter.")
+    return {
+        "provider": str(provider["id"]),
+        "model": selected_model,
+        "request_model": request_model,
+        "response": response_text,
+        "usage": data.get("usage") if isinstance(data.get("usage"), dict) else data.get("usageMetadata") if isinstance(data.get("usageMetadata"), dict) else None,
+    }
+
+
 def _local_provider_status() -> ProviderStatus:
     local_status = local_model_adapter.get_ollama_status()
     enabled = bool(local_status.get("local_models_enabled"))
@@ -362,53 +572,11 @@ def get_openrouter_model(model: str | None = None) -> str:
 
 
 def run_openrouter_prompt(prompt: str, model: str | None = None) -> dict[str, Any]:
-    prompt = prompt.strip()
-    if not prompt:
-        raise ProviderConfigError("Prompt is required.")
-    if not provider_calls_enabled():
-        raise ProviderConfigError("Provider prompt calls are disabled.")
-    api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
-    if not api_key:
-        raise ProviderConfigError("OpenRouter is not configured. Set OPENROUTER_API_KEY before enabling OpenRouter prompt calls.")
-    selected_model = get_openrouter_model(model)
-    request_model = _openrouter_model_for_api(selected_model)
-    payload = {
-        "model": request_model,
-        "messages": [{"role": "user", "content": prompt}],
-        "stream": False,
-    }
-    data = _post_openrouter_chat(payload, api_key)
-    response_text = _extract_openrouter_response(data)
-    return {
-        "provider": "openrouter",
-        "model": selected_model,
-        "request_model": request_model,
-        "response": response_text,
-        "usage": data.get("usage") if isinstance(data.get("usage"), dict) else None,
-    }
+    return run_provider_prompt("openrouter", prompt, model)
 
 
 def _post_openrouter_chat(payload: dict[str, Any], api_key: str) -> dict[str, Any]:
-    headers = {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {api_key}",
-        "X-Title": "Sparkbot Public",
-    }
-    try:
-        with httpx.Client(timeout=OPENROUTER_TIMEOUT_SECONDS, follow_redirects=False) as client:
-            response = client.post(OPENROUTER_CHAT_COMPLETIONS_URL, headers=headers, json=payload)
-    except httpx.HTTPError as exc:
-        raise ProviderUnavailableError("OpenRouter endpoint is unavailable.") from exc
-    if response.status_code >= 400:
-        raise ProviderUnavailableError(f"OpenRouter request failed with status {response.status_code}.")
-    try:
-        data = response.json()
-    except ValueError as exc:
-        raise ProviderUnavailableError("OpenRouter returned invalid JSON.") from exc
-    if not isinstance(data, dict):
-        raise ProviderUnavailableError("OpenRouter returned an unexpected response.")
-    return data
+    return _post_provider_json(OPENROUTER_CHAT_COMPLETIONS_URL, _chat_headers(api_key), payload, "OpenRouter")
 
 
 def _content_to_text(content: Any) -> str:
@@ -426,16 +594,4 @@ def _content_to_text(content: Any) -> str:
 
 
 def _extract_openrouter_response(data: dict[str, Any]) -> str:
-    choices = data.get("choices")
-    if not isinstance(choices, list) or not choices:
-        raise ProviderUnavailableError("OpenRouter returned no choices.")
-    first = choices[0]
-    if not isinstance(first, dict):
-        raise ProviderUnavailableError("OpenRouter returned an unexpected choice.")
-    message = first.get("message")
-    if not isinstance(message, dict):
-        raise ProviderUnavailableError("OpenRouter returned an unexpected message.")
-    text = _content_to_text(message.get("content"))
-    if not text:
-        raise ProviderUnavailableError("OpenRouter returned an empty response.")
-    return text
+    return _extract_chat_completion_response(data, "OpenRouter")

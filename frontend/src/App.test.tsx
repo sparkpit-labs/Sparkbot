@@ -125,7 +125,7 @@ const capabilitiesPayload = {
       id: "model-calls",
       label: "Cloud model calls",
       status: "disabled-by-default",
-      notes: "Only explicit OpenRouter prompt calls are available when SPARKBOT_PROVIDER_CALLS_ENABLED=true and an env key is configured."
+      notes: "Explicit API provider prompt calls are available only when SPARKBOT_PROVIDER_CALLS_ENABLED=true and the provider env key is configured."
     },
     {
       id: "credential-storage",
@@ -332,7 +332,7 @@ const providerConfigStatusPayload = {
       default_model: "meta-llama/llama-3.2-3b-instruct:free",
       model_examples: ["meta-llama/llama-3.2-3b-instruct:free", "mistralai/mistral-7b-instruct:free"],
       runtime: "Guarded backend prompt endpoint for explicit operator calls. Free :free models are enforced by default.",
-      notes: "Uses OpenRouter through a backend-only env key. Set SPARKBOT_PROVIDER_CALLS_ENABLED=true to enable explicit OpenRouter prompt calls."
+      notes: "Uses OpenRouter through a backend-only env key. Set SPARKBOT_PROVIDER_CALLS_ENABLED=true to enable explicit provider prompt calls."
     },
     {
       id: "openai",
@@ -449,7 +449,7 @@ const providerConfigStatusPayload = {
   ]
 };
 
-const openRouterPromptResponsePayload = {
+const providerPromptResponsePayload = {
   provider: "openrouter",
   model: "mistralai/mistral-7b-instruct:free",
   request_model: "mistralai/mistral-7b-instruct:free",
@@ -549,7 +549,7 @@ const guardianStatusPayload = {
       id: "model-provider-calls",
       label: "Model provider calls",
       status: "guarded-future",
-      notes: "No model provider calls are implemented."
+      notes: "Automatic or Guardian-mediated model provider calls remain guarded future; explicit env-enabled provider prompt smokes are separate operator-initiated calls."
     },
     {
       id: "file-writes",
@@ -808,7 +808,7 @@ function mockBackendStatusFetch() {
     }
 
     if (url.includes("/provider-config/openrouter/prompt")) {
-      return mockJsonResponse(openRouterPromptResponsePayload);
+      return mockJsonResponse(providerPromptResponsePayload);
     }
 
     if (url.includes("/provider-config/status")) {
@@ -898,7 +898,7 @@ describe("App", () => {
     expect(screen.getAllByRole("heading", { name: "Tool execution" }).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Planned").length).toBeGreaterThanOrEqual(6);
     expect(screen.getByText("No connector calls or external sends.")).toBeDefined();
-    expect(screen.getAllByText(/Only explicit OpenRouter prompt calls are available/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Explicit API provider prompt calls are available only when SPARKBOT_PROVIDER_CALLS_ENABLED=true/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("No credential entry or storage path.")).toBeDefined();
     expect(screen.getByText("No terminal, tool, or automation execution.")).toBeDefined();
     expect(screen.getAllByRole("heading", { name: "Chat shell" }).length).toBeGreaterThanOrEqual(1);
@@ -968,8 +968,8 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Anthropic API" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Google Gemini API" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "OpenRouter" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "OpenRouter Free Model Smoke" })).toBeDefined();
-    expect(screen.getByRole("button", { name: "Run OpenRouter smoke" })).toHaveProperty("disabled", true);
+    expect(screen.getByRole("heading", { name: "Provider Prompt Smoke" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Run provider smoke" })).toHaveProperty("disabled", true);
     expect(screen.getAllByText(/SPARKBOT_PROVIDER_CALLS_ENABLED=true/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("heading", { name: "OpenAI Codex Subscription" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Claude Subscription" })).toBeDefined();
@@ -1027,7 +1027,7 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Backend health endpoint" })).toBeDefined();
     expect(screen.getByText("Read-only local health check.")).toBeDefined();
     expect(screen.getByText("No connector calls or external sends.")).toBeDefined();
-    expect(screen.getAllByText(/Only explicit OpenRouter prompt calls are available/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Explicit API provider prompt calls are available only when SPARKBOT_PROVIDER_CALLS_ENABLED=true/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("No credential entry or storage path.")).toBeDefined();
     expect(screen.getByText("No terminal, tool, or automation execution.")).toBeDefined();
     expect(screen.getByText("Future local action")).toBeDefined();
@@ -1148,8 +1148,8 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Anthropic API" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Google Gemini API" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "OpenRouter" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "OpenRouter Free Model Smoke" })).toBeDefined();
-    expect(screen.getByRole("button", { name: "Run OpenRouter smoke" })).toHaveProperty("disabled", true);
+    expect(screen.getByRole("heading", { name: "Provider Prompt Smoke" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Run provider smoke" })).toHaveProperty("disabled", true);
     expect(screen.getAllByText(/SPARKBOT_PROVIDER_CALLS_ENABLED=true/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("heading", { name: "OpenAI Codex Subscription" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Claude Subscription" })).toBeDefined();
@@ -1159,11 +1159,11 @@ describe("App", () => {
     expect(screen.getAllByText("Planned").length).toBeGreaterThanOrEqual(6);
   });
 
-  it("runs the enabled OpenRouter smoke prompt from Provider Setup", async () => {
+  it("runs the enabled Smoke prompt from Provider Setup", async () => {
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = input.toString();
       if (url.includes("/provider-config/openrouter/prompt")) {
-        return mockJsonResponse(openRouterPromptResponsePayload);
+        return mockJsonResponse(providerPromptResponsePayload);
       }
       if (url.includes("/provider-config/status")) {
         return mockJsonResponse(enabledOpenRouterProviderConfigStatusPayload());
@@ -1175,13 +1175,14 @@ describe("App", () => {
     render(<App />);
 
     expect(await screen.findByText("Using backend provider configuration status.")).toBeDefined();
-    const smokeForm = screen.getByRole("form", { name: "OpenRouter free model smoke test" });
+    const smokeForm = screen.getByRole("form", { name: "Provider prompt smoke test" });
+    expect(within(smokeForm).getByLabelText("Smoke provider")).toHaveProperty("value", "openrouter");
     expect(within(smokeForm).getByText("Available")).toBeDefined();
-    fireEvent.change(within(smokeForm).getByLabelText("OpenRouter smoke prompt"), { target: { value: "Say OK from UI." } });
-    fireEvent.change(within(smokeForm).getByLabelText("OpenRouter smoke model"), {
+    fireEvent.change(within(smokeForm).getByLabelText("Smoke prompt"), { target: { value: "Say OK from UI." } });
+    fireEvent.change(within(smokeForm).getByLabelText("Smoke model"), {
       target: { value: "mistralai/mistral-7b-instruct:free" }
     });
-    fireEvent.click(within(smokeForm).getByRole("button", { name: "Run OpenRouter smoke" }));
+    fireEvent.click(within(smokeForm).getByRole("button", { name: "Run provider smoke" }));
 
     expect(await screen.findByText("OK from OpenRouter")).toBeDefined();
     const promptCall = fetchMock.mock.calls.find(([input]) => input.toString().includes("/provider-config/openrouter/prompt"));
@@ -1247,7 +1248,7 @@ describe("App", () => {
     expect(screen.getAllByRole("heading", { name: "Tool execution" }).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Guarded future").length).toBeGreaterThanOrEqual(14);
     expect(screen.getByText("No connector calls are implemented.")).toBeDefined();
-    expect(screen.getByText("No model provider calls are implemented.")).toBeDefined();
+    expect(screen.getByText("Automatic or Guardian-mediated model provider calls remain guarded future; explicit env-enabled provider prompt smokes are separate operator-initiated calls.")).toBeDefined();
     expect(screen.getByText("No terminal or tool execution is implemented.")).toBeDefined();
   });
 

@@ -9,6 +9,7 @@ capabilities_url="${SPARKBOT_BACKEND_URL%/}/capabilities"
 chat_status_url="${SPARKBOT_BACKEND_URL%/}/chat/status"
 provider_config_status_url="${SPARKBOT_BACKEND_URL%/}/provider-config/status"
 openrouter_prompt_url="${SPARKBOT_BACKEND_URL%/}/provider-config/openrouter/prompt"
+openai_prompt_url="${SPARKBOT_BACKEND_URL%/}/provider-config/openai/prompt"
 connector_status_url="${SPARKBOT_BACKEND_URL%/}/connector-status"
 guardian_status_url="${SPARKBOT_BACKEND_URL%/}/guardian/status"
 round_table_status_url="${SPARKBOT_BACKEND_URL%/}/round-table/status"
@@ -138,6 +139,15 @@ if [[ "${provider_calls_mode}" == "disabled-by-default" ]]; then
     403) ;;
     *)
       echo "OpenRouter prompt did not return 403 while provider calls are disabled; got ${openrouter_prompt_code}." >&2
+      exit 1
+      ;;
+  esac
+  echo "Checking OpenAI API prompt remains disabled by default at ${openai_prompt_url}"
+  openai_prompt_code="$(curl -sS -o /dev/null -w "%{http_code}" -X POST "${openai_prompt_url}" -H "Content-Type: application/json" -d '{"prompt":"smoke","model":"gpt-5-mini"}')"
+  case "${openai_prompt_code}" in
+    403) ;;
+    *)
+      echo "OpenAI prompt did not return 403 while provider calls are disabled; got ${openai_prompt_code}." >&2
       exit 1
       ;;
   esac

@@ -6,15 +6,15 @@ This contract defines the public safety requirements for provider setup, model r
 
 Provider Setup is an `available` capability for backend-owned, environment-driven onboarding/status. The browser may show whether a provider is configured, the configured source name, auth mode, default model, and model examples. The browser must not accept, store, echo, or transmit provider credentials.
 
-OpenRouter has one guarded backend prompt endpoint for explicit operator calls:
+API-key providers have guarded backend prompt endpoints for explicit operator calls. OpenRouter remains the default free-model path:
 
 ```text
-POST /provider-config/openrouter/prompt
+POST /provider-config/{provider_id}/prompt
 ```
 
-That endpoint is disabled unless `SPARKBOT_PROVIDER_CALLS_ENABLED=true` and `OPENROUTER_API_KEY` is configured in the backend environment. OpenRouter model IDs ending in `:free` are enforced unless the operator explicitly sets `SPARKBOT_ALLOW_PAID_OPENROUTER_MODELS=true`. The frontend may expose an explicit OpenRouter smoke form for this endpoint, but it may send only prompt text and model ID; credentials remain backend environment values.
+Provider prompt endpoints are disabled unless `SPARKBOT_PROVIDER_CALLS_ENABLED=true` and the selected provider env key is configured in the backend environment. OpenRouter model IDs ending in `:free` are enforced unless the operator explicitly sets `SPARKBOT_ALLOW_PAID_OPENROUTER_MODELS=true`. The frontend exposes an explicit provider smoke form for these endpoints, but it may send only provider ID, prompt text, and model ID; credentials remain backend environment values.
 
-Other API-key providers are onboarding/status only in this branch. Codex and Claude subscription providers expose CLI availability, sign-in detection, runtime-gate status, and next operator action until the LIMA Guardian provider adapter contract is implemented. See `LIMA_PROVIDER_GUARDIAN_ADAPTER.md` for the public dispatch boundary.
+Codex and Claude subscription providers expose CLI availability, sign-in detection, runtime-gate status, and next operator action until the LIMA Guardian provider adapter contract is implemented. See `LIMA_PROVIDER_GUARDIAN_ADAPTER.md` for the public dispatch boundary.
 
 ## Provider Setup Rules
 
@@ -46,7 +46,7 @@ A future model-call branch must include:
 - Explicit provider selection behavior.
 - Explicit model selection behavior.
 - Tests for unsupported provider, missing configuration, failed provider call, and user-visible error handling.
-- Tests proving preview Chat and preview Round Table surfaces do not call models.
+- Tests proving preview Chat and preview Round Table surfaces do not call models automatically.
 - A Guardian policy review for model calls that may include private user data.
 - Public documentation that avoids overstating provider availability.
 

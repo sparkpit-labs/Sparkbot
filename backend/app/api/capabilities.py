@@ -146,7 +146,7 @@ CAPABILITIES: list[Capability] = [
         "id": "model-calls",
         "label": "Cloud model calls",
         "status": "disabled-by-default",
-        "notes": "Only explicit OpenRouter prompt calls are available when SPARKBOT_PROVIDER_CALLS_ENABLED=true and an env key is configured.",
+        "notes": "Explicit API provider prompt calls are available only when SPARKBOT_PROVIDER_CALLS_ENABLED=true and the provider env key is configured.",
     },
     {
         "id": "credential-storage",

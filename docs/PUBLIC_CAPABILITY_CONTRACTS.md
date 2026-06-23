@@ -49,7 +49,7 @@ A capability may move to a more active status only when all of the following are
 | Guardian Controls shell | `preview` | Read-only policy status may be shown; no runtime approval or enforcement path. |
 | Desktop packaging | `planned` | No installer, desktop binary, signing, or auto-update path. |
 | Connectors | `guarded-future` | Read-only status may be shown; must satisfy `CONNECTOR_SAFETY_CONTRACT.md` before any runtime behavior. |
-| Cloud model calls | `disabled-by-default` | Explicit OpenRouter prompt calls are available only when env-enabled; Chat and Round Table must not call models automatically. |
+| Cloud model calls | `disabled-by-default` | Explicit API provider prompt calls are available only when env-enabled; OpenRouter defaults to free-model IDs; Chat and Round Table must not call models automatically. |
 | Credential storage | `guarded-future` | Must satisfy provider configuration and secret handling gates before any storage path. |
 | Tool execution | `guarded-future` | Must satisfy Guardian policy gates before any execution path. |
 

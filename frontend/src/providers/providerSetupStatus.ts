@@ -27,7 +27,7 @@ export const providerPreviewItems: ProviderPreviewItem[] = [
     default_model: "meta-llama/llama-3.2-3b-instruct:free",
     model_examples: ["meta-llama/llama-3.2-3b-instruct:free", "mistralai/mistral-7b-instruct:free"],
     runtime: "Guarded backend prompt endpoint for explicit operator calls. Free :free models are enforced by default.",
-    notes: "Uses OpenRouter through a backend-only env key. Set SPARKBOT_PROVIDER_CALLS_ENABLED=true to enable explicit OpenRouter prompt calls."
+    notes: "Uses OpenRouter through a backend-only env key. Set SPARKBOT_PROVIDER_CALLS_ENABLED=true to enable explicit provider prompt calls."
   },
   {
     id: "openai",
@@ -39,7 +39,7 @@ export const providerPreviewItems: ProviderPreviewItem[] = [
     credential_source: "OPENAI_API_KEY",
     default_model: "gpt-5-mini",
     model_examples: ["gpt-5-mini", "gpt-5.3-codex", "codex-mini-latest"],
-    runtime: "Onboarding/status only in this public branch; direct provider calls remain behind future routing gates.",
+    runtime: "Guarded backend prompt endpoint for explicit operator calls when provider prompt calls are enabled.",
     notes: "Matches the prototype provider slot for OpenAI API keys without adding browser credential entry or storage."
   },
   {
@@ -52,7 +52,7 @@ export const providerPreviewItems: ProviderPreviewItem[] = [
     credential_source: "ANTHROPIC_API_KEY",
     default_model: "claude-sonnet-4-5",
     model_examples: ["claude-sonnet-4-5", "claude-haiku-4-5", "claude-opus-4-6"],
-    runtime: "Onboarding/status only in this public branch; direct provider calls remain behind future routing gates.",
+    runtime: "Guarded backend prompt endpoint for explicit operator calls when provider prompt calls are enabled.",
     notes: "Matches the prototype Anthropic provider slot without adding browser credential entry or storage."
   },
   {
@@ -65,7 +65,7 @@ export const providerPreviewItems: ProviderPreviewItem[] = [
     credential_source: "GOOGLE_API_KEY",
     default_model: "gemini/gemini-2.0-flash",
     model_examples: ["gemini/gemini-2.0-flash", "gemini/gemini-3-flash"],
-    runtime: "Onboarding/status only in this public branch; direct provider calls remain behind future routing gates.",
+    runtime: "Guarded backend prompt endpoint for explicit operator calls when provider prompt calls are enabled.",
     notes: "Matches the prototype Google provider slot without adding browser credential entry or storage."
   },
   {
@@ -78,7 +78,7 @@ export const providerPreviewItems: ProviderPreviewItem[] = [
     credential_source: "GROQ_API_KEY",
     default_model: "groq/llama-3.3-70b-versatile",
     model_examples: ["groq/llama-3.3-70b-versatile"],
-    runtime: "Onboarding/status only in this public branch; direct provider calls remain behind future routing gates.",
+    runtime: "Guarded backend prompt endpoint for explicit operator calls when provider prompt calls are enabled.",
     notes: "Matches the prototype Groq provider slot without adding browser credential entry or storage."
   },
   {
@@ -91,7 +91,7 @@ export const providerPreviewItems: ProviderPreviewItem[] = [
     credential_source: "MINIMAX_API_KEY",
     default_model: "minimax/MiniMax-M2.5",
     model_examples: ["minimax/MiniMax-M2.5"],
-    runtime: "Onboarding/status only in this public branch; direct provider calls remain behind future routing gates.",
+    runtime: "Guarded backend prompt endpoint for explicit operator calls when provider prompt calls are enabled.",
     notes: "Matches the prototype MiniMax provider slot without adding browser credential entry or storage."
   },
   {
@@ -104,7 +104,7 @@ export const providerPreviewItems: ProviderPreviewItem[] = [
     credential_source: "XAI_API_KEY",
     default_model: "xai/grok-4",
     model_examples: ["xai/grok-4", "xai/grok-3-mini"],
-    runtime: "Onboarding/status only in this public branch; direct provider calls remain behind future routing gates.",
+    runtime: "Guarded backend prompt endpoint for explicit operator calls when provider prompt calls are enabled.",
     notes: "Matches the prototype xAI provider slot without adding browser credential entry or storage."
   },
   {
@@ -154,4 +154,4 @@ export const fallbackProviderConfigStatus: ProviderConfigStatusPayload = {
 };
 
 export const providerPreviewSummary =
-  "Provider onboarding is env-driven and backend-owned. OpenRouter supports explicit free-model prompt calls when enabled; other provider and subscription routes are shown as configured status without browser credential storage.";
+  "Provider onboarding is env-driven and backend-owned. OpenRouter defaults to explicit free-model prompt calls, and API-key providers support explicit backend prompt smokes when enabled. Subscription routes are shown as sign-in readiness without browser credential storage.";

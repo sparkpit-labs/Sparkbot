@@ -88,7 +88,7 @@ def test_guardian_status_is_static_preview() -> None:
             "id": "model-provider-calls",
             "label": "Model provider calls",
             "status": "guarded-future",
-            "notes": "No model provider calls are implemented.",
+            "notes": "Automatic or Guardian-mediated model provider calls remain guarded future; explicit env-enabled provider prompt smokes are separate operator-initiated calls.",
         },
         {
             "id": "file-writes",

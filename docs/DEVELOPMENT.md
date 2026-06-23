@@ -79,7 +79,7 @@ The frontend development server binds to `127.0.0.1` through Vite. The frontend 
 ## Current limitations
 
 - No provider credentials are accepted, stored, or transmitted through the browser. Backend provider setup is environment-driven.
-- No automatic model calls or broad model routing are active. OpenRouter prompt calls require explicit env enablement and an operator-submitted prompt.
+- No automatic model calls or broad model routing are active. API provider prompt calls require explicit env enablement and an operator-submitted prompt.
 - No chat runtime or message persistence is active.
 - No approval or policy enforcement runtime is active.
 - No sensitive action execution path is active.

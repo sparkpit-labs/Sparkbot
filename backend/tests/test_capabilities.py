@@ -136,7 +136,7 @@ def test_capabilities_are_static_and_public_safe() -> None:
             "id": "model-calls",
             "label": "Cloud model calls",
             "status": "disabled-by-default",
-            "notes": "Only explicit OpenRouter prompt calls are available when SPARKBOT_PROVIDER_CALLS_ENABLED=true and an env key is configured.",
+            "notes": "Explicit API provider prompt calls are available only when SPARKBOT_PROVIDER_CALLS_ENABLED=true and the provider env key is configured.",
         },
         {
             "id": "credential-storage",
@@ -182,7 +182,7 @@ def test_guarded_future_capabilities_are_present_and_inactive() -> None:
     inactive_notes = " ".join(item["notes"].lower() for item in payload["capabilities"])
     assert "no connector calls" in inactive_notes
     assert "external sends" in inactive_notes
-    assert "explicit openrouter prompt calls" in inactive_notes
+    assert "explicit api provider prompt calls" in inactive_notes
     assert "no credential entry" in inactive_notes
     assert "no terminal" in inactive_notes
     assert "available" not in {

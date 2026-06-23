@@ -34,7 +34,7 @@ The current repository is a validated shell baseline. It is useful for review, l
 | Guardian Controls | Preview | Read-only Guardian policy status surface; no approvals, enforcement, or sensitive actions. |
 | Desktop packaging | Planned | No installer or desktop binary exists yet. |
 | Connectors | Guarded future | Read-only connector status surface; no connector calls or external sends. |
-| Model calls | Disabled by default | Local Ollama and OpenRouter prompt calls are disabled unless explicitly enabled by environment. Chat and Round Table do not auto-call models. |
+| Model calls | Disabled by default | Local Ollama and API-provider prompt calls are disabled unless explicitly enabled by environment. OpenRouter defaults to free-model IDs. Chat and Round Table do not auto-call models. |
 | Credential storage | Guarded future | No secrets are accepted, stored, or transmitted. |
 | Tool execution | Guarded future | No terminal, tool execution, connector calls, or external sends. |
 
@@ -191,7 +191,7 @@ http://127.0.0.1:8000/local-models/status
 
 Local Ollama prompt calls remain disabled by default. To test the local-only response flow, create or select a local chat session, optionally check local memory notes to include in that one prompt, start Ollama locally, and run the backend with `SPARKBOT_LOCAL_MODELS_ENABLED=true` plus a configured or typed local model name. Successful responses are stored as `assistant-local` messages in the selected session.
 
-OpenRouter prompt calls also remain disabled by default. To test the guarded free-model path, configure backend environment values and submit an explicit prompt to the OpenRouter endpoint:
+API provider prompt calls also remain disabled by default. To test the guarded OpenRouter free-model path, configure backend environment values and submit an explicit prompt to the OpenRouter endpoint:
 
 ```bash
 SPARKBOT_PROVIDER_CALLS_ENABLED=true \
@@ -254,7 +254,7 @@ Open `http://127.0.0.1:15173` for the browser check. See `docs/LOCAL_SMOKE_TEST.
 - Desktop readiness is limited to local development, validation, and smoke-test paths. No installer, desktop framework, signing, or auto-update behavior is included.
 - No automatic cloud model calls or production model routing.
 - Local Ollama prompt calls are disabled by default and require `SPARKBOT_LOCAL_MODELS_ENABLED=true`.
-- OpenRouter prompt calls are disabled by default and require `SPARKBOT_PROVIDER_CALLS_ENABLED=true`, `OPENROUTER_API_KEY`, and an explicit operator prompt.
+- API provider prompt calls are disabled by default and require `SPARKBOT_PROVIDER_CALLS_ENABLED=true`, the relevant backend provider env key, and an explicit operator prompt. OpenRouter enforces `:free` model IDs by default.
 - Local chat drafts, local assistant responses, memory notes, and work lane cards are stored only in the local SQLite Workstation store. Work lane card links point only to local chat sessions.
 - Local data export is a read-only JSON download for backup/testing. There is no import path, cloud sync, external upload, credential export, or provider call.
 - Local runtime settings are read-only and environment-driven. There are no credential fields, secret save buttons, or runtime config writes.
@@ -297,7 +297,7 @@ Key docs:
 
 ## Security and privacy posture
 
-Current validation does not require secrets. The repository does not accept or store provider credentials in the browser. Provider credentials, when used, are backend environment values owned by the operator. Local Workstation CRUD stores user-entered drafts, notes, and planning cards in SQLite only. The local data export reads that SQLite data and downloads JSON in the browser without import, sync, or upload behavior. Local runtime settings show local paths and env-driven Ollama configuration without accepting credentials or writing settings. Local Ollama and OpenRouter prompt calls are disabled by default and require explicit environment enablement. Codex and Claude subscription cards report CLI availability, sign-in readiness, and next operator action; unguarded CLI dispatch remains out of scope until the LIMA Guardian execution boundary is defined.
+Current validation does not require secrets. The repository does not accept or store provider credentials in the browser. Provider credentials, when used, are backend environment values owned by the operator. Local Workstation CRUD stores user-entered drafts, notes, and planning cards in SQLite only. The local data export reads that SQLite data and downloads JSON in the browser without import, sync, or upload behavior. Local runtime settings show local paths and env-driven Ollama configuration without accepting credentials or writing settings. Local Ollama and API provider prompt calls are disabled by default and require explicit environment enablement. Codex and Claude subscription cards report CLI availability, sign-in readiness, and next operator action; unguarded CLI dispatch remains out of scope until the LIMA Guardian execution boundary is defined.
 
 Future connector, broad model routing, credential storage, and Guardian runtime work must satisfy the public contracts in `docs/` before implementation branches can claim active behavior.
 

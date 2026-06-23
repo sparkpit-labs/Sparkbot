@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 
-import { fetchProviderConfigStatus, runOpenRouterPrompt, type OpenRouterPromptResponse, type ProviderConfigStatusPayload } from "../api";
+import { fetchProviderConfigStatus, runProviderPrompt, type ProviderConfigStatusPayload, type ProviderPromptResponse } from "../api";
 import { fallbackProviderConfigStatus, providerPreviewSummary } from "../providers/providerSetupStatus";
 import { formatShellStatus } from "./ShellNavigation";
 
@@ -14,7 +14,7 @@ const fallbackProviderStatusState: ProviderStatusState = {
   sourceLabel: "Using local provider status fallback."
 };
 
-const DEFAULT_OPENROUTER_SMOKE_MODEL = "meta-llama/llama-3.2-3b-instruct:free";
+const DEFAULT_PROVIDER_SMOKE_MODEL = "meta-llama/llama-3.2-3b-instruct:free";
 
 function formatImplementationStatus(status: string) {
   return status.replace(/-/g, " ");
@@ -26,11 +26,12 @@ function formatBool(value: boolean) {
 
 export default function ProviderSetupPreview() {
   const [providerStatusState, setProviderStatusState] = useState<ProviderStatusState>(fallbackProviderStatusState);
-  const [openRouterPrompt, setOpenRouterPrompt] = useState("Say OK.");
-  const [openRouterModel, setOpenRouterModel] = useState(DEFAULT_OPENROUTER_SMOKE_MODEL);
-  const [openRouterResult, setOpenRouterResult] = useState<OpenRouterPromptResponse | null>(null);
-  const [openRouterError, setOpenRouterError] = useState<string | null>(null);
-  const [openRouterSubmitting, setOpenRouterSubmitting] = useState(false);
+  const [selectedPromptProviderId, setSelectedPromptProviderId] = useState("openrouter");
+  const [providerPrompt, setProviderPrompt] = useState("Say OK.");
+  const [providerModel, setProviderModel] = useState(DEFAULT_PROVIDER_SMOKE_MODEL);
+  const [providerResult, setProviderResult] = useState<ProviderPromptResponse | null>(null);
+  const [providerError, setProviderError] = useState<string | null>(null);
+  const [providerSubmitting, setProviderSubmitting] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -53,29 +54,36 @@ export default function ProviderSetupPreview() {
   }, []);
 
   const { payload } = providerStatusState;
-  const openRouterProvider = payload.providers.find((provider) => provider.id === "openrouter");
-  const openRouterReady = openRouterProvider?.status === "available" && payload.provider_calls === "guarded-manual";
-  const openRouterDefaultModel = openRouterProvider?.default_model || DEFAULT_OPENROUTER_SMOKE_MODEL;
+  const promptProviders = payload.providers.filter((provider) => provider.auth_mode === "env-api-key");
+  const selectedPromptProvider =
+    promptProviders.find((provider) => provider.id === selectedPromptProviderId) ||
+    promptProviders.find((provider) => provider.id === "openrouter") ||
+    promptProviders[0];
+  const providerReady = selectedPromptProvider?.status === "available" && payload.provider_calls === "guarded-manual";
+  const providerDefaultModel = selectedPromptProvider?.default_model || DEFAULT_PROVIDER_SMOKE_MODEL;
 
   useEffect(() => {
-    if (!openRouterModel.trim()) {
-      setOpenRouterModel(openRouterDefaultModel);
-    }
-  }, [openRouterDefaultModel, openRouterModel]);
+    setProviderModel(providerDefaultModel);
+    setProviderResult(null);
+    setProviderError(null);
+  }, [providerDefaultModel, selectedPromptProvider?.id]);
 
-  async function handleOpenRouterSmoke(event: FormEvent<HTMLFormElement>) {
+  async function handleProviderSmoke(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setOpenRouterError(null);
-    setOpenRouterResult(null);
-    setOpenRouterSubmitting(true);
+    if (!selectedPromptProvider) {
+      return;
+    }
+    setProviderError(null);
+    setProviderResult(null);
+    setProviderSubmitting(true);
 
     try {
-      const result = await runOpenRouterPrompt(openRouterPrompt, openRouterModel);
-      setOpenRouterResult(result);
+      const result = await runProviderPrompt(selectedPromptProvider.id, providerPrompt, providerModel);
+      setProviderResult(result);
     } catch (error: unknown) {
-      setOpenRouterError(error instanceof Error ? error.message : "OpenRouter prompt request failed.");
+      setProviderError(error instanceof Error ? error.message : "Provider prompt request failed.");
     } finally {
-      setOpenRouterSubmitting(false);
+      setProviderSubmitting(false);
     }
   }
 
@@ -103,46 +111,57 @@ export default function ProviderSetupPreview() {
         </div>
       </dl>
 
-      <form className="provider-smoke-panel" aria-label="OpenRouter free model smoke test" onSubmit={handleOpenRouterSmoke}>
+      <form className="provider-smoke-panel" aria-label="Provider prompt smoke test" onSubmit={handleProviderSmoke}>
         <div className="provider-card-top">
-          <h3>OpenRouter Free Model Smoke</h3>
-          <span className={`status-badge status-${openRouterReady ? "available" : "disabled-by-default"}`}>
-            {openRouterReady ? "Available" : "Disabled by default"}
+          <h3>Provider Prompt Smoke</h3>
+          <span className={`status-badge status-${providerReady ? "available" : "disabled-by-default"}`}>
+            {providerReady ? "Available" : "Disabled by default"}
           </span>
         </div>
         <div className="provider-smoke-fields">
           <label>
-            <span>OpenRouter smoke model</span>
+            <span>Smoke provider</span>
+            <select
+              value={selectedPromptProvider?.id || ""}
+              onChange={(event) => setSelectedPromptProviderId(event.target.value)}
+            >
+              {promptProviders.map((provider) => (
+                <option value={provider.id} key={provider.id}>{provider.label}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>Smoke model</span>
             <input
-              value={openRouterModel}
-              onChange={(event) => setOpenRouterModel(event.target.value)}
-              placeholder={openRouterDefaultModel}
+              value={providerModel}
+              onChange={(event) => setProviderModel(event.target.value)}
+              placeholder={providerDefaultModel}
               autoComplete="off"
             />
           </label>
           <label>
-            <span>OpenRouter smoke prompt</span>
+            <span>Smoke prompt</span>
             <textarea
-              value={openRouterPrompt}
-              onChange={(event) => setOpenRouterPrompt(event.target.value)}
+              value={providerPrompt}
+              onChange={(event) => setProviderPrompt(event.target.value)}
               rows={3}
             />
           </label>
         </div>
         <button
           type="submit"
-          disabled={!openRouterReady || openRouterSubmitting || !openRouterPrompt.trim() || !openRouterModel.trim()}
+          disabled={!selectedPromptProvider || !providerReady || providerSubmitting || !providerPrompt.trim() || !providerModel.trim()}
         >
-          {openRouterSubmitting ? "Running..." : "Run OpenRouter smoke"}
+          {providerSubmitting ? "Running..." : "Run provider smoke"}
         </button>
-        {!openRouterReady ? (
-          <p className="provider-action">Next: set SPARKBOT_PROVIDER_CALLS_ENABLED=true and OPENROUTER_API_KEY in the backend environment.</p>
+        {!providerReady && selectedPromptProvider ? (
+          <p className="provider-action">Next: set SPARKBOT_PROVIDER_CALLS_ENABLED=true and {selectedPromptProvider.credential_source} in the backend environment.</p>
         ) : null}
-        {openRouterError ? <p className="provider-error" role="alert">{openRouterError}</p> : null}
-        {openRouterResult ? (
+        {providerError ? <p className="provider-error" role="alert">{providerError}</p> : null}
+        {providerResult ? (
           <output className="provider-smoke-result" aria-live="polite">
-            <strong>{openRouterResult.model}</strong>
-            <span>{openRouterResult.response}</span>
+            <strong>{selectedPromptProvider?.label}: {providerResult.model}</strong>
+            <span>{providerResult.response}</span>
           </output>
         ) : null}
       </form>
@@ -208,7 +227,7 @@ export default function ProviderSetupPreview() {
 
       <p className="provider-note">
         This setup surface includes no API key fields, no password or token fields, no save actions, and no hidden
-        provider health checks. OpenRouter calls require explicit backend env enablement and an operator-submitted prompt.
+        provider health checks. Provider prompt calls require explicit backend env enablement and an operator-submitted prompt.
       </p>
     </section>
   );
