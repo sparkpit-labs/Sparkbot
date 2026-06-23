@@ -7,7 +7,7 @@ This contract defines the public safety boundary for future Guardian behavior. G
 The Guardian Controls shell may describe planned categories and blocked future work. It must not imply that policy enforcement is active today.
 
 - `GET /guardian/status` may report static read-only posture, not-implemented runtime enforcement, guarded-future sensitive action categories, and a read-only provider execution boundary.
-- The provider execution boundary must remain `guarded-future` and `fail-closed` until LIMA Guardian provides capability checks, operator approval, audit logging, secret redaction, timeout control, and no-shell-expansion dispatch for subscription CLIs.
+- The provider execution boundary must remain `guarded-future` and `fail-closed` until LIMA Guardian provides capability checks, operator approval, audit logging, secret redaction, timeout control, and no-shell-expansion dispatch for subscription CLIs. The public adapter expectations are documented in `LIMA_PROVIDER_GUARDIAN_ADAPTER.md`.
 
 ## Sensitive Action Classes
 

@@ -286,6 +286,7 @@ Key docs:
 - `docs/CONNECTOR_SAFETY_CONTRACT.md` for future connector safety gates.
 - `docs/PROVIDER_CONFIG_CONTRACT.md` for provider setup and model-call gates.
 - `docs/PROVIDER_SETUP_SHELL.md` for OpenRouter, API-key provider, and subscription sign-in setup boundaries.
+- `docs/LIMA_PROVIDER_GUARDIAN_ADAPTER.md` for the future Codex/Claude subscription dispatch boundary through LIMA Guardian.
 - `docs/GUARDIAN_POLICY_CONTRACT.md` for future sensitive-action policy gates.
 - `docs/ROADMAP.md` for staged product direction.
 - `docs/RELEASE_READINESS.md` for current release-readiness boundaries.

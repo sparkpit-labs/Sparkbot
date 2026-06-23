@@ -37,6 +37,7 @@ This index groups the public Sparkbot documentation for first-time visitors, loc
 - [Connector Safety Contract](CONNECTOR_SAFETY_CONTRACT.md): disabled-by-default connector rules and future live-action gates.
 - [Provider Configuration Contract](PROVIDER_CONFIG_CONTRACT.md): provider setup, credential boundary, and model-call gates.
 - [Guardian Policy Contract](GUARDIAN_POLICY_CONTRACT.md): future sensitive-action policy and approval gates.
+- [LIMA Guardian Provider Adapter](LIMA_PROVIDER_GUARDIAN_ADAPTER.md): public contract for future Codex/Claude subscription dispatch through Guardian.
 
 ## Roadmap and plans
 
