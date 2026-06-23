@@ -1,6 +1,6 @@
 # Provider Setup
 
-Provider Setup is now an environment-driven onboarding surface for local models, OpenRouter, API-key providers, and subscription CLI providers. It still does not collect or store credentials in the browser.
+Provider Setup is now an environment-driven onboarding surface for local models, OpenRouter, API-key providers, and subscription CLI providers. It still does not collect or store credentials in the browser. The one-command local smoke wrapper verifies placeholder-backed onboarding for every API-key provider without exposing key values or enabling non-OpenRouter prompt dispatch.
 
 ## Current provider cards
 

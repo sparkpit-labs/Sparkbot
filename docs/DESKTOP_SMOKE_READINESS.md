@@ -20,8 +20,8 @@ The script:
 - Runs `scripts/smoke-check-local.sh` against the running services.
 - Verifies `/local/runtime/settings` reports the smoke data directory.
 - Verifies the default Ollama-disabled prompt path returns `403`.
-- Restarts the backend with provider calls enabled and a placeholder OpenRouter backend key.
-- Verifies OpenRouter reports guarded-manual status and rejects a non-free model with `400` before provider dispatch.
+- Restarts the backend with provider calls enabled and placeholder API-key provider backend env values.
+- Verifies all API-key provider cards report configured onboarding, OpenRouter reports guarded-manual status, non-OpenRouter API providers remain disabled-by-default, and a non-free OpenRouter model returns `400` before provider dispatch.
 - Restarts the backend with local models enabled.
 - Verifies enabled local-model status is still localhost-only.
 - Stops the smoke backend and frontend processes that it started.
@@ -59,7 +59,7 @@ This smoke path is not an installer. It does not add:
 - Enabled Ollama prompt calls.
 - Connector sends or tool execution.
 
-The enabled local-model check only verifies the read-only local status path with `SPARKBOT_LOCAL_MODELS_ENABLED=true`. It does not send a prompt to Ollama. The OpenRouter guarded-mode check uses a placeholder backend key and intentionally rejected non-free model request; it does not send a successful cloud prompt by default. The subscription-readiness assertion only reads provider status from Sparkbot and does not dispatch Codex or Claude CLI prompts.
+The enabled local-model check only verifies the read-only local status path with `SPARKBOT_LOCAL_MODELS_ENABLED=true`. It does not send a prompt to Ollama. The provider-onboarding check uses short placeholder backend keys and an intentionally rejected non-free OpenRouter model request; it does not send a successful cloud prompt by default. The subscription-readiness assertion only reads provider status from Sparkbot and does not dispatch Codex or Claude CLI prompts.
 
 ## Manual Smoke Path
 

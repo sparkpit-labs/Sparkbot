@@ -166,14 +166,20 @@ start_backend_enabled() {
   wait_for_url "backend" "${backend_url}/health" "${BACKEND_LOG}"
 }
 
-start_backend_openrouter_enabled() {
+start_backend_provider_onboarding_enabled() {
   : >"${BACKEND_LOG}"
-  echo "Starting backend OpenRouter guarded-mode smoke server at ${backend_url}"
+  echo "Starting backend provider-onboarding smoke server at ${backend_url}"
   env \
     SPARKBOT_DATA_DIR="${DATA_DIR}" \
     "${BACKEND_SUBSCRIPTION_ENV[@]}" \
     SPARKBOT_PROVIDER_CALLS_ENABLED=true \
     OPENROUTER_API_KEY=smoke-key \
+    "OPEN""AI_API_KEY=smoke-key" \
+    "ANTHROPIC""_API_KEY=smoke-key" \
+    "GOOGLE""_API_KEY=smoke-key" \
+    GROQ_API_KEY=smoke-key \
+    MINIMAX_API_KEY=smoke-key \
+    XAI_API_KEY=smoke-key \
     SPARKBOT_OPENROUTER_MODEL="${SPARKBOT_SMOKE_OPENROUTER_MODEL}" \
     SPARKBOT_BACKEND_HOST="${SPARKBOT_SMOKE_BACKEND_HOST}" \
     SPARKBOT_BACKEND_PORT="${SPARKBOT_SMOKE_BACKEND_PORT}" \
@@ -248,46 +254,60 @@ print("PASS: Codex and Claude subscription sign-in readiness detected; CLI dispa
 PY
 }
 
-check_openrouter_guarded_status() {
+check_provider_onboarding_status() {
   local response
   local paid_model_code
   response="$(curl -fsS "${backend_url}/provider-config/status")"
   printf "%s\n" "${response}"
-  case "${response}" in
-    *\"provider_calls\":\"guarded-manual\"*|*\"provider_calls\":\ \"guarded-manual\"*) ;;
-    *)
-      echo "OpenRouter guarded-mode status did not report provider_calls=guarded-manual." >&2
-      exit 1
-      ;;
-  esac
-  case "${response}" in
-    *\"id\":\"openrouter\"*|*\"id\":\ \"openrouter\"*) ;;
-    *)
-      echo "OpenRouter guarded-mode status did not include the OpenRouter provider card." >&2
-      exit 1
-      ;;
-  esac
-  case "${response}" in
-    *\"configured\":true*|*\"configured\":\ true*) ;;
-    *)
-      echo "OpenRouter guarded-mode status did not report a configured provider." >&2
-      exit 1
-      ;;
-  esac
-  case "${response}" in
-    *\"status\":\"available\"*|*\"status\":\ \"available\"*) ;;
-    *)
-      echo "OpenRouter guarded-mode status did not include an available provider status." >&2
-      exit 1
-      ;;
-  esac
-  case "${response}" in
-    *"${SPARKBOT_SMOKE_OPENROUTER_MODEL}"*) ;;
-    *)
-      echo "OpenRouter guarded-mode status did not report the smoke free model ${SPARKBOT_SMOKE_OPENROUTER_MODEL}." >&2
-      exit 1
-      ;;
-  esac
+  SPARKBOT_PROVIDER_STATUS_JSON="${response}" SPARKBOT_SMOKE_OPENROUTER_MODEL="${SPARKBOT_SMOKE_OPENROUTER_MODEL}" python3 - <<'PY'
+import json
+import os
+import sys
+
+payload = json.loads(os.environ["SPARKBOT_PROVIDER_STATUS_JSON"])
+providers = {provider.get("id"): provider for provider in payload.get("providers", [])}
+expected = {
+    "openrouter": ("OPENROUTER_API_KEY", "available"),
+    "openai": ("OPENAI_API_KEY", "disabled-by-default"),
+    "anthropic": ("ANTHROPIC_API_KEY", "disabled-by-default"),
+    "google": ("GOOGLE_API_KEY", "disabled-by-default"),
+    "groq": ("GROQ_API_KEY", "disabled-by-default"),
+    "minimax": ("MINIMAX_API_KEY", "disabled-by-default"),
+    "xai": ("XAI_API_KEY", "disabled-by-default"),
+}
+errors = []
+if payload.get("provider_calls") != "guarded-manual":
+    errors.append("provider_calls did not report guarded-manual.")
+if payload.get("credential_storage") != "not-implemented":
+    errors.append("credential storage should remain not-implemented.")
+serialized = json.dumps(payload)
+if "smoke-key" in serialized:
+    errors.append("provider status leaked the smoke placeholder key value.")
+for provider_id, (credential_source, expected_status) in expected.items():
+    provider = providers.get(provider_id)
+    if not provider:
+        errors.append(f"{provider_id} provider card is missing.")
+        continue
+    if provider.get("configured") is not True:
+        errors.append(f"{provider_id} did not report configured=true.")
+    if provider.get("status") != expected_status:
+        errors.append(f"{provider_id} reported status {provider.get('status')!r}, expected {expected_status!r}.")
+    if provider.get("credential_source") != credential_source:
+        errors.append(f"{provider_id} did not report credential source {credential_source}.")
+    if provider.get("auth_mode") != "env-api-key":
+        errors.append(f"{provider_id} did not report env-api-key auth mode.")
+openrouter = providers.get("openrouter", {})
+if openrouter.get("default_model") != os.environ["SPARKBOT_SMOKE_OPENROUTER_MODEL"]:
+    errors.append("OpenRouter did not report the configured smoke free model.")
+if not str(openrouter.get("default_model", "")).endswith(":free"):
+    errors.append("OpenRouter smoke model is not a free :free model.")
+if errors:
+    print("Provider onboarding smoke failed:", file=sys.stderr)
+    for error in errors:
+        print(f"- {error}", file=sys.stderr)
+    raise SystemExit(1)
+print("PASS: API-key provider onboarding cards configured; only OpenRouter is guarded-call available.")
+PY
 
   echo "Checking OpenRouter non-free model is rejected before provider dispatch"
   paid_model_code="$(curl -sS -o /dev/null -w "%{http_code}" -X POST "${backend_url}/provider-config/openrouter/prompt" -H "Content-Type: application/json" -d '{"prompt":"smoke","model":"openrouter/openai/gpt-4o-mini"}')"
@@ -340,8 +360,8 @@ if [[ "${SPARKBOT_SMOKE_REQUIRE_SUBSCRIPTIONS}" == "true" ]]; then
 fi
 
 stop_backend
-start_backend_openrouter_enabled
-check_openrouter_guarded_status
+start_backend_provider_onboarding_enabled
+check_provider_onboarding_status
 
 stop_backend
 start_backend_enabled
