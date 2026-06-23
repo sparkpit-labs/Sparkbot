@@ -38,7 +38,7 @@ SPARKBOT_SMOKE_REQUIRE_SUBSCRIPTIONS=true \
 bash scripts/run-local-smoke-test.sh
 ```
 
-That mode fails unless Codex and Claude each report CLI availability, sign-in detection, `configured=true`, `status=disabled-by-default`, and `runtime_gate=lima-guardian-required`. It confirms sign-in readiness for the LIMA Guardian adapter without running either CLI. Once the LIMA adapter is running, perform the manual subscription smoke documented in `LIMA_PROVIDER_GUARDIAN_ADAPTER.md`; that is the step that verifies guarded adapter dispatch.
+That mode fails unless Codex and Claude each report CLI availability, sign-in detection, `configured=true`, `status=disabled-by-default`, and `runtime_gate=lima-guardian-required`. It confirms sign-in readiness for the LIMA Guardian adapter without running either CLI. Once the LIMA adapter is running, perform `bash scripts/smoke-check-lima-provider-adapter.sh` as documented in `LIMA_PROVIDER_GUARDIAN_ADAPTER.md`; that is the step that verifies guarded adapter dispatch.
 
 ## Start backend on an alternate port
 
