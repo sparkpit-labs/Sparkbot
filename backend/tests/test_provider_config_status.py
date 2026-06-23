@@ -293,12 +293,22 @@ def test_subscription_prompt_fails_closed_without_adapter_url(monkeypatch) -> No
     assert "SPARKBOT_LIMA_PROVIDER_ADAPTER_URL" in response.json()["detail"]
 
 
-def test_subscription_prompt_rejects_non_local_adapter_url(monkeypatch) -> None:
+@pytest.mark.parametrize(
+    ("adapter_url", "expected_detail"),
+    [
+        ("https://example.com/provider-adapter/dispatch", "http localhost"),
+        ("http://user:pass@127.0.0.1:18099/provider-adapter/dispatch", "must not include credentials"),
+        ("http://127.0.0.1:18099/provider-adapter/dispatch?debug=true", "query parameters"),
+        ("http://127.0.0.1:18099/provider-adapter/dispatch#debug", "fragments"),
+        ("http://127.0.0.1:18099/", "explicit dispatch path"),
+    ],
+)
+def test_subscription_prompt_rejects_unsafe_adapter_urls(monkeypatch, adapter_url: str, expected_detail: str) -> None:
     def fail_post(url: str, payload: dict[str, Any]) -> dict[str, Any]:
-        raise AssertionError("non-local adapter URL should be rejected before dispatch")
+        raise AssertionError("unsafe adapter URL should be rejected before dispatch")
 
     monkeypatch.setenv("SPARKBOT_PROVIDER_CALLS_ENABLED", "true")
-    monkeypatch.setenv("SPARKBOT_LIMA_PROVIDER_ADAPTER_URL", "https://example.com/provider-adapter/dispatch")
+    monkeypatch.setenv("SPARKBOT_LIMA_PROVIDER_ADAPTER_URL", adapter_url)
     monkeypatch.setattr(provider_runtime, "_codex_cli_available", lambda: True)
     monkeypatch.setattr(provider_runtime, "_codex_auth_file_exists", lambda: True)
     monkeypatch.setattr(provider_runtime, "_post_lima_guardian_adapter", fail_post)
@@ -310,7 +320,26 @@ def test_subscription_prompt_rejects_non_local_adapter_url(monkeypatch) -> None:
     )
 
     assert response.status_code == 400
-    assert "http localhost" in response.json()["detail"]
+    assert expected_detail in response.json()["detail"]
+
+
+def test_subscription_status_does_not_report_invalid_adapter_as_configured(monkeypatch) -> None:
+    monkeypatch.setenv("SPARKBOT_PROVIDER_CALLS_ENABLED", "true")
+    monkeypatch.setenv("SPARKBOT_LIMA_PROVIDER_ADAPTER_URL", "http://token:secret@127.0.0.1:18099/provider-adapter/dispatch")
+    monkeypatch.setattr(provider_runtime, "_codex_cli_available", lambda: True)
+    monkeypatch.setattr(provider_runtime, "_codex_auth_file_exists", lambda: True)
+    monkeypatch.setattr(provider_runtime, "_claude_cli_available", lambda: True)
+    monkeypatch.setattr(provider_runtime, "_claude_subscription_hint_present", lambda: True)
+
+    payload = provider_runtime.get_provider_config_status()
+    providers = _provider_by_id(payload)
+
+    assert providers["openai-codex-subscription"]["configured"] is True
+    assert providers["openai-codex-subscription"]["adapter_configured"] is False
+    assert providers["openai-codex-subscription"]["status"] == "disabled-by-default"
+    assert "SPARKBOT_LIMA_PROVIDER_ADAPTER_URL" in providers["openai-codex-subscription"]["operator_action"]
+    assert providers["claude-subscription"]["adapter_configured"] is False
+    assert providers["claude-subscription"]["status"] == "disabled-by-default"
 
 
 def test_subscription_prompt_accepts_prototype_provider_aliases(monkeypatch) -> None:

@@ -421,7 +421,14 @@ def _lima_provider_adapter_url() -> str:
 
 
 def _lima_provider_adapter_configured() -> bool:
-    return bool(_lima_provider_adapter_url())
+    url = _lima_provider_adapter_url()
+    if not url:
+        return False
+    try:
+        _validate_lima_provider_adapter_url(url)
+    except ProviderConfigError:
+        return False
+    return True
 
 
 def _validate_lima_provider_adapter_url(url: str) -> str:
@@ -433,6 +440,10 @@ def _validate_lima_provider_adapter_url(url: str) -> str:
         raise ProviderConfigError("LIMA Guardian provider adapter URL is invalid.") from exc
     if parsed.scheme != "http" or parsed.host not in {"127.0.0.1", "localhost"}:
         raise ProviderConfigError("LIMA Guardian provider adapter URL must be an http localhost endpoint.")
+    if parsed.username or parsed.password or parsed.userinfo or parsed.query or parsed.fragment:
+        raise ProviderConfigError("LIMA Guardian provider adapter URL must not include credentials, query parameters, or fragments.")
+    if not parsed.path or parsed.path == "/":
+        raise ProviderConfigError("LIMA Guardian provider adapter URL must include an explicit dispatch path.")
     return url
 
 
