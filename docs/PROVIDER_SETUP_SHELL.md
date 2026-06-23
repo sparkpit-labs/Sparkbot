@@ -27,6 +27,8 @@ OPENROUTER_API_KEY=...
 SPARKBOT_OPENROUTER_MODEL=meta-llama/llama-3.2-3b-instruct:free
 ```
 
+The local development start scripts read `${repo}/.env` automatically through a plain `KEY=VALUE` parser. They do not execute `.env` contents, print provider values, or overwrite variables already exported in the shell. Set `SPARKBOT_ENV_FILE=/path/to/local.env` before launch when testing with an alternate local env file.
+
 Sparkbot enforces OpenRouter model IDs ending in `:free` by default. To opt into paid OpenRouter models for a local test, set `SPARKBOT_ALLOW_PAID_OPENROUTER_MODELS=true` and use an explicit model ID.
 
 Provider Setup includes a Provider Prompt Smoke panel. The panel defaults to OpenRouter and is enabled only when the selected provider reports available; it submits only provider ID, operator prompt, and model ID to the backend; it does not accept or display keys.

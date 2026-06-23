@@ -3,6 +3,36 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FRONTEND_DIR="${ROOT_DIR}/frontend"
+
+load_env_file() {
+  local env_file="${1}"
+  local line key
+
+  [[ -f "${env_file}" ]] || return 0
+
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    line="${line%$'\r'}"
+    case "${line}" in
+      ""|\#*) continue ;;
+      *=*) ;;
+      *) continue ;;
+    esac
+
+    key="${line%%=*}"
+    case "${key}" in
+      ""|[0-9]*|*[!A-Za-z0-9_]*)
+        continue
+        ;;
+    esac
+
+    if [[ -z "${!key+x}" ]]; then
+      export "${line}"
+    fi
+  done < "${env_file}"
+}
+
+load_env_file "${SPARKBOT_ENV_FILE:-${ROOT_DIR}/.env}"
+
 SPARKBOT_BACKEND_PORT="${SPARKBOT_BACKEND_PORT:-8000}"
 SPARKBOT_FRONTEND_HOST="${SPARKBOT_FRONTEND_HOST:-127.0.0.1}"
 SPARKBOT_FRONTEND_PORT="${SPARKBOT_FRONTEND_PORT:-5173}"

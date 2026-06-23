@@ -12,6 +12,8 @@ bash scripts/run-local-smoke-test.sh
 
 That wrapper prepares missing local dev dependencies, starts backend and frontend on alternate localhost ports, uses a temporary local data directory, runs this smoke check, verifies the reported data directory, restarts the backend with provider calls enabled and placeholder backend provider keys to prove API-key provider onboarding plus the guarded OpenRouter free-model path, restarts again with local models enabled, verifies the enabled local-model status path, and stops the smoke servers. It isolates Codex and Claude subscription homes by default so validation does not depend on the host user. It does not run an Ollama prompt and does not send a successful cloud prompt.
 
+For manual development startup, `scripts/start-backend-dev.sh` and `scripts/start-frontend-dev.sh` read `${repo}/.env` automatically when it exists. The loader accepts plain `KEY=VALUE` lines, skips comments, does not execute shell code, and leaves already-exported environment values unchanged. Use `SPARKBOT_ENV_FILE=/path/to/local.env` to point both scripts at a different local env file during operator install testing.
+
 ## Default ports
 
 By default, the development scripts use:
