@@ -129,9 +129,19 @@ Allowed status values:
 
 Sparkbot accepts only `succeeded` as a successful prompt response. Other statuses are returned as safe unavailable errors. Sparkbot requires a matching `request_id`, `provider_id`, `model`, contract version `1`, and non-empty `audit_id`.
 
+## Sparkbot-Side Contract Smoke
+
+Before the real LIMA adapter is available, Sparkbot's wiring can be tested with a local mock adapter and temporary fake sign-in markers:
+
+```bash
+bash scripts/run-lima-provider-adapter-contract-smoke.sh
+```
+
+This starts a localhost contract adapter, starts a temporary Sparkbot backend with provider calls enabled, runs `scripts/smoke-check-lima-provider-adapter.sh`, and then stops both processes. It verifies Sparkbot's guarded delegation path and response contract only. It does not run Codex, Claude, LIMA Guardian, or any subscription CLI.
+
 ## Manual Subscription Smoke
 
-After the LIMA adapter is running locally and subscription sign-in readiness is detected, a manual smoke can be run with:
+After the real LIMA adapter is running locally and subscription sign-in readiness is detected, a manual smoke can be run with:
 
 ```bash
 SPARKBOT_PROVIDER_CALLS_ENABLED=true \
@@ -176,6 +186,7 @@ For LIMA AI OS install testing, collect these results before claiming subscripti
 | Subscription readiness | With `SPARKBOT_SMOKE_USE_HOST_SUBSCRIPTIONS=true SPARKBOT_SMOKE_REQUIRE_SUBSCRIPTIONS=true`, Codex and Claude cards report CLI availability, sign-in detection, and `runtime_gate=lima-guardian-required`. |
 | Adapter gate | Without `SPARKBOT_LIMA_PROVIDER_ADAPTER_URL`, subscription prompt routes return a safe `400` and do not dispatch. |
 | Localhost-only adapter | Non-local adapter URLs are rejected before dispatch. |
+| Sparkbot contract path | `bash scripts/run-lima-provider-adapter-contract-smoke.sh` passes with a local mock adapter and fake sign-in markers; this proves Sparkbot wiring only. |
 | Guarded success | `bash scripts/smoke-check-lima-provider-adapter.sh` passes against a backend started with `SPARKBOT_PROVIDER_CALLS_ENABLED=true` and a configured localhost LIMA adapter. |
 | Guarded failure | Adapter statuses `denied`, `blocked`, `timeout`, and `failed` return safe unavailable errors from Sparkbot and include no secrets in the response. |
 | No direct CLI path | Sparkbot logs, docs, and tests show no direct Codex or Claude CLI subprocess execution in the public shell. |
