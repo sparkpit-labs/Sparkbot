@@ -31,6 +31,8 @@ The local development start scripts read `${repo}/.env` automatically through a 
 
 Sparkbot enforces OpenRouter model IDs ending in `:free` by default. To opt into paid OpenRouter models for a local test, set `SPARKBOT_ALLOW_PAID_OPENROUTER_MODELS=true` and use an explicit model ID.
 
+Provider model examples mirror the prototype catalogue for operator familiarity: OpenRouter keeps free `:free` examples by default, Codex uses `openai-codex/gpt-5.3-codex`, Claude subscription uses `claude-sub/...` IDs, Anthropic includes Claude Sonnet 4.6/Opus 4.6 examples, Google includes Gemini 3.1 examples, MiniMax includes M2.5/M2.7, and xAI includes Grok 4.20/4.1 examples.
+
 Provider Setup includes a Provider Prompt Smoke panel. The panel defaults to OpenRouter and is enabled only when the selected provider reports available; it submits only provider ID, operator prompt, and model ID to the backend; it does not accept or display keys.
 
 Manual OpenRouter smoke request:

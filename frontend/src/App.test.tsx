@@ -345,7 +345,7 @@ const providerConfigStatusPayload = {
       configuration: "environment",
       credential_source: "OPENAI_API_KEY",
       default_model: "gpt-5-mini",
-      model_examples: ["gpt-5-mini", "gpt-5.3-codex", "codex-mini-latest"],
+      model_examples: ["gpt-5-mini", "gpt-5.4", "gpt-5.3-codex", "codex-mini-latest"],
       runtime: "Onboarding/status only in this public branch; direct provider calls remain behind future routing gates.",
       notes: "Matches the prototype provider slot for OpenAI API keys without adding browser credential entry or storage.",
       prompt_endpoint: "/provider-config/openai/prompt",
@@ -359,8 +359,8 @@ const providerConfigStatusPayload = {
       auth_mode: "env-api-key",
       configuration: "environment",
       credential_source: "ANTHROPIC_API_KEY",
-      default_model: "claude-sonnet-4-5",
-      model_examples: ["claude-sonnet-4-5", "claude-haiku-4-5", "claude-opus-4-6"],
+      default_model: "claude-sonnet-4-6",
+      model_examples: ["claude-sonnet-4-6", "claude-opus-4-6", "claude-haiku-4-5", "claude-sonnet-4-5"],
       runtime: "Onboarding/status only in this public branch; direct provider calls remain behind future routing gates.",
       notes: "Matches the prototype Anthropic provider slot without adding browser credential entry or storage.",
       prompt_endpoint: "/provider-config/anthropic/prompt",
@@ -375,7 +375,7 @@ const providerConfigStatusPayload = {
       configuration: "environment",
       credential_source: "GOOGLE_API_KEY",
       default_model: "gemini/gemini-2.0-flash",
-      model_examples: ["gemini/gemini-2.0-flash", "gemini/gemini-3-flash"],
+      model_examples: ["gemini/gemini-2.0-flash", "gemini/gemini-3-flash", "gemini/gemini-3.1-flash-lite", "gemini/gemini-3.1-pro"],
       runtime: "Onboarding/status only in this public branch; direct provider calls remain behind future routing gates.",
       notes: "Matches the prototype Google provider slot without adding browser credential entry or storage.",
       prompt_endpoint: "/provider-config/google/prompt",
@@ -405,7 +405,7 @@ const providerConfigStatusPayload = {
       configuration: "environment",
       credential_source: "MINIMAX_API_KEY",
       default_model: "minimax/MiniMax-M2.5",
-      model_examples: ["minimax/MiniMax-M2.5"],
+      model_examples: ["minimax/MiniMax-M2.5", "minimax/MiniMax-M2.7"],
       runtime: "Onboarding/status only in this public branch; direct provider calls remain behind future routing gates.",
       notes: "Matches the prototype MiniMax provider slot without adding browser credential entry or storage.",
       prompt_endpoint: "/provider-config/minimax/prompt",
@@ -419,8 +419,8 @@ const providerConfigStatusPayload = {
       auth_mode: "env-api-key",
       configuration: "environment",
       credential_source: "XAI_API_KEY",
-      default_model: "xai/grok-4",
-      model_examples: ["xai/grok-4", "xai/grok-3-mini"],
+      default_model: "xai/grok-4.20-multi-agent-0309",
+      model_examples: ["xai/grok-4.20-multi-agent-0309", "xai/grok-4.20-0309-reasoning", "xai/grok-4.20-0309-non-reasoning", "xai/grok-4-1-fast-reasoning", "xai/grok-4-1-fast-non-reasoning"],
       runtime: "Onboarding/status only in this public branch; direct provider calls remain behind future routing gates.",
       notes: "Matches the prototype xAI provider slot without adding browser credential entry or storage.",
       prompt_endpoint: "/provider-config/xai/prompt",
@@ -444,7 +444,8 @@ const providerConfigStatusPayload = {
       operator_action: "Install the Codex CLI and make it available on PATH or SPARKBOT_CODEX_CLI.",
       prompt_endpoint: "/provider-config/openai-codex-subscription/prompt",
       prompt_adapter: "lima-guardian-provider-adapter",
-      adapter_configured: false
+      adapter_configured: false,
+      provider_aliases: ["openai_codex"]
     },
     {
       id: "claude-subscription",
@@ -464,7 +465,8 @@ const providerConfigStatusPayload = {
       operator_action: "Install Claude Code and make it available on PATH or SPARKBOT_CLAUDE_CLI.",
       prompt_endpoint: "/provider-config/claude-subscription/prompt",
       prompt_adapter: "lima-guardian-provider-adapter",
-      adapter_configured: false
+      adapter_configured: false,
+      provider_aliases: ["claude_sub"]
     }
   ]
 };

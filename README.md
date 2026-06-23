@@ -208,6 +208,8 @@ curl -i -X POST http://127.0.0.1:8000/provider-config/openrouter/prompt \
 
 OpenRouter defaults to model IDs ending in `:free`. Paid OpenRouter models require `SPARKBOT_ALLOW_PAID_OPENROUTER_MODELS=true` plus an explicit model selection.
 
+Other provider cards expose prototype-aligned model examples for setup and smoke selection, including Claude Sonnet 4.6, Gemini 3.1, MiniMax M2.7, Grok 4.20/4.1, Codex subscription, and Claude subscription IDs. These examples do not change the disabled-by-default provider-call gate.
+
 ### 5. Start the frontend manually in terminal 2
 
 ```bash

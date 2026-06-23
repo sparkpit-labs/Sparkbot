@@ -123,6 +123,7 @@ export type ProviderStatusItem = {
   prompt_endpoint?: string;
   prompt_adapter?: string;
   adapter_configured?: boolean;
+  provider_aliases?: string[];
 };
 
 export type ProviderConfigStatusPayload = {
