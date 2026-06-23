@@ -1,6 +1,6 @@
 # Provider Setup
 
-Provider Setup is now an environment-driven onboarding surface for local models, OpenRouter, API-key providers, and subscription CLI providers. It still does not collect or store credentials in the browser. The one-command local smoke wrapper verifies placeholder-backed onboarding for every API-key provider without exposing key values or enabling non-OpenRouter prompt dispatch.
+Provider Setup is now an environment-driven onboarding surface for local models, OpenRouter, API-key providers, and subscription CLI providers. It still does not collect or store credentials in the browser. Use `.env.example` as the public-safe local template, then fill only the backend env values needed for the providers you intend to test. The one-command local smoke wrapper verifies placeholder-backed onboarding for every API-key provider without exposing key values or enabling non-OpenRouter prompt dispatch.
 
 ## Current provider cards
 
@@ -19,7 +19,7 @@ Provider Setup is now an environment-driven onboarding surface for local models,
 
 OpenRouter is the default cloud prompt path in the public shell because free `:free` model IDs are enforced by default. Other API-key providers also expose explicit guarded prompt endpoints when backend env keys and `SPARKBOT_PROVIDER_CALLS_ENABLED=true` are set. All provider prompt calls are off by default.
 
-Required environment:
+Required environment, usually copied from `.env.example` into a local `.env` file:
 
 ```bash
 SPARKBOT_PROVIDER_CALLS_ENABLED=true
