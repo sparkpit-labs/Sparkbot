@@ -27,7 +27,9 @@ export const providerPreviewItems: ProviderPreviewItem[] = [
     default_model: "meta-llama/llama-3.2-3b-instruct:free",
     model_examples: ["meta-llama/llama-3.2-3b-instruct:free", "mistralai/mistral-7b-instruct:free"],
     runtime: "Guarded backend prompt endpoint for explicit operator calls. Free :free models are enforced by default.",
-    notes: "Uses OpenRouter through a backend-only env key. Set SPARKBOT_PROVIDER_CALLS_ENABLED=true to enable explicit provider prompt calls."
+    notes: "Uses OpenRouter through a backend-only env key. Set SPARKBOT_PROVIDER_CALLS_ENABLED=true to enable explicit provider prompt calls.",
+    prompt_endpoint: "/provider-config/openrouter/prompt",
+    prompt_adapter: "openrouter-chat"
   },
   {
     id: "openai",
@@ -40,7 +42,9 @@ export const providerPreviewItems: ProviderPreviewItem[] = [
     default_model: "gpt-5-mini",
     model_examples: ["gpt-5-mini", "gpt-5.3-codex", "codex-mini-latest"],
     runtime: "Guarded backend prompt endpoint for explicit operator calls when provider prompt calls are enabled.",
-    notes: "Matches the prototype provider slot for OpenAI API keys without adding browser credential entry or storage."
+    notes: "Matches the prototype provider slot for OpenAI API keys without adding browser credential entry or storage.",
+    prompt_endpoint: "/provider-config/openai/prompt",
+    prompt_adapter: "openai-chat"
   },
   {
     id: "anthropic",
@@ -53,7 +57,9 @@ export const providerPreviewItems: ProviderPreviewItem[] = [
     default_model: "claude-sonnet-4-5",
     model_examples: ["claude-sonnet-4-5", "claude-haiku-4-5", "claude-opus-4-6"],
     runtime: "Guarded backend prompt endpoint for explicit operator calls when provider prompt calls are enabled.",
-    notes: "Matches the prototype Anthropic provider slot without adding browser credential entry or storage."
+    notes: "Matches the prototype Anthropic provider slot without adding browser credential entry or storage.",
+    prompt_endpoint: "/provider-config/anthropic/prompt",
+    prompt_adapter: "anthropic-messages"
   },
   {
     id: "google",
@@ -66,7 +72,9 @@ export const providerPreviewItems: ProviderPreviewItem[] = [
     default_model: "gemini/gemini-2.0-flash",
     model_examples: ["gemini/gemini-2.0-flash", "gemini/gemini-3-flash"],
     runtime: "Guarded backend prompt endpoint for explicit operator calls when provider prompt calls are enabled.",
-    notes: "Matches the prototype Google provider slot without adding browser credential entry or storage."
+    notes: "Matches the prototype Google provider slot without adding browser credential entry or storage.",
+    prompt_endpoint: "/provider-config/google/prompt",
+    prompt_adapter: "google-generate-content"
   },
   {
     id: "groq",
@@ -79,7 +87,9 @@ export const providerPreviewItems: ProviderPreviewItem[] = [
     default_model: "groq/llama-3.3-70b-versatile",
     model_examples: ["groq/llama-3.3-70b-versatile"],
     runtime: "Guarded backend prompt endpoint for explicit operator calls when provider prompt calls are enabled.",
-    notes: "Matches the prototype Groq provider slot without adding browser credential entry or storage."
+    notes: "Matches the prototype Groq provider slot without adding browser credential entry or storage.",
+    prompt_endpoint: "/provider-config/groq/prompt",
+    prompt_adapter: "groq-chat"
   },
   {
     id: "minimax",
@@ -92,7 +102,9 @@ export const providerPreviewItems: ProviderPreviewItem[] = [
     default_model: "minimax/MiniMax-M2.5",
     model_examples: ["minimax/MiniMax-M2.5"],
     runtime: "Guarded backend prompt endpoint for explicit operator calls when provider prompt calls are enabled.",
-    notes: "Matches the prototype MiniMax provider slot without adding browser credential entry or storage."
+    notes: "Matches the prototype MiniMax provider slot without adding browser credential entry or storage.",
+    prompt_endpoint: "/provider-config/minimax/prompt",
+    prompt_adapter: "minimax-chat"
   },
   {
     id: "xai",
@@ -105,7 +117,9 @@ export const providerPreviewItems: ProviderPreviewItem[] = [
     default_model: "xai/grok-4",
     model_examples: ["xai/grok-4", "xai/grok-3-mini"],
     runtime: "Guarded backend prompt endpoint for explicit operator calls when provider prompt calls are enabled.",
-    notes: "Matches the prototype xAI provider slot without adding browser credential entry or storage."
+    notes: "Matches the prototype xAI provider slot without adding browser credential entry or storage.",
+    prompt_endpoint: "/provider-config/xai/prompt",
+    prompt_adapter: "xai-chat"
   },
   {
     id: "openai-codex-subscription",
@@ -117,12 +131,15 @@ export const providerPreviewItems: ProviderPreviewItem[] = [
     credential_source: "CODEX_HOME or SPARKBOT_CODEX_AUTH_FILE",
     default_model: "openai-codex/gpt-5.3-codex",
     model_examples: ["openai-codex/gpt-5.3-codex", "openai-codex/gpt-5.5", "openai-codex/gpt-5.4"],
-    runtime: "Sign-in readiness only in this public branch. CLI dispatch requires the LIMA Guardian execution boundary.",
+    runtime: "Guarded subscription prompt dispatch delegates only to a configured LIMA Guardian provider adapter; Sparkbot never executes the CLI directly.",
     notes: "Run codex login with a ChatGPT/Codex subscription, then restart Sparkbot. Auth presence is detected without reading or returning the auth file.",
     cli_available: false,
     sign_in_detected: false,
     runtime_gate: "lima-guardian-required",
-    operator_action: "Install the Codex CLI and make it available on PATH or SPARKBOT_CODEX_CLI."
+    operator_action: "Install the Codex CLI and make it available on PATH or SPARKBOT_CODEX_CLI.",
+    prompt_endpoint: "/provider-config/openai-codex-subscription/prompt",
+    prompt_adapter: "lima-guardian-provider-adapter",
+    adapter_configured: false
   },
   {
     id: "claude-subscription",
@@ -134,12 +151,15 @@ export const providerPreviewItems: ProviderPreviewItem[] = [
     credential_source: "CLAUDE_HOME or SPARKBOT_CLAUDE_AUTH_FILE",
     default_model: "claude-sub/sonnet",
     model_examples: ["claude-sub/sonnet", "claude-sub/opus", "claude-sub/haiku", "claude-sub/opus-1m"],
-    runtime: "Sign-in readiness only in this public branch. CLI dispatch requires the LIMA Guardian execution boundary.",
+    runtime: "Guarded subscription prompt dispatch delegates only to a configured LIMA Guardian provider adapter; Sparkbot never executes the CLI directly.",
     notes: "Install Claude Code and sign in locally. Sparkbot detects CLAUDE_HOME, SPARKBOT_CLAUDE_AUTH_FILE, or the operator-declared SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED=true flag without reading or returning auth contents.",
     cli_available: false,
     sign_in_detected: false,
     runtime_gate: "lima-guardian-required",
-    operator_action: "Install Claude Code and make it available on PATH or SPARKBOT_CLAUDE_CLI."
+    operator_action: "Install Claude Code and make it available on PATH or SPARKBOT_CLAUDE_CLI.",
+    prompt_endpoint: "/provider-config/claude-subscription/prompt",
+    prompt_adapter: "lima-guardian-provider-adapter",
+    adapter_configured: false
   }
 ];
 
@@ -154,4 +174,4 @@ export const fallbackProviderConfigStatus: ProviderConfigStatusPayload = {
 };
 
 export const providerPreviewSummary =
-  "Provider onboarding is env-driven and backend-owned. OpenRouter defaults to explicit free-model prompt calls, and API-key providers support explicit backend prompt smokes when enabled. Subscription routes are shown as sign-in readiness without browser credential storage.";
+  "Provider onboarding is env-driven and backend-owned. OpenRouter defaults to explicit free-model prompt calls, API-key providers support explicit backend prompt smokes when enabled, and subscription prompts delegate only to a configured LIMA Guardian adapter.";

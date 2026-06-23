@@ -40,15 +40,15 @@ def test_guardian_status_is_static_preview() -> None:
             "timeout",
             "no-shell-expansion",
         ],
-        "blocked_until": "Codex and Claude subscription CLI dispatch requires a LIMA Guardian execution adapter.",
-        "notes": "Sparkbot may report subscription sign-in readiness, but direct Codex or Claude CLI execution remains disabled until LIMA provides guarded dispatch with audit and fail-closed behavior.",
+        "blocked_until": "Codex and Claude subscription CLI dispatch requires a configured localhost LIMA Guardian provider adapter.",
+        "notes": "Sparkbot may report subscription sign-in readiness and can delegate explicit provider prompts to a configured localhost LIMA Guardian adapter, but direct Codex or Claude CLI execution remains disabled in Sparkbot.",
     }
     assert payload["provider_adapter_contract"] == {
         "id": "lima-guardian-provider-adapter-contract",
         "label": "LIMA Guardian provider adapter contract",
         "status": "guarded-future",
         "contract_version": 1,
-        "dispatch": "not-implemented",
+        "dispatch": "delegated-fail-closed",
         "provider_ids": ["openai-codex-subscription", "claude-subscription"],
         "required_request_fields": [
             "contract_version",
@@ -63,7 +63,7 @@ def test_guardian_status_is_static_preview() -> None:
         "allowed_response_statuses": ["succeeded", "denied", "blocked", "timeout", "failed"],
         "audit": "required-before-final",
         "documentation": "docs/LIMA_PROVIDER_GUARDIAN_ADAPTER.md",
-        "notes": "Read-only contract metadata for future guarded subscription dispatch; no adapter runtime or CLI dispatch is implemented in Sparkbot.",
+        "notes": "Read-only contract metadata plus fail-closed Sparkbot client requirements for guarded subscription dispatch; no adapter runtime or CLI dispatch is implemented in Sparkbot.",
     }
     assert payload["sensitive_action_categories"] == [
         {
@@ -136,7 +136,7 @@ def test_guardian_status_does_not_claim_active_runtime() -> None:
     assert "audit-log" in payload["provider_execution_boundary"]["required_controls"]
     assert "no-shell-expansion" in payload["provider_execution_boundary"]["required_controls"]
     assert payload["provider_adapter_contract"]["status"] == "guarded-future"
-    assert payload["provider_adapter_contract"]["dispatch"] == "not-implemented"
+    assert payload["provider_adapter_contract"]["dispatch"] == "delegated-fail-closed"
     assert payload["provider_adapter_contract"]["contract_version"] == 1
     assert payload["provider_adapter_contract"]["provider_ids"] == ["openai-codex-subscription", "claude-subscription"]
     assert payload["provider_adapter_contract"]["audit"] == "required-before-final"
@@ -164,4 +164,4 @@ def test_no_guardian_runtime_endpoint_was_introduced() -> None:
     assert client.post("/guardian/provider-adapter/dispatch", json={}).status_code == 404
     assert client.post("/guardian/provider-adapter/execute", json={}).status_code == 404
     assert client.post("/provider-config/codex-subscription/prompt", json={}).status_code == 404
-    assert client.post("/provider-config/claude-subscription/prompt", json={}).status_code == 404
+    assert client.post("/provider-config/claude-code-subscription/prompt", json={}).status_code == 404

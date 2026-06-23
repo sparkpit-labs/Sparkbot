@@ -54,13 +54,16 @@ export default function ProviderSetupPreview() {
   }, []);
 
   const { payload } = providerStatusState;
-  const promptProviders = payload.providers.filter((provider) => provider.auth_mode === "env-api-key");
+  const promptProviders = payload.providers.filter((provider) => provider.prompt_endpoint);
   const selectedPromptProvider =
     promptProviders.find((provider) => provider.id === selectedPromptProviderId) ||
     promptProviders.find((provider) => provider.id === "openrouter") ||
     promptProviders[0];
   const providerReady = selectedPromptProvider?.status === "available" && payload.provider_calls === "guarded-manual";
   const providerDefaultModel = selectedPromptProvider?.default_model || DEFAULT_PROVIDER_SMOKE_MODEL;
+  const selectedProviderAction =
+    selectedPromptProvider?.operator_action ||
+    `Set SPARKBOT_PROVIDER_CALLS_ENABLED=true and ${selectedPromptProvider?.credential_source || "the provider environment"} in the backend environment.`;
 
   useEffect(() => {
     setProviderModel(providerDefaultModel);
@@ -155,13 +158,14 @@ export default function ProviderSetupPreview() {
           {providerSubmitting ? "Running..." : "Run provider smoke"}
         </button>
         {!providerReady && selectedPromptProvider ? (
-          <p className="provider-action">Next: set SPARKBOT_PROVIDER_CALLS_ENABLED=true and {selectedPromptProvider.credential_source} in the backend environment.</p>
+          <p className="provider-action">Next: {selectedProviderAction}</p>
         ) : null}
         {providerError ? <p className="provider-error" role="alert">{providerError}</p> : null}
         {providerResult ? (
           <output className="provider-smoke-result" aria-live="polite">
             <strong>{selectedPromptProvider?.label}: {providerResult.model}</strong>
             <span>{providerResult.response}</span>
+            {providerResult.audit_id ? <small>Audit: {providerResult.audit_id}</small> : null}
           </output>
         ) : null}
       </form>
@@ -212,6 +216,12 @@ export default function ProviderSetupPreview() {
                 <div>
                   <dt>Runtime gate</dt>
                   <dd>{formatImplementationStatus(provider.runtime_gate)}</dd>
+                </div>
+              ) : null}
+              {typeof provider.adapter_configured === "boolean" ? (
+                <div>
+                  <dt>Adapter</dt>
+                  <dd>{formatBool(provider.adapter_configured)}</dd>
                 </div>
               ) : null}
             </dl>

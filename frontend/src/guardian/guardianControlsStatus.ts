@@ -99,22 +99,22 @@ export const fallbackGuardianStatus: GuardianStatusPayload = {
     runtime_gate: "lima-guardian-required",
     dispatch: "fail-closed",
     required_controls: ["capability-check", "operator-approval", "audit-log", "secret-redaction", "timeout", "no-shell-expansion"],
-    blocked_until: "Codex and Claude subscription CLI dispatch requires a LIMA Guardian execution adapter.",
+    blocked_until: "Codex and Claude subscription CLI dispatch requires a configured localhost LIMA Guardian provider adapter.",
     notes:
-      "Sparkbot may report subscription sign-in readiness, but direct Codex or Claude CLI execution remains disabled until LIMA provides guarded dispatch with audit and fail-closed behavior."
+      "Sparkbot may report subscription sign-in readiness and can delegate explicit provider prompts to a configured localhost LIMA Guardian adapter, but direct Codex or Claude CLI execution remains disabled in Sparkbot."
   },
   provider_adapter_contract: {
     id: "lima-guardian-provider-adapter-contract",
     label: "LIMA Guardian provider adapter contract",
     status: "guarded-future",
     contract_version: 1,
-    dispatch: "not-implemented",
+    dispatch: "delegated-fail-closed",
     provider_ids: ["openai-codex-subscription", "claude-subscription"],
     required_request_fields: ["contract_version", "request_id", "provider_id", "model", "prompt", "operator_approval", "limits", "audit"],
     allowed_response_statuses: ["succeeded", "denied", "blocked", "timeout", "failed"],
     audit: "required-before-final",
     documentation: "docs/LIMA_PROVIDER_GUARDIAN_ADAPTER.md",
-    notes: "Read-only contract metadata for future guarded subscription dispatch; no adapter runtime or CLI dispatch is implemented in Sparkbot."
+    notes: "Read-only contract metadata plus fail-closed Sparkbot client requirements for guarded subscription dispatch; no adapter runtime or CLI dispatch is implemented in Sparkbot."
   },
   sensitive_action_categories: guardianSensitiveActionCategories
 };

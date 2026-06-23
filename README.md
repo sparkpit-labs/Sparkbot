@@ -145,7 +145,7 @@ Expected Guardian policy status URL:
 http://127.0.0.1:8000/guardian/status
 ```
 
-The Guardian status payload includes a read-only `provider_adapter_contract` object for LIMA install smoke checks. It documents the future Codex/Claude subscription dispatch contract without enabling runtime dispatch.
+The Guardian status payload includes a read-only `provider_adapter_contract` object for LIMA install smoke checks. Sparkbot can delegate explicit Codex/Claude subscription prompts only to a configured localhost LIMA Guardian adapter; it does not include the LIMA runtime or direct CLI dispatch.
 
 Expected Round Table status URL:
 

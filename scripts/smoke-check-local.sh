@@ -10,6 +10,7 @@ chat_status_url="${SPARKBOT_BACKEND_URL%/}/chat/status"
 provider_config_status_url="${SPARKBOT_BACKEND_URL%/}/provider-config/status"
 openrouter_prompt_url="${SPARKBOT_BACKEND_URL%/}/provider-config/openrouter/prompt"
 openai_prompt_url="${SPARKBOT_BACKEND_URL%/}/provider-config/openai/prompt"
+codex_subscription_prompt_url="${SPARKBOT_BACKEND_URL%/}/provider-config/openai-codex-subscription/prompt"
 connector_status_url="${SPARKBOT_BACKEND_URL%/}/connector-status"
 guardian_status_url="${SPARKBOT_BACKEND_URL%/}/guardian/status"
 round_table_status_url="${SPARKBOT_BACKEND_URL%/}/round-table/status"
@@ -148,6 +149,15 @@ if [[ "${provider_calls_mode}" == "disabled-by-default" ]]; then
     403) ;;
     *)
       echo "OpenAI prompt did not return 403 while provider calls are disabled; got ${openai_prompt_code}." >&2
+      exit 1
+      ;;
+  esac
+  echo "Checking Codex subscription prompt remains disabled by default at ${codex_subscription_prompt_url}"
+  codex_subscription_prompt_code="$(curl -sS -o /dev/null -w "%{http_code}" -X POST "${codex_subscription_prompt_url}" -H "Content-Type: application/json" -d '{"prompt":"smoke","model":"openai-codex/gpt-5.3-codex"}')"
+  case "${codex_subscription_prompt_code}" in
+    403) ;;
+    *)
+      echo "Codex subscription prompt did not return 403 while provider calls are disabled; got ${codex_subscription_prompt_code}." >&2
       exit 1
       ;;
   esac
@@ -318,6 +328,14 @@ case "${guardian_status_response}" in
   *\"allowed_response_statuses\"*\"succeeded\"*\"denied\"*\"blocked\"*\"timeout\"*\"failed\"*) ;;
   *)
     echo "Guardian provider adapter contract did not report expected response statuses." >&2
+    exit 1
+    ;;
+esac
+
+case "${guardian_status_response}" in
+  *\"dispatch\":\"delegated-fail-closed\"*|*\"dispatch\":\ \"delegated-fail-closed\"*) ;;
+  *)
+    echo "Guardian provider adapter contract did not report delegated fail-closed dispatch." >&2
     exit 1
     ;;
 esac

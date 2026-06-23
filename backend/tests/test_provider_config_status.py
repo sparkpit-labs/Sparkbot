@@ -73,7 +73,9 @@ def test_provider_config_status_exposes_env_and_cli_onboarding(monkeypatch) -> N
     assert claude["operator_action"]
 
 
-def test_subscription_provider_readiness_tracks_cli_and_sign_in(monkeypatch) -> None:
+def test_subscription_provider_readiness_tracks_cli_sign_in_and_adapter_gate(monkeypatch) -> None:
+    monkeypatch.delenv("SPARKBOT_PROVIDER_CALLS_ENABLED", raising=False)
+    monkeypatch.delenv("SPARKBOT_LIMA_PROVIDER_ADAPTER_URL", raising=False)
     monkeypatch.setattr(provider_runtime, "_codex_cli_available", lambda: True)
     monkeypatch.setattr(provider_runtime, "_codex_auth_file_exists", lambda: True)
     monkeypatch.setattr(provider_runtime, "_claude_cli_available", lambda: True)
@@ -88,12 +90,35 @@ def test_subscription_provider_readiness_tracks_cli_and_sign_in(monkeypatch) -> 
     assert codex["status"] == "disabled-by-default"
     assert codex["cli_available"] is True
     assert codex["sign_in_detected"] is True
-    assert "LIMA Guardian" in codex["operator_action"]
+    assert codex["prompt_endpoint"] == "/provider-config/openai-codex-subscription/prompt"
+    assert codex["prompt_adapter"] == "lima-guardian-provider-adapter"
+    assert codex["adapter_configured"] is False
+    assert "SPARKBOT_LIMA_PROVIDER_ADAPTER_URL" in codex["operator_action"]
     assert claude["configured"] is True
     assert claude["status"] == "disabled-by-default"
     assert claude["cli_available"] is True
     assert claude["sign_in_detected"] is True
-    assert "LIMA Guardian" in claude["operator_action"]
+    assert claude["prompt_endpoint"] == "/provider-config/claude-subscription/prompt"
+    assert claude["prompt_adapter"] == "lima-guardian-provider-adapter"
+    assert claude["adapter_configured"] is False
+    assert "SPARKBOT_LIMA_PROVIDER_ADAPTER_URL" in claude["operator_action"]
+
+
+def test_subscription_provider_becomes_available_with_calls_and_local_adapter(monkeypatch) -> None:
+    monkeypatch.setenv("SPARKBOT_PROVIDER_CALLS_ENABLED", "true")
+    monkeypatch.setenv("SPARKBOT_LIMA_PROVIDER_ADAPTER_URL", "http://127.0.0.1:18099/provider-adapter/dispatch")
+    monkeypatch.setattr(provider_runtime, "_codex_cli_available", lambda: True)
+    monkeypatch.setattr(provider_runtime, "_codex_auth_file_exists", lambda: True)
+    monkeypatch.setattr(provider_runtime, "_claude_cli_available", lambda: True)
+    monkeypatch.setattr(provider_runtime, "_claude_subscription_hint_present", lambda: True)
+
+    payload = provider_runtime.get_provider_config_status()
+    providers = _provider_by_id(payload)
+
+    assert providers["openai-codex-subscription"]["status"] == "available"
+    assert providers["openai-codex-subscription"]["adapter_configured"] is True
+    assert providers["claude-subscription"]["status"] == "available"
+    assert providers["claude-subscription"]["adapter_configured"] is True
 
 
 def test_subscription_provider_requires_cli_and_sign_in(monkeypatch) -> None:
@@ -234,12 +259,133 @@ def test_api_provider_prompt_endpoint_returns_403_when_disabled(monkeypatch) -> 
     assert response.status_code == 403
 
 
-def test_subscription_prompt_routes_remain_missing_even_when_disabled(monkeypatch) -> None:
+def test_subscription_prompt_routes_return_403_when_provider_calls_disabled(monkeypatch) -> None:
     monkeypatch.delenv("SPARKBOT_PROVIDER_CALLS_ENABLED", raising=False)
     client = TestClient(app)
 
-    assert client.post("/provider-config/openai-codex-subscription/prompt", json={"prompt": "x"}).status_code == 404
-    assert client.post("/provider-config/claude-subscription/prompt", json={"prompt": "x"}).status_code == 404
+    for provider_id, model in (
+        ("openai-codex-subscription", "openai-codex/gpt-5.3-codex"),
+        ("claude-subscription", "claude-sub/sonnet"),
+    ):
+        response = client.post(f"/provider-config/{provider_id}/prompt", json={"prompt": "Say OK.", "model": model})
+        assert response.status_code == 403
+
+    assert client.post("/provider-config/codex-subscription/prompt", json={"prompt": "x"}).status_code == 404
+    assert client.post("/provider-config/claude-sub/prompt", json={"prompt": "x"}).status_code == 404
+
+
+def test_subscription_prompt_fails_closed_without_adapter_url(monkeypatch) -> None:
+    monkeypatch.setenv("SPARKBOT_PROVIDER_CALLS_ENABLED", "true")
+    monkeypatch.delenv("SPARKBOT_LIMA_PROVIDER_ADAPTER_URL", raising=False)
+    monkeypatch.setattr(provider_runtime, "_codex_cli_available", lambda: True)
+    monkeypatch.setattr(provider_runtime, "_codex_auth_file_exists", lambda: True)
+    client = TestClient(app)
+
+    response = client.post(
+        "/provider-config/openai-codex-subscription/prompt",
+        json={"prompt": "Say OK.", "model": "openai-codex/gpt-5.3-codex"},
+    )
+
+    assert response.status_code == 400
+    assert "SPARKBOT_LIMA_PROVIDER_ADAPTER_URL" in response.json()["detail"]
+
+
+def test_subscription_prompt_rejects_non_local_adapter_url(monkeypatch) -> None:
+    def fail_post(url: str, payload: dict[str, Any]) -> dict[str, Any]:
+        raise AssertionError("non-local adapter URL should be rejected before dispatch")
+
+    monkeypatch.setenv("SPARKBOT_PROVIDER_CALLS_ENABLED", "true")
+    monkeypatch.setenv("SPARKBOT_LIMA_PROVIDER_ADAPTER_URL", "https://example.com/provider-adapter/dispatch")
+    monkeypatch.setattr(provider_runtime, "_codex_cli_available", lambda: True)
+    monkeypatch.setattr(provider_runtime, "_codex_auth_file_exists", lambda: True)
+    monkeypatch.setattr(provider_runtime, "_post_lima_guardian_adapter", fail_post)
+    client = TestClient(app)
+
+    response = client.post(
+        "/provider-config/openai-codex-subscription/prompt",
+        json={"prompt": "Say OK.", "model": "openai-codex/gpt-5.3-codex"},
+    )
+
+    assert response.status_code == 400
+    assert "http localhost" in response.json()["detail"]
+
+
+def test_mocked_subscription_provider_prompt_success_uses_lima_adapter_contract(monkeypatch) -> None:
+    captured: dict[str, Any] = {}
+
+    def fake_post(url: str, payload: dict[str, Any]) -> dict[str, Any]:
+        captured["url"] = url
+        captured["payload"] = payload
+        return {
+            "contract_version": 1,
+            "request_id": payload["request_id"],
+            "provider_id": payload["provider_id"],
+            "status": "succeeded",
+            "model": payload["model"],
+            "response_text": "OK from LIMA",
+            "usage": None,
+            "audit_id": "audit-1",
+            "redactions_applied": True,
+            "runtime": {"adapter": "lima-guardian-provider-runtime", "dispatch": "guarded", "timeout_seconds": 120},
+        }
+
+    monkeypatch.setenv("SPARKBOT_PROVIDER_CALLS_ENABLED", "true")
+    monkeypatch.setenv("SPARKBOT_LIMA_PROVIDER_ADAPTER_URL", "http://127.0.0.1:18099/provider-adapter/dispatch")
+    monkeypatch.setattr(provider_runtime, "_codex_cli_available", lambda: True)
+    monkeypatch.setattr(provider_runtime, "_codex_auth_file_exists", lambda: True)
+    monkeypatch.setattr(provider_runtime, "_post_lima_guardian_adapter", fake_post)
+    client = TestClient(app)
+
+    response = client.post(
+        "/provider-config/openai-codex-subscription/prompt",
+        json={"prompt": "Say OK.", "model": "openai-codex/gpt-5.3-codex"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["provider"] == "openai-codex-subscription"
+    assert payload["model"] == "openai-codex/gpt-5.3-codex"
+    assert payload["request_model"] == "openai-codex/gpt-5.3-codex"
+    assert payload["response"] == "OK from LIMA"
+    assert payload["usage"] is None
+    assert payload["audit_id"] == "audit-1"
+    assert captured["url"] == "http://127.0.0.1:18099/provider-adapter/dispatch"
+    adapter_request = captured["payload"]
+    assert adapter_request["contract_version"] == 1
+    assert adapter_request["provider_id"] == "openai-codex-subscription"
+    assert adapter_request["operator_approval"]["approved_by"] == "local-operator"
+    assert adapter_request["audit"] == {"redaction_required": True, "store_prompt": False, "store_response": False}
+    assert not {"shell", "command"} & set(_walk_keys(adapter_request))
+
+
+def test_subscription_provider_blocked_adapter_response_returns_safe_error(monkeypatch) -> None:
+    def fake_post(url: str, payload: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "contract_version": 1,
+            "request_id": payload["request_id"],
+            "provider_id": payload["provider_id"],
+            "status": "blocked",
+            "model": payload["model"],
+            "response_text": "",
+            "usage": None,
+            "audit_id": "audit-blocked",
+        }
+
+    monkeypatch.setenv("SPARKBOT_PROVIDER_CALLS_ENABLED", "true")
+    monkeypatch.setenv("SPARKBOT_LIMA_PROVIDER_ADAPTER_URL", "http://localhost:18099/provider-adapter/dispatch")
+    monkeypatch.setattr(provider_runtime, "_claude_cli_available", lambda: True)
+    monkeypatch.setattr(provider_runtime, "_claude_subscription_hint_present", lambda: True)
+    monkeypatch.setattr(provider_runtime, "_post_lima_guardian_adapter", fake_post)
+    client = TestClient(app)
+
+    response = client.post(
+        "/provider-config/claude-subscription/prompt",
+        json={"prompt": "Say OK.", "model": "claude-sub/sonnet"},
+    )
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "LIMA Guardian provider adapter returned status blocked."
+    assert "audit-blocked" not in str(response.json())
 
 
 def test_provider_prompt_requires_configured_key(monkeypatch) -> None:

@@ -1,6 +1,6 @@
 # LIMA Guardian Provider Adapter Contract
 
-This document defines the public Sparkbot contract for future Codex and Claude subscription prompt dispatch through the LIMA Guardian boundary. It is a contract only. The public Sparkbot shell must not execute Codex or Claude CLIs directly.
+This document defines the public Sparkbot contract for Codex and Claude subscription prompt dispatch through the LIMA Guardian boundary. Sparkbot includes only a fail-closed client for a configured localhost adapter. The public Sparkbot shell must not execute Codex or Claude CLIs directly.
 
 ## Current Status
 
@@ -9,19 +9,26 @@ Provider Setup can report subscription readiness today:
 - Codex subscription: CLI availability plus sign-in state through `CODEX_HOME` or `SPARKBOT_CODEX_AUTH_FILE`.
 - Claude subscription: CLI availability plus sign-in state through `CLAUDE_HOME`, `SPARKBOT_CLAUDE_AUTH_FILE`, or `SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED=true`.
 
-The one-command smoke wrapper can assert this readiness during LIMA/operator install testing:
+When all of these are true, Sparkbot can delegate an explicit operator-submitted Provider Setup prompt to LIMA:
+
+- `SPARKBOT_PROVIDER_CALLS_ENABLED=true`
+- `SPARKBOT_LIMA_PROVIDER_ADAPTER_URL=http://127.0.0.1:<port>/<path>` or `http://localhost:<port>/<path>`
+- The selected subscription provider reports CLI and sign-in readiness
+- The operator submits a prompt through the Provider Prompt Smoke form or the matching backend endpoint
+
+The one-command smoke wrapper can assert host subscription readiness during LIMA/operator install testing:
 
 ```bash
 SPARKBOT_SMOKE_USE_HOST_SUBSCRIPTIONS=true SPARKBOT_SMOKE_REQUIRE_SUBSCRIPTIONS=true bash scripts/run-local-smoke-test.sh
 ```
 
-That smoke confirms readiness only. It does not dispatch prompts.
+Default smoke validation does not dispatch real Codex or Claude prompts. It verifies disabled and fail-closed states unless a LIMA-side adapter is configured and invoked explicitly.
 
-`GET /guardian/status` also exposes a read-only `provider_adapter_contract` object with contract version, covered provider IDs, required request fields, allowed response statuses, audit posture, and this document path. That object is machine-readable install-test metadata only; it is not a dispatch endpoint.
+`GET /guardian/status` exposes a read-only `provider_adapter_contract` object with contract version, covered provider IDs, required request fields, allowed response statuses, audit posture, and this document path. That object is machine-readable install-test metadata only; it is not a dispatch endpoint.
 
 ## Boundary Rule
 
-Sparkbot may call a LIMA Guardian adapter only after Guardian owns the execution boundary. Sparkbot must not expose a direct subprocess, terminal, shell, or local CLI dispatch path for subscription providers.
+Sparkbot may call only a configured localhost LIMA Guardian provider adapter. Sparkbot must not expose a direct subprocess, terminal, shell, or local CLI dispatch path for subscription providers.
 
 Required Guardian controls:
 
@@ -46,7 +53,7 @@ OpenRouter remains a separate backend API-key prompt path and is not a subscript
 
 ## Sparkbot To Guardian Request
 
-When implemented, Sparkbot should send a structured request to the Guardian adapter. Field names are stable contract names; the transport is intentionally not specified here.
+For an explicit subscription prompt, Sparkbot sends a structured HTTP JSON request to `SPARKBOT_LIMA_PROVIDER_ADAPTER_URL`. The URL must be an `http://localhost...` or `http://127.0.0.1...` endpoint.
 
 ```json
 {
@@ -120,6 +127,28 @@ Allowed status values:
 | `timeout` | Guardian stopped the request after the timeout. |
 | `failed` | Adapter failed without exposing secrets. |
 
+Sparkbot accepts only `succeeded` as a successful prompt response. Other statuses are returned as safe unavailable errors. Sparkbot requires a matching `request_id`, `provider_id`, `model`, contract version `1`, and non-empty `audit_id`.
+
+## Manual Subscription Smoke
+
+After the LIMA adapter is running locally and subscription sign-in readiness is detected, a manual smoke can be run with:
+
+```bash
+SPARKBOT_PROVIDER_CALLS_ENABLED=true \
+SPARKBOT_LIMA_PROVIDER_ADAPTER_URL=http://127.0.0.1:18099/provider-adapter/dispatch \
+bash scripts/start-backend-dev.sh
+```
+
+Then submit:
+
+```bash
+curl -i -X POST http://127.0.0.1:8000/provider-config/openai-codex-subscription/prompt \
+  -H 'Content-Type: application/json' \
+  -d '{"prompt":"Say OK.","model":"openai-codex/gpt-5.3-codex"}'
+```
+
+Use `/provider-config/claude-subscription/prompt` with a `claude-sub/...` model for Claude subscription testing.
+
 ## Audit Requirements
 
 Guardian must record an audit event for every request outcome before Sparkbot treats the outcome as final. The audit record should include:
@@ -138,10 +167,11 @@ The audit record must not include provider credentials, auth file content, raw e
 
 ## Fail-Closed Cases
 
-Sparkbot must treat these as non-dispatch outcomes:
+Sparkbot treats these as non-dispatch outcomes:
 
-- Missing Guardian adapter.
-- Missing operator approval.
+- Provider calls disabled.
+- Missing Guardian adapter URL.
+- Non-local Guardian adapter URL.
 - Missing provider readiness.
 - Unknown provider ID.
 - Missing explicit model.
@@ -164,13 +194,13 @@ This public repo does not include:
 
 ## Promotion Gate
 
-A future branch that implements subscription prompt dispatch must include:
+Before release-candidate promotion, validation must include:
 
 - Tests proving direct Sparkbot shell CLI execution is impossible.
 - Tests proving missing Guardian adapter fails closed.
-- Tests proving missing approval fails closed.
+- Tests proving missing approval fails closed at the LIMA adapter boundary.
 - Tests proving unknown provider/model fails closed.
-- Tests proving audit write failure fails closed.
+- Tests proving audit write failure fails closed at the LIMA adapter boundary.
 - Tests proving prompts and responses are redacted according to the active persistence contract.
 - Updated local smoke instructions for LIMA-side install testing.
 - Documentation that clearly states which behavior is active and which remains planned.

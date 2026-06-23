@@ -122,6 +122,7 @@ export type ProviderStatusItem = {
   operator_action?: string;
   prompt_endpoint?: string;
   prompt_adapter?: string;
+  adapter_configured?: boolean;
 };
 
 export type ProviderConfigStatusPayload = {
@@ -140,6 +141,7 @@ export type ProviderPromptResponse = {
   request_model: string;
   response: string;
   usage: Record<string, unknown> | null;
+  audit_id?: string;
 };
 
 export type OpenRouterPromptResponse = ProviderPromptResponse & { provider: "openrouter" };
@@ -575,7 +577,8 @@ export async function fetchProviderConfigStatus(signal?: AbortSignal): Promise<P
       runtime_gate: provider.runtime_gate,
       operator_action: provider.operator_action,
       prompt_endpoint: provider.prompt_endpoint,
-      prompt_adapter: provider.prompt_adapter
+      prompt_adapter: provider.prompt_adapter,
+      adapter_configured: typeof provider.adapter_configured === "boolean" ? provider.adapter_configured : undefined
     };
   });
 
@@ -630,7 +633,8 @@ export async function runProviderPrompt(
     model: payload.model,
     request_model: payload.request_model,
     response: payload.response,
-    usage: payload.usage ?? null
+    usage: payload.usage ?? null,
+    audit_id: typeof payload.audit_id === "string" ? payload.audit_id : undefined
   };
 }
 

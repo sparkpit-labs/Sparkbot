@@ -243,14 +243,14 @@ for provider_id, label in required.items():
     if provider.get("runtime_gate") != "lima-guardian-required":
         errors.append(f"{label} does not report the LIMA Guardian runtime gate.")
     if provider.get("status") != "disabled-by-default":
-        errors.append(f"{label} should remain disabled-by-default until Guardian dispatch exists.")
+        errors.append(f"{label} should remain disabled-by-default in disabled-mode smoke.")
 
 if errors:
     print("Subscription readiness smoke failed:", file=sys.stderr)
     for error in errors:
         print(f"- {error}", file=sys.stderr)
     raise SystemExit(1)
-print("PASS: Codex and Claude subscription sign-in readiness detected; CLI dispatch remains LIMA-gated.")
+print("PASS: Codex and Claude subscription sign-in readiness detected; disabled-mode smoke avoided subscription dispatch.")
 PY
 }
 

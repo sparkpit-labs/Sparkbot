@@ -4,6 +4,8 @@ import os
 import pathlib
 import re
 import shutil
+import uuid
+from datetime import datetime, timezone
 from typing import Any, Literal, NotRequired, TypedDict
 
 import httpx
@@ -19,9 +21,12 @@ GOOGLE_GENERATE_CONTENT_URL_TEMPLATE = "https://generativelanguage.googleapis.co
 GROQ_CHAT_COMPLETIONS_URL = "https://api.groq.com/openai/v1/chat/completions"
 MINIMAX_CHAT_COMPLETIONS_URL = "https://api.minimax.io/v1/chat/completions"
 XAI_CHAT_COMPLETIONS_URL = "https://api.x.ai/v1/chat/completions"
+SUBSCRIPTION_PROVIDER_IDS = {"openai-codex-subscription", "claude-subscription"}
+LIMA_ADAPTER_RESPONSE_STATUSES = {"succeeded", "denied", "blocked", "timeout", "failed"}
 DEFAULT_OPENROUTER_FREE_MODEL = "meta-llama/llama-3.2-3b-instruct:free"
 OPENROUTER_TIMEOUT_SECONDS = 30
 PROVIDER_TIMEOUT_SECONDS = 30
+LIMA_ADAPTER_TIMEOUT_SECONDS = 120
 MODEL_NAME_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$")
 
 ProviderImplementationStatus = Literal["not-implemented", "env-driven", "disabled-by-default", "guarded-manual"]
@@ -61,6 +66,7 @@ class ProviderStatus(TypedDict):
     operator_action: NotRequired[str]
     prompt_endpoint: NotRequired[str]
     prompt_adapter: NotRequired[str]
+    adapter_configured: NotRequired[bool]
 
 
 class ProviderConfigStatusResponse(TypedDict):
@@ -275,60 +281,108 @@ def _subscription_statuses() -> list[ProviderStatus]:
     claude_cli_available = _claude_cli_available()
     claude_sign_in_detected = _claude_subscription_hint_present()
     claude_configured = claude_cli_available and claude_sign_in_detected
+    adapter_configured = _lima_provider_adapter_configured()
     return [
-        {
-            "id": "openai-codex-subscription",
-            "label": "OpenAI Codex Subscription",
-            "status": "disabled-by-default" if codex_configured else "planned",
-            "configured": codex_configured,
-            "auth_mode": "codex-cli-sign-in",
-            "configuration": "local-cli-sign-in",
-            "credential_source": "CODEX_HOME or SPARKBOT_CODEX_AUTH_FILE",
-            "default_model": _first_configured_env(["SPARKBOT_CODEX_MODEL", "SPARKBOT_CODEX_SUBSCRIPTION_MODEL"], "openai-codex/gpt-5.3-codex"),
-            "model_examples": ["openai-codex/gpt-5.3-codex", "openai-codex/gpt-5.5", "openai-codex/gpt-5.4"],
-            "runtime": "Sign-in readiness only in this public branch. CLI dispatch requires the LIMA Guardian execution boundary.",
-            "notes": "Run codex login with a ChatGPT/Codex subscription, then restart Sparkbot. Auth presence is detected without reading or returning the auth file.",
-            "cli_available": codex_cli_available,
-            "sign_in_detected": codex_sign_in_detected,
-            "runtime_gate": "lima-guardian-required",
-            "operator_action": _subscription_operator_action(
-                cli_available=codex_cli_available,
-                sign_in_detected=codex_sign_in_detected,
-                install_action="Install the Codex CLI and make it available on PATH or SPARKBOT_CODEX_CLI.",
-                sign_in_action="Run codex login, choose ChatGPT sign-in, then restart Sparkbot.",
-            ),
-        },
-        {
-            "id": "claude-subscription",
-            "label": "Claude Subscription",
-            "status": "disabled-by-default" if claude_configured else "planned",
-            "configured": claude_configured,
-            "auth_mode": "claude-cli-sign-in",
-            "configuration": "local-cli-sign-in",
-            "credential_source": "CLAUDE_HOME or SPARKBOT_CLAUDE_AUTH_FILE",
-            "default_model": _first_configured_env(["SPARKBOT_CLAUDE_SUB_MODEL", "SPARKBOT_CLAUDE_SUBSCRIPTION_MODEL"], "claude-sub/sonnet"),
-            "model_examples": ["claude-sub/sonnet", "claude-sub/opus", "claude-sub/haiku", "claude-sub/opus-1m"],
-            "runtime": "Sign-in readiness only in this public branch. CLI dispatch requires the LIMA Guardian execution boundary.",
-            "notes": "Install Claude Code and sign in locally. Sparkbot detects CLAUDE_HOME, SPARKBOT_CLAUDE_AUTH_FILE, or the operator-declared SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED=true flag without reading or returning auth contents.",
-            "cli_available": claude_cli_available,
-            "sign_in_detected": claude_sign_in_detected,
-            "runtime_gate": "lima-guardian-required",
-            "operator_action": _subscription_operator_action(
-                cli_available=claude_cli_available,
-                sign_in_detected=claude_sign_in_detected,
-                install_action="Install Claude Code and make it available on PATH or SPARKBOT_CLAUDE_CLI.",
-                sign_in_action="Sign in with Claude Code, set SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED=true if needed, then restart Sparkbot.",
-            ),
-        },
+        _subscription_status(
+            provider_id="openai-codex-subscription",
+            label="OpenAI Codex Subscription",
+            configured=codex_configured,
+            cli_available=codex_cli_available,
+            sign_in_detected=codex_sign_in_detected,
+            auth_mode="codex-cli-sign-in",
+            credential_source="CODEX_HOME or SPARKBOT_CODEX_AUTH_FILE",
+            default_model=_first_configured_env(["SPARKBOT_CODEX_MODEL", "SPARKBOT_CODEX_SUBSCRIPTION_MODEL"], "openai-codex/gpt-5.3-codex"),
+            model_examples=["openai-codex/gpt-5.3-codex", "openai-codex/gpt-5.5", "openai-codex/gpt-5.4"],
+            notes="Run codex login with a ChatGPT/Codex subscription, then restart Sparkbot. Auth presence is detected without reading or returning the auth file.",
+            install_action="Install the Codex CLI and make it available on PATH or SPARKBOT_CODEX_CLI.",
+            sign_in_action="Run codex login, choose ChatGPT sign-in, then restart Sparkbot.",
+            adapter_configured=adapter_configured,
+        ),
+        _subscription_status(
+            provider_id="claude-subscription",
+            label="Claude Subscription",
+            configured=claude_configured,
+            cli_available=claude_cli_available,
+            sign_in_detected=claude_sign_in_detected,
+            auth_mode="claude-cli-sign-in",
+            credential_source="CLAUDE_HOME or SPARKBOT_CLAUDE_AUTH_FILE",
+            default_model=_first_configured_env(["SPARKBOT_CLAUDE_SUB_MODEL", "SPARKBOT_CLAUDE_SUBSCRIPTION_MODEL"], "claude-sub/sonnet"),
+            model_examples=["claude-sub/sonnet", "claude-sub/opus", "claude-sub/haiku", "claude-sub/opus-1m"],
+            notes="Install Claude Code and sign in locally. Sparkbot detects CLAUDE_HOME, SPARKBOT_CLAUDE_AUTH_FILE, or the operator-declared SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED=true flag without reading or returning auth contents.",
+            install_action="Install Claude Code and make it available on PATH or SPARKBOT_CLAUDE_CLI.",
+            sign_in_action="Sign in with Claude Code, set SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED=true if needed, then restart Sparkbot.",
+            adapter_configured=adapter_configured,
+        ),
     ]
 
 
-def _subscription_operator_action(*, cli_available: bool, sign_in_detected: bool, install_action: str, sign_in_action: str) -> str:
+def _subscription_status(
+    *,
+    provider_id: str,
+    label: str,
+    configured: bool,
+    cli_available: bool,
+    sign_in_detected: bool,
+    auth_mode: str,
+    credential_source: str,
+    default_model: str | None,
+    model_examples: list[str],
+    notes: str,
+    install_action: str,
+    sign_in_action: str,
+    adapter_configured: bool,
+) -> ProviderStatus:
+    calls_enabled = provider_calls_enabled()
+    status: CapabilityStatus
+    if configured and adapter_configured and calls_enabled:
+        status = "available"
+    elif configured:
+        status = "disabled-by-default"
+    else:
+        status = "planned"
+    return {
+        "id": provider_id,
+        "label": label,
+        "status": status,
+        "configured": configured,
+        "auth_mode": auth_mode,
+        "configuration": "local-cli-sign-in",
+        "credential_source": credential_source,
+        "default_model": default_model,
+        "model_examples": model_examples,
+        "runtime": "Guarded subscription prompt dispatch delegates only to a configured LIMA Guardian provider adapter; Sparkbot never executes the CLI directly.",
+        "notes": notes,
+        "cli_available": cli_available,
+        "sign_in_detected": sign_in_detected,
+        "runtime_gate": "lima-guardian-required",
+        "operator_action": _subscription_operator_action(
+            cli_available=cli_available,
+            sign_in_detected=sign_in_detected,
+            adapter_configured=adapter_configured,
+            install_action=install_action,
+            sign_in_action=sign_in_action,
+        ),
+        "prompt_endpoint": f"/provider-config/{provider_id}/prompt",
+        "prompt_adapter": "lima-guardian-provider-adapter",
+        "adapter_configured": adapter_configured,
+    }
+
+
+def _subscription_operator_action(
+    *,
+    cli_available: bool,
+    sign_in_detected: bool,
+    adapter_configured: bool,
+    install_action: str,
+    sign_in_action: str,
+) -> str:
     if not cli_available:
         return install_action
     if not sign_in_detected:
         return sign_in_action
-    return "Ready for LIMA Guardian runtime integration; direct CLI dispatch remains disabled in the public shell."
+    if not adapter_configured:
+        return "Configure SPARKBOT_LIMA_PROVIDER_ADAPTER_URL to the localhost LIMA Guardian provider adapter endpoint."
+    return "Ready for explicit LIMA Guardian adapter dispatch; direct CLI dispatch remains disabled in the public shell."
 
 
 def _api_provider_by_id(provider_id: str) -> dict[str, Any] | None:
@@ -340,7 +394,140 @@ def _api_provider_by_id(provider_id: str) -> dict[str, Any] | None:
 
 
 def provider_prompt_supported(provider_id: str) -> bool:
-    return _api_provider_by_id(provider_id) is not None
+    normalized = provider_id.strip().lower()
+    return _api_provider_by_id(normalized) is not None or normalized in SUBSCRIPTION_PROVIDER_IDS
+
+
+def _lima_provider_adapter_url() -> str:
+    return os.environ.get("SPARKBOT_LIMA_PROVIDER_ADAPTER_URL", "").strip()
+
+
+def _lima_provider_adapter_configured() -> bool:
+    return bool(_lima_provider_adapter_url())
+
+
+def _validate_lima_provider_adapter_url(url: str) -> str:
+    if not url:
+        raise ProviderConfigError("LIMA Guardian provider adapter is not configured. Set SPARKBOT_LIMA_PROVIDER_ADAPTER_URL.")
+    try:
+        parsed = httpx.URL(url)
+    except Exception as exc:
+        raise ProviderConfigError("LIMA Guardian provider adapter URL is invalid.") from exc
+    if parsed.scheme != "http" or parsed.host not in {"127.0.0.1", "localhost"}:
+        raise ProviderConfigError("LIMA Guardian provider adapter URL must be an http localhost endpoint.")
+    return url
+
+
+def _subscription_provider_model(provider_id: str, model: str | None = None) -> tuple[str, str]:
+    if provider_id == "openai-codex-subscription":
+        selected = (model or _first_configured_env(["SPARKBOT_CODEX_MODEL", "SPARKBOT_CODEX_SUBSCRIPTION_MODEL"], "openai-codex/gpt-5.3-codex") or "").strip()
+        expected_prefix = "openai-codex/"
+    elif provider_id == "claude-subscription":
+        selected = (model or _first_configured_env(["SPARKBOT_CLAUDE_SUB_MODEL", "SPARKBOT_CLAUDE_SUBSCRIPTION_MODEL"], "claude-sub/sonnet") or "").strip()
+        expected_prefix = "claude-sub/"
+    else:
+        raise ProviderNotFoundError(f"Provider {provider_id} is not a subscription prompt provider.")
+    if not selected:
+        raise ProviderConfigError("Subscription model is required.")
+    if not MODEL_NAME_PATTERN.fullmatch(selected) or not selected.startswith(expected_prefix):
+        raise ProviderConfigError("Subscription model must be an explicit safe subscription model identifier.")
+    return selected, selected
+
+
+def _subscription_provider_ready(provider_id: str) -> bool:
+    if provider_id == "openai-codex-subscription":
+        return _codex_cli_available() and _codex_auth_file_exists()
+    if provider_id == "claude-subscription":
+        return _claude_cli_available() and _claude_subscription_hint_present()
+    return False
+
+
+def _build_lima_adapter_request(provider_id: str, prompt: str, model: str) -> dict[str, Any]:
+    now = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    request_id = f"sparkbot-{uuid.uuid4()}"
+    return {
+        "contract_version": 1,
+        "request_id": request_id,
+        "provider_id": provider_id,
+        "model": model,
+        "prompt": prompt,
+        "context": {
+            "source_surface": "provider-setup",
+            "chat_session_id": None,
+            "work_lane_card_id": None,
+            "selected_memory_note_ids": [],
+        },
+        "operator_approval": {
+            "approval_id": f"sparkbot-provider-setup-{request_id}",
+            "approved_by": "local-operator",
+            "approved_at": now,
+        },
+        "limits": {
+            "timeout_seconds": 120,
+            "max_output_chars": 20000,
+        },
+        "audit": {
+            "redaction_required": True,
+            "store_prompt": False,
+            "store_response": False,
+        },
+    }
+
+
+def _post_lima_guardian_adapter(url: str, payload: dict[str, Any]) -> dict[str, Any]:
+    try:
+        with httpx.Client(timeout=LIMA_ADAPTER_TIMEOUT_SECONDS, follow_redirects=False) as client:
+            response = client.post(url, headers={"Accept": "application/json", "Content-Type": "application/json"}, json=payload)
+    except httpx.HTTPError as exc:
+        raise ProviderUnavailableError("LIMA Guardian provider adapter is unavailable.") from exc
+    if response.status_code >= 400:
+        raise ProviderUnavailableError(f"LIMA Guardian provider adapter request failed with status {response.status_code}.")
+    try:
+        data = response.json()
+    except ValueError as exc:
+        raise ProviderUnavailableError("LIMA Guardian provider adapter returned invalid JSON.") from exc
+    if not isinstance(data, dict):
+        raise ProviderUnavailableError("LIMA Guardian provider adapter returned an unexpected response.")
+    return data
+
+
+def run_subscription_provider_prompt(provider_id: str, prompt: str, model: str | None = None) -> dict[str, Any]:
+    provider_id = provider_id.strip().lower()
+    prompt = prompt.strip()
+    if provider_id not in SUBSCRIPTION_PROVIDER_IDS:
+        raise ProviderNotFoundError(f"Provider {provider_id} is not a subscription prompt provider.")
+    if not prompt:
+        raise ProviderConfigError("Prompt is required.")
+    if not _subscription_provider_ready(provider_id):
+        raise ProviderConfigError("Subscription provider is not ready. Sign in locally and restart Sparkbot before dispatch.")
+    selected_model, request_model = _subscription_provider_model(provider_id, model)
+    adapter_url = _validate_lima_provider_adapter_url(_lima_provider_adapter_url())
+    adapter_request = _build_lima_adapter_request(provider_id, prompt, selected_model)
+    data = _post_lima_guardian_adapter(adapter_url, adapter_request)
+    if data.get("contract_version") != 1:
+        raise ProviderUnavailableError("LIMA Guardian provider adapter returned an unsupported contract version.")
+    if data.get("request_id") != adapter_request["request_id"] or data.get("provider_id") != provider_id:
+        raise ProviderUnavailableError("LIMA Guardian provider adapter returned mismatched request metadata.")
+    if data.get("model") != selected_model:
+        raise ProviderUnavailableError("LIMA Guardian provider adapter returned mismatched model metadata.")
+    adapter_status = data.get("status")
+    if adapter_status not in LIMA_ADAPTER_RESPONSE_STATUSES:
+        raise ProviderUnavailableError("LIMA Guardian provider adapter returned an invalid status.")
+    if not data.get("audit_id"):
+        raise ProviderUnavailableError("LIMA Guardian provider adapter did not return an audit id.")
+    if adapter_status != "succeeded":
+        raise ProviderUnavailableError(f"LIMA Guardian provider adapter returned status {adapter_status}.")
+    response_text = data.get("response_text")
+    if not isinstance(response_text, str) or not response_text.strip():
+        raise ProviderUnavailableError("LIMA Guardian provider adapter returned an empty response.")
+    return {
+        "provider": provider_id,
+        "model": selected_model,
+        "request_model": request_model,
+        "response": response_text.strip(),
+        "usage": data.get("usage") if isinstance(data.get("usage"), dict) else None,
+        "audit_id": data.get("audit_id"),
+    }
 
 
 def _provider_api_key(provider: dict[str, Any]) -> str:
@@ -461,6 +648,9 @@ def _openai_compatible_url(provider: dict[str, Any]) -> str:
 
 
 def run_provider_prompt(provider_id: str, prompt: str, model: str | None = None) -> dict[str, Any]:
+    provider_id = provider_id.strip().lower()
+    if provider_id in SUBSCRIPTION_PROVIDER_IDS:
+        return run_subscription_provider_prompt(provider_id, prompt, model)
     provider = _api_provider_by_id(provider_id)
     if provider is None:
         raise ProviderNotFoundError(f"Provider {provider_id} is not a configured API-key prompt provider.")
