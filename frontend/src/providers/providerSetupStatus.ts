@@ -25,7 +25,7 @@ export const providerPreviewItems: ProviderPreviewItem[] = [
     configuration: "environment",
     credential_source: "OPENROUTER_API_KEY",
     default_model: "meta-llama/llama-3.2-3b-instruct:free",
-    model_examples: ["meta-llama/llama-3.2-3b-instruct:free", "mistralai/mistral-7b-instruct:free"],
+    model_examples: ["meta-llama/llama-3.2-3b-instruct:free", "mistralai/mistral-7b-instruct:free", "openrouter/openai/gpt-4o-mini:free"],
     runtime: "Guarded backend prompt endpoint for explicit operator calls. Free :free models are enforced by default.",
     notes: "Uses OpenRouter through a backend-only env key. Set SPARKBOT_PROVIDER_CALLS_ENABLED=true to enable explicit provider prompt calls.",
     prompt_endpoint: "/provider-config/openrouter/prompt",

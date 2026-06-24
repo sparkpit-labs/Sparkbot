@@ -330,7 +330,7 @@ const providerConfigStatusPayload = {
       configuration: "environment",
       credential_source: "OPENROUTER_API_KEY",
       default_model: "meta-llama/llama-3.2-3b-instruct:free",
-      model_examples: ["meta-llama/llama-3.2-3b-instruct:free", "mistralai/mistral-7b-instruct:free"],
+      model_examples: ["meta-llama/llama-3.2-3b-instruct:free", "mistralai/mistral-7b-instruct:free", "openrouter/openai/gpt-4o-mini:free"],
       runtime: "Guarded backend prompt endpoint for explicit operator calls. Free :free models are enforced by default.",
       notes: "Uses OpenRouter through a backend-only env key. Set SPARKBOT_PROVIDER_CALLS_ENABLED=true to enable explicit provider prompt calls.",
       prompt_endpoint: "/provider-config/openrouter/prompt",
@@ -1000,7 +1000,7 @@ describe("App", () => {
       (option) => option.getAttribute("value")
     );
     expect(modelSuggestions).toEqual(
-      expect.arrayContaining(["meta-llama/llama-3.2-3b-instruct:free", "mistralai/mistral-7b-instruct:free"])
+      expect.arrayContaining(["meta-llama/llama-3.2-3b-instruct:free", "mistralai/mistral-7b-instruct:free", "openrouter/openai/gpt-4o-mini:free"])
     );
     expect(screen.getByRole("button", { name: "Run provider smoke" })).toHaveProperty("disabled", true);
     expect(screen.getAllByText(/SPARKBOT_PROVIDER_CALLS_ENABLED=true/i).length).toBeGreaterThanOrEqual(1);
@@ -1182,6 +1182,15 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Google Gemini API" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "OpenRouter" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Provider Prompt Smoke" })).toBeDefined();
+    const smokeForm = screen.getByRole("form", { name: "Provider prompt smoke test" });
+    const modelInput = within(smokeForm).getByLabelText("Smoke model") as HTMLInputElement;
+    const modelListId = modelInput.getAttribute("list");
+    const modelSuggestions = Array.from(document.getElementById(modelListId || "")?.querySelectorAll("option") || []).map(
+      (option) => option.getAttribute("value")
+    );
+    expect(modelSuggestions).toEqual(
+      expect.arrayContaining(["meta-llama/llama-3.2-3b-instruct:free", "mistralai/mistral-7b-instruct:free", "openrouter/openai/gpt-4o-mini:free"])
+    );
     expect(screen.getByRole("button", { name: "Run provider smoke" })).toHaveProperty("disabled", true);
     expect(screen.getAllByText(/SPARKBOT_PROVIDER_CALLS_ENABLED=true/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("heading", { name: "OpenAI Codex Subscription" })).toBeDefined();
