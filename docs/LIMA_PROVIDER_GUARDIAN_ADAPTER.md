@@ -137,7 +137,7 @@ Before the real LIMA adapter is available, Sparkbot's wiring can be tested with 
 bash scripts/run-lima-provider-adapter-contract-smoke.sh
 ```
 
-This starts a localhost contract adapter, starts a temporary Sparkbot backend with provider calls enabled, runs `scripts/smoke-check-lima-provider-adapter.sh`, verifies the success contract, verifies `denied`, `blocked`, `timeout`, and `failed` adapter statuses fail closed with safe Sparkbot errors, and then stops both processes. It verifies Sparkbot's guarded delegation path and response contract only. It does not run Codex, Claude, LIMA Guardian, or any subscription CLI.
+This starts a localhost contract adapter, starts a temporary Sparkbot backend with provider calls enabled, runs `scripts/smoke-check-lima-provider-adapter.sh`, verifies the success contract, verifies sanitized report generation, verifies `denied`, `blocked`, `timeout`, and `failed` adapter statuses fail closed with safe Sparkbot errors, and then stops both processes. It verifies Sparkbot's guarded delegation path and response contract only. It does not run Codex, Claude, LIMA Guardian, or any subscription CLI.
 
 ## Real LIMA Install Smoke
 

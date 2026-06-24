@@ -11,7 +11,7 @@ bash scripts/run-local-smoke-test.sh
 bash scripts/run-lima-provider-adapter-contract-smoke.sh
 ```
 
-The first command verifies local startup, local data isolation, provider setup status, OpenRouter free-model enforcement, API-key provider onboarding with placeholder backend keys, and disabled-by-default model-call gates. The second command verifies Sparkbot's subscription-provider client against a local mock adapter, including fail-closed handling for `denied`, `blocked`, `timeout`, and `failed` adapter statuses.
+The first command verifies local startup, local data isolation, provider setup status, OpenRouter free-model enforcement, API-key provider onboarding with placeholder backend keys, and disabled-by-default model-call gates. The second command verifies Sparkbot's subscription-provider client against a local mock adapter, including sanitized report generation and fail-closed handling for `denied`, `blocked`, `timeout`, and `failed` adapter statuses.
 
 These checks prove Sparkbot-side wiring only. They do not prove real Codex or Claude subscription dispatch.
 

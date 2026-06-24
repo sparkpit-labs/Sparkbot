@@ -19,6 +19,7 @@ esac
 WORK_DIR="$(mktemp -d /tmp/sparkbot-lima-contract-smoke-XXXXXX)"
 BACKEND_LOG="${WORK_DIR}/backend.log"
 ADAPTER_LOG="${WORK_DIR}/adapter.log"
+REPORT_PATH="${SPARKBOT_CONTRACT_SMOKE_REPORT_PATH:-${SPARKBOT_LIMA_SMOKE_REPORT_PATH:-${WORK_DIR}/lima-contract-smoke-report.txt}}"
 BACKEND_PID=""
 ADAPTER_PID=""
 backend_url="http://${SPARKBOT_CONTRACT_SMOKE_BACKEND_HOST}:${SPARKBOT_CONTRACT_SMOKE_BACKEND_PORT}"
@@ -234,6 +235,31 @@ PYJSON
   done
 }
 
+check_sanitized_report() {
+  if [[ ! -s "${REPORT_PATH}" ]]; then
+    echo "Expected sanitized LIMA smoke report at ${REPORT_PATH}." >&2
+    exit 1
+  fi
+
+  if ! grep -q "PASS provider=openai-codex-subscription audit_id=contract-audit-openai-codex-subscription-succeeded" "${REPORT_PATH}"; then
+    echo "Sanitized LIMA smoke report is missing the Codex subscription PASS line." >&2
+    cat "${REPORT_PATH}" >&2
+    exit 1
+  fi
+  if ! grep -q "PASS provider=claude-subscription audit_id=contract-audit-claude-subscription-succeeded" "${REPORT_PATH}"; then
+    echo "Sanitized LIMA smoke report is missing the Claude subscription PASS line." >&2
+    cat "${REPORT_PATH}" >&2
+    exit 1
+  fi
+  if grep -Eqi "api_key|apikey|authorization|bearer |password|secret|prompt|response_text|OK from contract|auth" "${REPORT_PATH}"; then
+    echo "Sanitized LIMA smoke report contains a forbidden marker." >&2
+    cat "${REPORT_PATH}" >&2
+    exit 1
+  fi
+
+  echo "PASS: sanitized LIMA smoke report contains provider audit evidence only"
+}
+
 start_backend() {
   : >"${BACKEND_LOG}"
   echo "Starting Sparkbot backend contract smoke server at ${backend_url}"
@@ -264,7 +290,9 @@ start_backend
 SPARKBOT_BACKEND_URL="${backend_url}" \
 SPARKBOT_LIMA_SMOKE_CODEX_MODEL="${SPARKBOT_CONTRACT_SMOKE_CODEX_MODEL}" \
 SPARKBOT_LIMA_SMOKE_CLAUDE_MODEL="${SPARKBOT_CONTRACT_SMOKE_CLAUDE_MODEL}" \
+SPARKBOT_LIMA_SMOKE_REPORT_PATH="${REPORT_PATH}" \
 bash "${ROOT_DIR}/scripts/smoke-check-lima-provider-adapter.sh"
+check_sanitized_report
 check_fail_closed_adapter_statuses
 
 echo "PASS: Sparkbot LIMA provider adapter contract smoke completed"
