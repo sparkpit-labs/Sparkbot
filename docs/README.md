@@ -10,6 +10,7 @@ This index groups the public Sparkbot documentation for first-time visitors, loc
 - [Local Development](LOCAL_DEVELOPMENT.md): local runner scripts and what they do not enable.
 - [Local Smoke Test](LOCAL_SMOKE_TEST.md): alternate-port local smoke testing without touching existing services.
 - [Desktop Smoke Readiness](DESKTOP_SMOKE_READINESS.md): one-command local smoke path and packaging boundary.
+- [LIMA Install Handoff](LIMA_INSTALL_HANDOFF.md): LIMA-side install-test checklist, required smoke command, and evidence to return.
 - [Local Data Export](LOCAL_DATA_EXPORT.md): read-only Workstation JSON export for backup and testing.
 - [Local Runtime Settings](LOCAL_RUNTIME_SETTINGS.md): read-only local data path and Ollama configuration status.
 - [Validation](VALIDATION.md): full validation, safety scans, backend checks, and frontend checks.
@@ -38,6 +39,7 @@ This index groups the public Sparkbot documentation for first-time visitors, loc
 - [Provider Configuration Contract](PROVIDER_CONFIG_CONTRACT.md): provider setup, credential boundary, and model-call gates.
 - [Guardian Policy Contract](GUARDIAN_POLICY_CONTRACT.md): future sensitive-action policy and approval gates.
 - [LIMA Guardian Provider Adapter](LIMA_PROVIDER_GUARDIAN_ADAPTER.md): public contract for Codex/Claude subscription dispatch through a configured localhost Guardian adapter.
+- [LIMA Install Handoff](LIMA_INSTALL_HANDOFF.md): operator handoff for real LIMA adapter validation and release sign-off evidence.
 
 ## Roadmap and plans
 

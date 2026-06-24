@@ -283,6 +283,7 @@ Key docs:
 - `docs/LOCAL_DEVELOPMENT.md` for local runner scripts.
 - `docs/LOCAL_SMOKE_TEST.md` for alternate-port local smoke testing.
 - `docs/DESKTOP_SMOKE_READINESS.md` for the current desktop-readiness smoke path and packaging boundary.
+- `docs/LIMA_INSTALL_HANDOFF.md` for the LIMA-side install-test checklist and evidence required before subscription-provider release sign-off.
 - `docs/LOCAL_MODEL_ADAPTER.md` for the disabled-by-default localhost Ollama adapter.
 - `docs/LOCAL_DATA_EXPORT.md` for the read-only local Workstation JSON export.
 - `docs/LOCAL_RUNTIME_SETTINGS.md` for the read-only local runtime settings surface.
@@ -290,7 +291,7 @@ Key docs:
 - `docs/CONNECTOR_SAFETY_CONTRACT.md` for future connector safety gates.
 - `docs/PROVIDER_CONFIG_CONTRACT.md` for provider setup and model-call gates.
 - `docs/PROVIDER_SETUP_SHELL.md` for OpenRouter, API-key provider, and subscription sign-in setup boundaries.
-- `docs/LIMA_PROVIDER_GUARDIAN_ADAPTER.md`, `scripts/run-lima-provider-adapter-contract-smoke.sh`, `scripts/run-lima-install-provider-smoke.sh`, and `scripts/smoke-check-lima-provider-adapter.sh` for the Codex/Claude subscription dispatch boundary through a configured localhost LIMA Guardian adapter.
+- `docs/LIMA_PROVIDER_GUARDIAN_ADAPTER.md`, `docs/LIMA_INSTALL_HANDOFF.md`, `scripts/run-lima-provider-adapter-contract-smoke.sh`, `scripts/run-lima-install-provider-smoke.sh`, and `scripts/smoke-check-lima-provider-adapter.sh` for the Codex/Claude subscription dispatch boundary through a configured localhost LIMA Guardian adapter.
 - `docs/GUARDIAN_POLICY_CONTRACT.md` for future sensitive-action policy gates.
 - `docs/ROADMAP.md` for staged product direction.
 - `docs/RELEASE_READINESS.md` for current release-readiness boundaries.
