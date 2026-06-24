@@ -71,6 +71,7 @@ class ProviderStatus(TypedDict):
     prompt_endpoint: NotRequired[str]
     prompt_adapter: NotRequired[str]
     adapter_configured: NotRequired[bool]
+    adapter_error: NotRequired[str]
     provider_aliases: NotRequired[list[str]]
 
 
@@ -287,6 +288,7 @@ def _subscription_statuses() -> list[ProviderStatus]:
     claude_sign_in_detected = _claude_subscription_hint_present()
     claude_configured = claude_cli_available and claude_sign_in_detected
     adapter_configured = _lima_provider_adapter_configured()
+    adapter_error = _lima_provider_adapter_error()
     return [
         _subscription_status(
             provider_id="openai-codex-subscription",
@@ -302,6 +304,7 @@ def _subscription_statuses() -> list[ProviderStatus]:
             install_action="Install the Codex CLI and make it available on PATH or SPARKBOT_CODEX_CLI.",
             sign_in_action="Run codex login, choose ChatGPT sign-in, then restart Sparkbot.",
             adapter_configured=adapter_configured,
+            adapter_error=adapter_error,
         ),
         _subscription_status(
             provider_id="claude-subscription",
@@ -317,6 +320,7 @@ def _subscription_statuses() -> list[ProviderStatus]:
             install_action="Install Claude Code and make it available on PATH or SPARKBOT_CLAUDE_CLI.",
             sign_in_action="Sign in with Claude Code, set SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED=true if needed, then restart Sparkbot.",
             adapter_configured=adapter_configured,
+            adapter_error=adapter_error,
         ),
     ]
 
@@ -336,6 +340,7 @@ def _subscription_status(
     install_action: str,
     sign_in_action: str,
     adapter_configured: bool,
+    adapter_error: str | None,
 ) -> ProviderStatus:
     calls_enabled = provider_calls_enabled()
     status: CapabilityStatus
@@ -371,6 +376,8 @@ def _subscription_status(
         "prompt_adapter": "lima-guardian-provider-adapter",
         "adapter_configured": adapter_configured,
     }
+    if adapter_error:
+        provider["adapter_error"] = adapter_error
     aliases = _subscription_provider_aliases(provider_id)
     if aliases:
         provider["provider_aliases"] = aliases
@@ -420,15 +427,19 @@ def _lima_provider_adapter_url() -> str:
     return os.environ.get("SPARKBOT_LIMA_PROVIDER_ADAPTER_URL", "").strip()
 
 
-def _lima_provider_adapter_configured() -> bool:
+def _lima_provider_adapter_error() -> str | None:
     url = _lima_provider_adapter_url()
     if not url:
-        return False
+        return None
     try:
         _validate_lima_provider_adapter_url(url)
-    except ProviderConfigError:
-        return False
-    return True
+    except ProviderConfigError as exc:
+        return str(exc)
+    return None
+
+
+def _lima_provider_adapter_configured() -> bool:
+    return bool(_lima_provider_adapter_url()) and _lima_provider_adapter_error() is None
 
 
 def _validate_lima_provider_adapter_url(url: str) -> str:

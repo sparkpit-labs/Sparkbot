@@ -336,10 +336,14 @@ def test_subscription_status_does_not_report_invalid_adapter_as_configured(monke
 
     assert providers["openai-codex-subscription"]["configured"] is True
     assert providers["openai-codex-subscription"]["adapter_configured"] is False
+    assert providers["openai-codex-subscription"]["adapter_error"] == "LIMA Guardian provider adapter URL must not include credentials, query parameters, or fragments."
     assert providers["openai-codex-subscription"]["status"] == "disabled-by-default"
     assert "SPARKBOT_LIMA_PROVIDER_ADAPTER_URL" in providers["openai-codex-subscription"]["operator_action"]
     assert providers["claude-subscription"]["adapter_configured"] is False
+    assert providers["claude-subscription"]["adapter_error"] == "LIMA Guardian provider adapter URL must not include credentials, query parameters, or fragments."
     assert providers["claude-subscription"]["status"] == "disabled-by-default"
+    assert "token:secret" not in str(payload)
+    assert "127.0.0.1:18099" not in str(payload)
 
 
 def test_subscription_prompt_accepts_prototype_provider_aliases(monkeypatch) -> None:

@@ -250,6 +250,12 @@ export default function ProviderSetupPreview() {
                   <dd>{formatBool(provider.adapter_configured)}</dd>
                 </div>
               ) : null}
+              {provider.adapter_error ? (
+                <div>
+                  <dt>Adapter issue</dt>
+                  <dd>{provider.adapter_error}</dd>
+                </div>
+              ) : null}
             </dl>
             <p>{provider.runtime}</p>
             <p>{provider.notes}</p>

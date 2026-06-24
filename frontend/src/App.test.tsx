@@ -445,6 +445,7 @@ const providerConfigStatusPayload = {
       prompt_endpoint: "/provider-config/openai-codex-subscription/prompt",
       prompt_adapter: "lima-guardian-provider-adapter",
       adapter_configured: false,
+      adapter_error: "LIMA Guardian provider adapter URL must include an explicit dispatch path.",
       provider_aliases: ["openai_codex"]
     },
     {
@@ -1188,6 +1189,8 @@ describe("App", () => {
     expect(screen.getAllByText("lima guardian required").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText(/Install the Codex CLI/i)).toBeDefined();
     expect(screen.getAllByText(/Install Claude Code/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Adapter issue")).toBeDefined();
+    expect(screen.getByText("LIMA Guardian provider adapter URL must include an explicit dispatch path.")).toBeDefined();
     expect(await screen.findByText("openai_codex")).toBeDefined();
     expect(await screen.findByText("claude_sub")).toBeDefined();
     expect(await screen.findByRole("option", { name: "OpenAI Codex Subscription (openai_codex)" })).toBeDefined();

@@ -123,6 +123,7 @@ export type ProviderStatusItem = {
   prompt_endpoint?: string;
   prompt_adapter?: string;
   adapter_configured?: boolean;
+  adapter_error?: string;
   provider_aliases?: string[];
 };
 
@@ -580,6 +581,7 @@ export async function fetchProviderConfigStatus(signal?: AbortSignal): Promise<P
       prompt_endpoint: provider.prompt_endpoint,
       prompt_adapter: provider.prompt_adapter,
       adapter_configured: typeof provider.adapter_configured === "boolean" ? provider.adapter_configured : undefined,
+      adapter_error: typeof provider.adapter_error === "string" && provider.adapter_error.trim().length > 0 ? provider.adapter_error : undefined,
       provider_aliases: Array.isArray(provider.provider_aliases)
         ? provider.provider_aliases.filter((alias): alias is string => typeof alias === "string" && alias.trim().length > 0)
         : undefined
