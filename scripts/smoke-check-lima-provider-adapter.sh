@@ -6,6 +6,7 @@ SPARKBOT_LIMA_SMOKE_PROVIDERS="${SPARKBOT_LIMA_SMOKE_PROVIDERS:-openai-codex-sub
 SPARKBOT_LIMA_SMOKE_CODEX_MODEL="${SPARKBOT_LIMA_SMOKE_CODEX_MODEL:-openai-codex/gpt-5.3-codex}"
 SPARKBOT_LIMA_SMOKE_CLAUDE_MODEL="${SPARKBOT_LIMA_SMOKE_CLAUDE_MODEL:-claude-sub/sonnet}"
 SPARKBOT_LIMA_SMOKE_PROMPT="${SPARKBOT_LIMA_SMOKE_PROMPT:-Say OK.}"
+SPARKBOT_LIMA_SMOKE_REPORT_PATH="${SPARKBOT_LIMA_SMOKE_REPORT_PATH:-}"
 
 case "${SPARKBOT_BACKEND_URL}" in
   http://127.0.0.1:*|http://localhost:*) ;;
@@ -46,6 +47,21 @@ cleanup() {
   rm -rf "${work_dir}"
 }
 trap cleanup EXIT
+
+if [[ -n "${SPARKBOT_LIMA_SMOKE_REPORT_PATH}" ]]; then
+  mkdir -p "$(dirname "${SPARKBOT_LIMA_SMOKE_REPORT_PATH}")"
+  : >"${SPARKBOT_LIMA_SMOKE_REPORT_PATH}"
+fi
+
+write_report() {
+  if [[ -n "${SPARKBOT_LIMA_SMOKE_REPORT_PATH}" ]]; then
+    printf "%s\n" "$1" >>"${SPARKBOT_LIMA_SMOKE_REPORT_PATH}"
+  fi
+}
+
+write_report "Sparkbot LIMA Guardian provider adapter smoke"
+write_report "backend_url=${backend_base}"
+write_report "providers=${SPARKBOT_LIMA_CANONICAL_SMOKE_PROVIDERS}"
 
 provider_model() {
   case "$1" in
@@ -104,6 +120,7 @@ if errors:
     raise SystemExit(1)
 print("PASS: subscription provider status is ready for guarded LIMA adapter dispatch.")
 PYJSON
+write_report "PASS preflight subscription provider status ready"
 
 for requested_provider_id in ${SPARKBOT_LIMA_SMOKE_PROVIDERS}; do
   provider_id="$(canonical_provider_id "${requested_provider_id}")"
@@ -111,9 +128,11 @@ for requested_provider_id in ${SPARKBOT_LIMA_SMOKE_PROVIDERS}; do
   prompt_url="${backend_base}/provider-config/${requested_provider_id}/prompt"
   request_body="$(json_payload "${model}")"
   echo "Checking guarded subscription prompt for ${requested_provider_id} at ${prompt_url}"
+  write_report "CHECK provider=${requested_provider_id} canonical_provider=${provider_id} model=${model}"
   http_code="$(curl -sS -o "${response_json}" -w "%{http_code}" -X POST "${prompt_url}" -H "Accept: application/json" -H "Content-Type: application/json" -d "${request_body}")"
   if [[ "${http_code}" != "200" ]]; then
     echo "${requested_provider_id} prompt smoke failed with HTTP ${http_code}." >&2
+    write_report "FAIL provider=${requested_provider_id} http_status=${http_code}"
     RESPONSE_JSON_PATH="${response_json}" python3 - <<'PYJSON'
 import json
 import os
@@ -132,7 +151,7 @@ else:
 PYJSON
     exit 1
   fi
-  PROVIDER_ID="${provider_id}" MODEL="${model}" RESPONSE_JSON_PATH="${response_json}" python3 - <<'PYJSON'
+  PROVIDER_ID="${provider_id}" MODEL="${model}" RESPONSE_JSON_PATH="${response_json}" SPARKBOT_LIMA_SMOKE_REPORT_PATH="${SPARKBOT_LIMA_SMOKE_REPORT_PATH}" python3 - <<'PYJSON'
 import json
 import os
 import sys
@@ -164,8 +183,16 @@ if errors:
         print(f"- {error}", file=sys.stderr)
     raise SystemExit(1)
 print(f"PASS: {provider_id} returned guarded response with audit_id={audit_id}")
+report_path = os.environ.get("SPARKBOT_LIMA_SMOKE_REPORT_PATH", "")
+if report_path:
+    with open(report_path, "a", encoding="utf-8") as report:
+        report.write(f"PASS provider={provider_id} audit_id={audit_id}\n")
 PYJSON
   : >"${response_json}"
 done
 
+write_report "PASS smoke_complete"
 echo "PASS: LIMA Guardian provider adapter smoke completed"
+if [[ -n "${SPARKBOT_LIMA_SMOKE_REPORT_PATH}" ]]; then
+  echo "Sanitized smoke report: ${SPARKBOT_LIMA_SMOKE_REPORT_PATH}"
+fi

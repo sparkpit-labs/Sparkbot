@@ -40,6 +40,16 @@ The script starts a temporary Sparkbot backend on `127.0.0.1:18280`, enables exp
 
 Use `SPARKBOT_LIMA_INSTALL_SMOKE_BACKEND_PORT=<port>` if `18280` is already occupied.
 
+To create a sanitized evidence file for handoff, add `SPARKBOT_LIMA_INSTALL_SMOKE_REPORT_PATH`:
+
+```bash
+SPARKBOT_LIMA_PROVIDER_ADAPTER_URL=http://127.0.0.1:<port>/<path> \
+SPARKBOT_LIMA_INSTALL_SMOKE_REPORT_PATH=./lima-install-smoke-report.txt \
+bash scripts/run-lima-install-provider-smoke.sh
+```
+
+The report contains provider IDs, selected model IDs, PASS/FAIL markers, and adapter audit IDs. It does not include prompt text, model response text, auth files, provider keys, or adapter credentials.
+
 ## Evidence To Return
 
 Return this evidence to SparkPit Labs:
@@ -49,6 +59,7 @@ Return this evidence to SparkPit Labs:
 | Sparkbot local smoke | `bash scripts/run-local-smoke-test.sh` exits `PASS`. |
 | Sparkbot adapter contract smoke | `bash scripts/run-lima-provider-adapter-contract-smoke.sh` exits `PASS`. |
 | Real LIMA install smoke | `SPARKBOT_LIMA_PROVIDER_ADAPTER_URL=... bash scripts/run-lima-install-provider-smoke.sh` exits `PASS`. |
+| Sanitized evidence file | `SPARKBOT_LIMA_INSTALL_SMOKE_REPORT_PATH=...` creates a report with provider PASS lines and audit IDs. |
 | Codex subscription dispatch | Smoke output includes a `PASS` line for `openai-codex-subscription` with a non-empty `audit_id`. |
 | Claude subscription dispatch | Smoke output includes a `PASS` line for `claude-subscription` with a non-empty `audit_id`. |
 | Fail-closed posture | LIMA adapter can return safe `denied`, `blocked`, `timeout`, and `failed` statuses without leaking secrets. |
@@ -59,4 +70,3 @@ Do not send secrets, auth files, provider keys, private paths, raw prompts that 
 ## Current Blocker For Release Sign-Off
 
 Sparkbot-side provider onboarding and adapter wiring are implemented and validated against local contract tests. Public V1.0.0 subscription-provider sign-off still requires the real LIMA install smoke above to pass against the actual LIMA Guardian provider adapter with real host Codex and Claude subscription sign-in state.
-

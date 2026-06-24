@@ -150,6 +150,8 @@ bash scripts/run-lima-install-provider-smoke.sh
 
 The wrapper starts a temporary Sparkbot backend on `127.0.0.1:18280` with `SPARKBOT_PROVIDER_CALLS_ENABLED=true`, uses the host Codex/Claude sign-in state, runs `scripts/smoke-check-lima-provider-adapter.sh`, and then stops the backend. Override the backend port with `SPARKBOT_LIMA_INSTALL_SMOKE_BACKEND_PORT` if needed. The adapter URL must be an `http://localhost...` or `http://127.0.0.1...` endpoint with no credentials, query parameters, or fragments.
 
+Set `SPARKBOT_LIMA_INSTALL_SMOKE_REPORT_PATH=./lima-install-smoke-report.txt` to write a sanitized evidence file containing PASS/FAIL markers, provider IDs, selected model IDs, and adapter audit IDs. The report must not be used for secrets, auth files, raw model responses, or private diagnostics.
+
 The verifier checks both `openai-codex-subscription` and `claude-subscription` by default. It also accepts prototype aliases `openai_codex` and `claude_sub`, then normalizes them to the canonical adapter contract IDs before preflight and response validation. It validates provider readiness, adapter configuration, HTTP success, matching provider/model metadata, non-empty response text, non-empty `audit_id`, and absence of common secret markers in the Sparkbot response. It prints the `audit_id` but does not print the model response text.
 
 To check one provider or override models:

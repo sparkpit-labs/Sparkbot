@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SPARKBOT_LIMA_INSTALL_SMOKE_BACKEND_HOST="${SPARKBOT_LIMA_INSTALL_SMOKE_BACKEND_HOST:-127.0.0.1}"
 SPARKBOT_LIMA_INSTALL_SMOKE_BACKEND_PORT="${SPARKBOT_LIMA_INSTALL_SMOKE_BACKEND_PORT:-18280}"
 SPARKBOT_LIMA_INSTALL_SMOKE_DATA_DIR="${SPARKBOT_LIMA_INSTALL_SMOKE_DATA_DIR:-}"
+SPARKBOT_LIMA_INSTALL_SMOKE_REPORT_PATH="${SPARKBOT_LIMA_INSTALL_SMOKE_REPORT_PATH:-}"
 SPARKBOT_LIMA_PROVIDER_ADAPTER_URL="${SPARKBOT_LIMA_PROVIDER_ADAPTER_URL:-}"
 
 case "${SPARKBOT_LIMA_INSTALL_SMOKE_BACKEND_HOST}" in
@@ -106,11 +107,25 @@ start_backend() {
   wait_for_url "backend" "${backend_url}/health" "${BACKEND_LOG}"
 }
 
+run_adapter_smoke() {
+  if [[ -n "${SPARKBOT_LIMA_INSTALL_SMOKE_REPORT_PATH}" ]]; then
+    SPARKBOT_BACKEND_URL="${backend_url}" \
+      SPARKBOT_LIMA_SMOKE_REPORT_PATH="${SPARKBOT_LIMA_INSTALL_SMOKE_REPORT_PATH}" \
+      bash "${ROOT_DIR}/scripts/smoke-check-lima-provider-adapter.sh"
+    return 0
+  fi
+
+  SPARKBOT_BACKEND_URL="${backend_url}" bash "${ROOT_DIR}/scripts/smoke-check-lima-provider-adapter.sh"
+}
+
 cd "${ROOT_DIR}"
 validate_adapter_url
 ensure_backend_deps
 start_backend
-SPARKBOT_BACKEND_URL="${backend_url}" bash "${ROOT_DIR}/scripts/smoke-check-lima-provider-adapter.sh"
+run_adapter_smoke
 
 echo "PASS: real LIMA provider install smoke completed"
 echo "This smoke used the configured localhost LIMA adapter and host Codex/Claude sign-in state; Sparkbot did not execute Codex or Claude CLIs directly."
+if [[ -n "${SPARKBOT_LIMA_INSTALL_SMOKE_REPORT_PATH}" ]]; then
+  echo "Sanitized install smoke report: ${SPARKBOT_LIMA_INSTALL_SMOKE_REPORT_PATH}"
+fi
