@@ -221,6 +221,69 @@ def test_provider_statuses_use_contract_values_and_reflect_enabled_api_providers
     assert providers["openrouter"]["default_model"] == "mistralai/mistral-7b-instruct:free"
 
 
+def test_provider_status_model_catalogue_matches_prototype_setup() -> None:
+    payload = provider_runtime.get_provider_config_status()
+    providers = _provider_by_id(payload)
+
+    expected_catalogue = {
+        "openrouter": {
+            "default_model": "meta-llama/llama-3.2-3b-instruct:free",
+            "model_examples": [
+                "meta-llama/llama-3.2-3b-instruct:free",
+                "mistralai/mistral-7b-instruct:free",
+                "openrouter/openai/gpt-4o-mini:free",
+            ],
+        },
+        "openai": {
+            "default_model": "gpt-5-mini",
+            "model_examples": ["gpt-5-mini", "gpt-5.4", "gpt-5.3-codex", "codex-mini-latest"],
+        },
+        "anthropic": {
+            "default_model": "claude-sonnet-4-6",
+            "model_examples": ["claude-sonnet-4-6", "claude-opus-4-6", "claude-haiku-4-5", "claude-sonnet-4-5"],
+        },
+        "google": {
+            "default_model": "gemini/gemini-2.0-flash",
+            "model_examples": ["gemini/gemini-2.0-flash", "gemini/gemini-3-flash", "gemini/gemini-3.1-flash-lite", "gemini/gemini-3.1-pro"],
+        },
+        "groq": {
+            "default_model": "groq/llama-3.3-70b-versatile",
+            "model_examples": ["groq/llama-3.3-70b-versatile"],
+        },
+        "minimax": {
+            "default_model": "minimax/MiniMax-M2.5",
+            "model_examples": ["minimax/MiniMax-M2.5", "minimax/MiniMax-M2.7"],
+        },
+        "xai": {
+            "default_model": "xai/grok-4.20-multi-agent-0309",
+            "model_examples": [
+                "xai/grok-4.20-multi-agent-0309",
+                "xai/grok-4.20-0309-reasoning",
+                "xai/grok-4.20-0309-non-reasoning",
+                "xai/grok-4-1-fast-reasoning",
+                "xai/grok-4-1-fast-non-reasoning",
+            ],
+        },
+        "openai-codex-subscription": {
+            "default_model": "openai-codex/gpt-5.3-codex",
+            "model_examples": ["openai-codex/gpt-5.3-codex", "openai-codex/gpt-5.5", "openai-codex/gpt-5.4"],
+            "provider_aliases": ["openai_codex"],
+        },
+        "claude-subscription": {
+            "default_model": "claude-sub/sonnet",
+            "model_examples": ["claude-sub/sonnet", "claude-sub/opus", "claude-sub/haiku", "claude-sub/opus-1m"],
+            "provider_aliases": ["claude_sub"],
+        },
+    }
+
+    for provider_id, expected in expected_catalogue.items():
+        provider = providers[provider_id]
+        assert provider["default_model"] == expected["default_model"]
+        assert provider["model_examples"] == expected["model_examples"]
+        if "provider_aliases" in expected:
+            assert provider["provider_aliases"] == expected["provider_aliases"]
+
+
 def test_provider_config_status_contains_no_secret_value_fields(monkeypatch) -> None:
     monkeypatch.setenv("OPENROUTER_API_KEY", "super-sensitive-test-value")
     client = TestClient(app)
