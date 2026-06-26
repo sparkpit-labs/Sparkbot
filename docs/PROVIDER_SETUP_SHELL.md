@@ -43,6 +43,17 @@ curl -i -X POST http://127.0.0.1:8000/provider-config/openrouter/prompt \
   -d '{"prompt":"Say OK.","model":"mistralai/mistral-7b-instruct:free"}'
 ```
 
+For an operator-owned real OpenRouter free-model smoke, set a local backend `OPENROUTER_API_KEY` and run the guarded wrapper:
+
+```bash
+OPENROUTER_API_KEY=... \
+SPARKBOT_OPENROUTER_SMOKE_MODEL=mistralai/mistral-7b-instruct:free \
+SPARKBOT_OPENROUTER_SMOKE_REPORT_PATH=./openrouter-free-smoke-report.txt \
+bash scripts/run-openrouter-free-smoke.sh
+```
+
+The wrapper starts a temporary localhost backend with provider calls enabled, rejects non-`:free` models before startup, submits one explicit OpenRouter prompt, validates the Sparkbot response contract, and does not print the model response text or key value. It is not part of default validation because it requires an operator-owned provider key and a real external OpenRouter call.
+
 ## Subscription sign-in readiness
 
 For Codex subscription readiness, install the Codex CLI, run `codex login`, choose ChatGPT sign-in, finish the browser login, and restart Sparkbot. If the backend runs under a different user or profile, set `CODEX_HOME` to the signed-in profile directory or `SPARKBOT_CODEX_AUTH_FILE` to the auth file path. Use `SPARKBOT_CODEX_CLI` only when the CLI is not on `PATH`. `SPARKBOT_CODEX_MODEL` is the public-shell default model setting; `SPARKBOT_CODEX_SUBSCRIPTION_MODEL` is accepted as a prototype-compatible alias.

@@ -35,6 +35,28 @@ if ! grep -q "must be an http localhost endpoint" "${VENV_DIR}/lima-install-smok
 fi
 rm -f "${VENV_DIR}/lima-install-smoke-nonlocal-url.out"
 
+if bash scripts/run-openrouter-free-smoke.sh >"${VENV_DIR}/openrouter-free-smoke-missing-key.out" 2>&1; then
+  echo "FAIL: OpenRouter free smoke should require OPENROUTER_API_KEY." >&2
+  exit 1
+fi
+if ! grep -q "Set OPENROUTER_API_KEY" "${VENV_DIR}/openrouter-free-smoke-missing-key.out"; then
+  echo "FAIL: OpenRouter free smoke missing-key error changed unexpectedly." >&2
+  cat "${VENV_DIR}/openrouter-free-smoke-missing-key.out" >&2
+  exit 1
+fi
+rm -f "${VENV_DIR}/openrouter-free-smoke-missing-key.out"
+
+if env "OPENROUTER""_API_KEY=placeholder" SPARKBOT_OPENROUTER_SMOKE_MODEL=openai/gpt-4o-mini bash scripts/run-openrouter-free-smoke.sh >"${VENV_DIR}/openrouter-free-smoke-paid-model.out" 2>&1; then
+  echo "FAIL: OpenRouter free smoke should reject non-free models before dispatch." >&2
+  exit 1
+fi
+if ! grep -q "must end in :free" "${VENV_DIR}/openrouter-free-smoke-paid-model.out"; then
+  echo "FAIL: OpenRouter free smoke non-free-model error changed unexpectedly." >&2
+  cat "${VENV_DIR}/openrouter-free-smoke-paid-model.out" >&2
+  exit 1
+fi
+rm -f "${VENV_DIR}/openrouter-free-smoke-paid-model.out"
+
 python3 -m compileall backend
 
 python3 -m venv "${VENV_DIR}"
