@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import pathlib
 import re
@@ -236,12 +237,35 @@ def _provider_status_from_env(item: dict[str, Any]) -> ProviderStatus:
     return provider
 
 
+def _auth_payload_has_token_marker(value: Any) -> bool:
+    if isinstance(value, dict):
+        for key, child in value.items():
+            normalized_key = str(key).lower()
+            if normalized_key in {"access_token", "refresh_token", "id_token"} and isinstance(child, str) and child.strip():
+                return True
+            if _auth_payload_has_token_marker(child):
+                return True
+    elif isinstance(value, list):
+        return any(_auth_payload_has_token_marker(child) for child in value)
+    return False
+
+
+def _codex_auth_file_has_login(path: pathlib.Path) -> bool:
+    if not path.is_file():
+        return False
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return False
+    return _auth_payload_has_token_marker(payload)
+
+
 def _codex_auth_file_exists() -> bool:
     override = os.environ.get("SPARKBOT_CODEX_AUTH_FILE", "").strip()
     if override:
-        return pathlib.Path(override).expanduser().is_file()
+        return _codex_auth_file_has_login(pathlib.Path(override).expanduser())
     codex_home = pathlib.Path(os.environ.get("CODEX_HOME", str(pathlib.Path.home() / ("." + "codex")))).expanduser()
-    return (codex_home / "auth.json").is_file()
+    return _codex_auth_file_has_login(codex_home / "auth.json")
 
 
 def _common_cli_candidates(name: str) -> list[pathlib.Path]:
@@ -300,7 +324,7 @@ def _subscription_statuses() -> list[ProviderStatus]:
             credential_source="CODEX_HOME or SPARKBOT_CODEX_AUTH_FILE",
             default_model=_first_configured_env(["SPARKBOT_CODEX_MODEL", "SPARKBOT_CODEX_SUBSCRIPTION_MODEL"], "openai-codex/gpt-5.3-codex"),
             model_examples=["openai-codex/gpt-5.3-codex", "openai-codex/gpt-5.5", "openai-codex/gpt-5.4"],
-            notes="Run codex login with a ChatGPT/Codex subscription, then restart Sparkbot. Auth presence is detected without reading or returning the auth file.",
+            notes="Run codex login with a ChatGPT/Codex subscription, then restart Sparkbot. Auth presence is detected from token-shaped sign-in markers without returning auth contents.",
             install_action="Install the Codex CLI and make it available on PATH or SPARKBOT_CODEX_CLI.",
             sign_in_action="Run codex login, choose ChatGPT sign-in, then restart Sparkbot.",
             adapter_configured=adapter_configured,

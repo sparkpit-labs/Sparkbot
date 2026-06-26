@@ -12,7 +12,7 @@ Provider Setup is now an environment-driven onboarding surface for local models,
 - Groq API: env-driven onboarding plus explicit prompt calls using `GROQ_API_KEY` when provider calls are enabled.
 - MiniMax API: env-driven onboarding plus explicit prompt calls using `MINIMAX_API_KEY` when provider calls are enabled; `SPARKBOT_MINIMAX_CHAT_COMPLETIONS_URL` can override the OpenAI-compatible endpoint.
 - xAI API: env-driven onboarding plus explicit prompt calls using `XAI_API_KEY` when provider calls are enabled.
-- OpenAI Codex Subscription: reports whether the Codex CLI is available and whether local sign-in state is detected through `CODEX_HOME` or `SPARKBOT_CODEX_AUTH_FILE` without reading or returning the auth file.
+- OpenAI Codex Subscription: reports whether the Codex CLI is available and whether local sign-in state is detected through token-shaped markers in `CODEX_HOME` or `SPARKBOT_CODEX_AUTH_FILE` without returning auth contents.
 - Claude Subscription: reports whether Claude Code is available and whether local sign-in state is detected through `CLAUDE_HOME`, `SPARKBOT_CLAUDE_AUTH_FILE`, or the operator-declared `SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED=true` flag without reading or returning auth contents.
 
 ## OpenRouter free model path

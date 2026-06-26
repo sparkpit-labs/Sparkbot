@@ -158,7 +158,7 @@ def test_subscription_provider_detects_portable_cli_and_auth_paths(monkeypatch, 
 
     codex_auth = tmp_path / "codex-profile" / "auth.json"
     codex_auth.parent.mkdir()
-    codex_auth.write_text("{}")
+    codex_auth.write_text('{"tokens":{"access_token":"test-access-token"}}')
     claude_home = tmp_path / "claude-profile"
     claude_home.mkdir()
     local_bin = tmp_path / ".local" / "bin"
@@ -170,6 +170,19 @@ def test_subscription_provider_detects_portable_cli_and_auth_paths(monkeypatch, 
     assert provider_runtime._codex_auth_file_exists() is True
     assert provider_runtime._claude_cli_available() is True
     assert provider_runtime._claude_subscription_hint_present() is True
+
+
+def test_codex_auth_detection_rejects_empty_or_invalid_auth_files(tmp_path) -> None:
+    empty_auth = tmp_path / "empty-auth.json"
+    empty_auth.write_text("{}")
+    invalid_auth = tmp_path / "invalid-auth.json"
+    invalid_auth.write_text("not-json")
+    valid_auth = tmp_path / "valid-auth.json"
+    valid_auth.write_text('{"tokens":{"refresh_token":"test-refresh-token"}}')
+
+    assert provider_runtime._codex_auth_file_has_login(empty_auth) is False
+    assert provider_runtime._codex_auth_file_has_login(invalid_auth) is False
+    assert provider_runtime._codex_auth_file_has_login(valid_auth) is True
 
 
 def test_subscription_provider_supports_auth_file_and_model_alias_envs(monkeypatch, tmp_path) -> None:
