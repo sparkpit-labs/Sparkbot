@@ -6,7 +6,7 @@ This document defines the public Sparkbot contract for Codex and Claude subscrip
 
 Provider Setup can report subscription readiness today:
 
-- Codex subscription: CLI availability plus token-shaped sign-in state through `CODEX_HOME` or `SPARKBOT_CODEX_AUTH_FILE`.
+- Codex subscription: CLI availability plus token-shaped sign-in state through `CODEX_HOME` or `SPARKBOT_CODEX_AUTH_FILE`; empty or invalid auth files do not count as signed in.
 - Claude subscription: CLI availability plus sign-in state through `CLAUDE_HOME`, `SPARKBOT_CLAUDE_AUTH_FILE`, or `SPARKBOT_CLAUDE_SUBSCRIPTION_ENABLED=true`.
 
 When all of these are true, Sparkbot can delegate an explicit operator-submitted Provider Setup prompt to LIMA. `.env.example` includes the public-safe placeholders for these settings:

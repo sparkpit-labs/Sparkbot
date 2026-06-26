@@ -20,7 +20,7 @@ These checks prove Sparkbot-side wiring only. They do not prove real Codex or Cl
 Before running the real install smoke, the LIMA side needs:
 
 - A localhost LIMA Guardian provider adapter listening on `http://127.0.0.1:<port>/<path>` or `http://localhost:<port>/<path>`.
-- Host Codex CLI installed and signed in with the operator's subscription.
+- Host Codex CLI installed and signed in with the operator's subscription. Sparkbot checks for token-shaped signed-in auth state through `CODEX_HOME` or `SPARKBOT_CODEX_AUTH_FILE`; an empty placeholder auth file is treated as not signed in.
 - Host Claude Code installed and signed in with the operator's subscription, or an explicit local readiness flag if that is the approved LIMA-side posture.
 - Adapter behavior matching `docs/LIMA_PROVIDER_GUARDIAN_ADAPTER.md`.
 - Audit records for all allowed, denied, blocked, timeout, and failed outcomes.
