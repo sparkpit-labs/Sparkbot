@@ -161,7 +161,7 @@ prepare_fake_subscription_state() {
   printf '#!/usr/bin/env sh\nexit 0\n' >"${WORK_DIR}/bin/codex"
   printf '#!/usr/bin/env sh\nexit 0\n' >"${WORK_DIR}/bin/claude"
   chmod +x "${WORK_DIR}/bin/codex" "${WORK_DIR}/bin/claude"
-  printf '{}\n' >"${WORK_DIR}/codex-auth.json"
+  printf '{"tokens":{"access_token":"sparkbot-contract-smoke-token"}}\n' >"${WORK_DIR}/codex-auth.json"
   printf '{}\n' >"${WORK_DIR}/claude-auth.json"
 }
 
