@@ -27,6 +27,17 @@ This repository is suitable for professional public review as an early shell bas
 
 This repository does not claim production readiness or complete product functionality.
 
+## Provider runtime evidence position
+
+Sparkbot repo-side provider onboarding is wired and validated for OpenRouter free-model enforcement, API-key provider status, prototype-aligned model examples, Codex/Claude subscription aliases, and fail-closed LIMA adapter delegation.
+
+Two operator install-test evidence items remain TODO-later and are intentionally outside default validation because they require external credentials or an external localhost adapter:
+
+- Real OpenRouter free-model smoke with an operator-owned `OPENROUTER_API_KEY`: `scripts/run-openrouter-free-smoke.sh`.
+- Real Codex/Claude subscription dispatch through the localhost LIMA Guardian provider adapter: `scripts/run-lima-install-provider-smoke.sh`.
+
+Until those sanitized reports are collected, release notes should describe those paths as supported guarded smoke paths rather than completed install evidence.
+
 ## V1.0.0 final release position
 
 The `v1.0.0` checkpoint finalizes the validated public shell baseline after the RC0 audit. It records final release notes, final validation, dependency audit, public safety scans, branch hygiene, and local smoke evidence.
