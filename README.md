@@ -196,7 +196,9 @@ API provider prompt calls also remain disabled by default. Do not paste provider
 ```bash
 cp .env.example .env
 chmod 600 .env
-# edit .env locally, then start the backend
+# edit .env locally, then confirm the install-test inputs without dispatching
+SPARKBOT_PROVIDER_INSTALL_ENV_FILE=.env bash scripts/check-provider-install-readiness.sh
+# start the backend after the readiness check is clean for the providers you intend to test
 bash scripts/start-backend-dev.sh
 ```
 

@@ -7,7 +7,7 @@ This document tracks public shell readiness for review and phased release decisi
 - Backend: local read-only health, capabilities, Chat status, provider configuration status, connector status, Guardian policy status, Round Table status, Model Seat status, Task Lane status, local Workstation export, and local runtime settings endpoints are present and validated.
 - Frontend: static shell previews are present and can display backend capability and Chat status data with local fallback. The Workstation shell can download a read-only local JSON export and show read-only local runtime settings.
 - Desktop readiness: `scripts/run-local-smoke-test.sh` provides a one-command local smoke path for alternate ports, temporary data-dir behavior, disabled local-model prompt behavior, and enabled local-model status behavior. No installer or desktop binary is included.
-- Workstation, Chat, Round Table, Provider Setup, and Guardian Controls are preview or status surfaces with runtime behavior disabled.
+- Workstation, Chat, Round Table, and Guardian Controls remain bounded public-shell surfaces. Provider Setup includes guarded explicit prompt smoke paths, but provider calls are disabled by default and credential storage remains out of scope.
 
 ## Not yet in scope
 

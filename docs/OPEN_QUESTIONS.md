@@ -18,6 +18,6 @@ These questions must be resolved before Sparkbot public v1.0.0 release.
 
 These are not Sparkbot repo implementation blockers, but they are required evidence before claiming operator-installed provider runtime completion:
 
-- Run `scripts/run-openrouter-free-smoke.sh` with an operator-owned `OPENROUTER_API_KEY` and a `:free` model to prove real OpenRouter free-model dispatch.
-- Run `scripts/run-lima-install-provider-smoke.sh` against the real localhost LIMA Guardian provider adapter to prove Codex and Claude subscription dispatch through the guarded adapter boundary.
+- Run `SPARKBOT_PROVIDER_INSTALL_ENV_FILE=.env bash scripts/run-openrouter-free-smoke.sh` with an operator-owned `OPENROUTER_API_KEY` and a `:free` model to prove real OpenRouter free-model dispatch.
+- Run `SPARKBOT_PROVIDER_INSTALL_ENV_FILE=.env bash scripts/run-lima-install-provider-smoke.sh` against the real localhost LIMA Guardian provider adapter to prove Codex and Claude subscription dispatch through the guarded adapter boundary.
 - Return only sanitized smoke reports and PASS/FAIL lines; do not return provider keys, auth files, raw prompts, raw model responses, private paths, or adapter credentials.
