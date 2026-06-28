@@ -46,6 +46,17 @@ if ! grep -q "Set OPENROUTER_API_KEY" "${VENV_DIR}/openrouter-free-smoke-missing
 fi
 rm -f "${VENV_DIR}/openrouter-free-smoke-missing-key.out"
 
+if SPARKBOT_OPENROUTER_SMOKE_PROMPT_FOR_KEY=true bash scripts/run-openrouter-free-smoke.sh >"${VENV_DIR}/openrouter-free-smoke-prompt-noninteractive.out" 2>&1; then
+  echo "FAIL: OpenRouter free smoke prompt mode should require an interactive terminal when no key is set." >&2
+  exit 1
+fi
+if ! grep -q "requires an interactive terminal" "${VENV_DIR}/openrouter-free-smoke-prompt-noninteractive.out"; then
+  echo "FAIL: OpenRouter free smoke prompt-mode error changed unexpectedly." >&2
+  cat "${VENV_DIR}/openrouter-free-smoke-prompt-noninteractive.out" >&2
+  exit 1
+fi
+rm -f "${VENV_DIR}/openrouter-free-smoke-prompt-noninteractive.out"
+
 if env "OPENROUTER""_API_KEY=placeholder" SPARKBOT_OPENROUTER_SMOKE_MODEL=openai/gpt-4o-mini bash scripts/run-openrouter-free-smoke.sh >"${VENV_DIR}/openrouter-free-smoke-paid-model.out" 2>&1; then
   echo "FAIL: OpenRouter free smoke should reject non-free models before dispatch." >&2
   exit 1

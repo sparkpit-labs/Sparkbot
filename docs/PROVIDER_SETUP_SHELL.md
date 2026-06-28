@@ -50,19 +50,16 @@ curl -i -X POST http://127.0.0.1:8000/provider-config/openrouter/prompt \
   -d '{"prompt":"Say OK.","model":"mistralai/mistral-7b-instruct:free"}'
 ```
 
-For an operator-owned real OpenRouter free-model smoke without saving the key in shell history, read the key silently into the current shell and unset it after the wrapper exits:
+For an operator-owned real OpenRouter free-model smoke without saving the key in shell history, let the wrapper prompt for the key in an interactive terminal:
 
 ```bash
-read -rsp "OpenRouter key: " OPENROUTER_API_KEY
-printf "\n"
-export OPENROUTER_API_KEY
+SPARKBOT_OPENROUTER_SMOKE_PROMPT_FOR_KEY=true \
 SPARKBOT_OPENROUTER_SMOKE_MODEL=mistralai/mistral-7b-instruct:free \
 SPARKBOT_OPENROUTER_SMOKE_REPORT_PATH=./openrouter-free-smoke-report.txt \
 bash scripts/run-openrouter-free-smoke.sh
-unset OPENROUTER_API_KEY
 ```
 
-The wrapper starts a temporary localhost backend with provider calls enabled, rejects non-`:free` models before startup, submits one explicit OpenRouter prompt, validates the Sparkbot response contract, and does not print the model response text or key value. It is not part of default validation because it requires an operator-owned provider key and a real external OpenRouter call.
+The wrapper reads the key silently, keeps it only for that process, starts a temporary localhost backend with provider calls enabled, rejects non-`:free` models before startup, submits one explicit OpenRouter prompt, validates the Sparkbot response contract, and does not print the model response text or key value. It is not part of default validation because it requires an operator-owned provider key and a real external OpenRouter call.
 
 ## Subscription sign-in readiness
 
