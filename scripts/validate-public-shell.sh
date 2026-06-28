@@ -137,8 +137,18 @@ if ! grep -q "PASS openrouter_key_source source=env-file" "${VENV_DIR}/provider-
   cat "${VENV_DIR}/provider-install-readiness-ready-inputs.out" >&2
   exit 1
 fi
-if ! grep -q "PASS lima_adapter_url source=env-file" "${VENV_DIR}/provider-install-readiness-ready-inputs.out"; then
+if ! grep -Fq "PASS lima_adapter_url source=env-file" "${VENV_DIR}/provider-install-readiness-ready-inputs.out"; then
   echo "FAIL: provider install readiness should accept localhost LIMA adapter URLs with dispatch paths." >&2
+  cat "${VENV_DIR}/provider-install-readiness-ready-inputs.out" >&2
+  exit 1
+fi
+if ! grep -Fq "NEXT openrouter_smoke SPARKBOT_PROVIDER_INSTALL_ENV_FILE=<env-file>" "${VENV_DIR}/provider-install-readiness-ready-inputs.out"; then
+  echo "FAIL: provider install readiness should preserve shared env-file source in OpenRouter next command." >&2
+  cat "${VENV_DIR}/provider-install-readiness-ready-inputs.out" >&2
+  exit 1
+fi
+if ! grep -Fq "NEXT lima_smoke SPARKBOT_PROVIDER_INSTALL_ENV_FILE=<env-file>" "${VENV_DIR}/provider-install-readiness-ready-inputs.out"; then
+  echo "FAIL: provider install readiness should preserve shared env-file source in LIMA next command." >&2
   cat "${VENV_DIR}/provider-install-readiness-ready-inputs.out" >&2
   exit 1
 fi

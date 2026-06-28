@@ -9,6 +9,8 @@ SPARKBOT_LIMA_INSTALL_SMOKE_ENV_FILE="${SPARKBOT_LIMA_INSTALL_SMOKE_ENV_FILE:-${
 SPARKBOT_LIMA_PROVIDER_ADAPTER_URL="${SPARKBOT_LIMA_PROVIDER_ADAPTER_URL:-}"
 
 OPENROUTER_KEY_VAR="OPENROUTER""_API_KEY"
+openrouter_key_source="missing"
+lima_adapter_source="missing"
 
 write_report() {
   if [[ -n "${SPARKBOT_PROVIDER_INSTALL_READINESS_REPORT_PATH}" ]]; then
@@ -156,8 +158,10 @@ else
 fi
 
 if [[ -n "${!OPENROUTER_KEY_VAR-}" ]]; then
+  openrouter_key_source="environment"
   emit "PASS openrouter_key_source source=environment"
 elif has_openrouter_key_in_env_file; then
+  openrouter_key_source="env-file"
   emit "PASS openrouter_key_source source=env-file"
 else
   emit "TODO openrouter_key_source provide OPENROUTER_API_KEY, SPARKBOT_OPENROUTER_SMOKE_ENV_FILE, or SPARKBOT_PROVIDER_INSTALL_ENV_FILE"
@@ -166,10 +170,12 @@ fi
 lima_adapter_url_status=0
 validate_lima_adapter_url || lima_adapter_url_status=$?
 if [[ "${lima_adapter_url_status}" -eq 0 ]]; then
+  lima_adapter_source="environment"
   emit "PASS lima_adapter_url localhost-dispatch-path"
 else
   if [[ "${lima_adapter_url_status}" -eq 1 && -z "${SPARKBOT_LIMA_PROVIDER_ADAPTER_URL}" && -n "${SPARKBOT_LIMA_INSTALL_SMOKE_ENV_FILE}" ]]; then
     if lima_adapter_url_from_env_file; then
+      lima_adapter_source="env-file"
       emit "PASS lima_adapter_url source=env-file"
       lima_adapter_url_status=0
     else
@@ -211,5 +217,24 @@ else
   emit "TODO claude_sign_in run Claude Code sign-in or set approved readiness flag"
 fi
 
-emit "NEXT openrouter_smoke SPARKBOT_OPENROUTER_SMOKE_PROMPT_FOR_KEY=true SPARKBOT_OPENROUTER_SMOKE_MODEL=${SPARKBOT_OPENROUTER_SMOKE_MODEL} bash scripts/run-openrouter-free-smoke.sh"
-emit "NEXT lima_smoke SPARKBOT_LIMA_PROVIDER_ADAPTER_URL=http://127.0.0.1:<port>/<path> bash scripts/run-lima-install-provider-smoke.sh"
+openrouter_next_prefix=""
+if [[ "${openrouter_key_source}" == "env-file" ]]; then
+  if [[ -n "${SPARKBOT_PROVIDER_INSTALL_ENV_FILE}" ]]; then
+    openrouter_next_prefix="SPARKBOT_PROVIDER_INSTALL_ENV_FILE=<env-file> "
+  else
+    openrouter_next_prefix="SPARKBOT_OPENROUTER_SMOKE_ENV_FILE=<env-file> "
+  fi
+else
+  openrouter_next_prefix="SPARKBOT_OPENROUTER_SMOKE_PROMPT_FOR_KEY=true "
+fi
+emit "NEXT openrouter_smoke ${openrouter_next_prefix}SPARKBOT_OPENROUTER_SMOKE_MODEL=${SPARKBOT_OPENROUTER_SMOKE_MODEL} bash scripts/run-openrouter-free-smoke.sh"
+
+lima_next_prefix="SPARKBOT_LIMA_PROVIDER_ADAPTER_URL=http://127.0.0.1:<port>/<path> "
+if [[ "${lima_adapter_source}" == "env-file" ]]; then
+  if [[ -n "${SPARKBOT_PROVIDER_INSTALL_ENV_FILE}" ]]; then
+    lima_next_prefix="SPARKBOT_PROVIDER_INSTALL_ENV_FILE=<env-file> "
+  else
+    lima_next_prefix="SPARKBOT_LIMA_INSTALL_SMOKE_ENV_FILE=<env-file> "
+  fi
+fi
+emit "NEXT lima_smoke ${lima_next_prefix}bash scripts/run-lima-install-provider-smoke.sh"
