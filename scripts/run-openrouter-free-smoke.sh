@@ -9,8 +9,42 @@ SPARKBOT_OPENROUTER_SMOKE_MODEL="${SPARKBOT_OPENROUTER_SMOKE_MODEL:-${SPARKBOT_O
 SPARKBOT_OPENROUTER_SMOKE_PROMPT="${SPARKBOT_OPENROUTER_SMOKE_PROMPT:-Say OK.}"
 SPARKBOT_OPENROUTER_SMOKE_REPORT_PATH="${SPARKBOT_OPENROUTER_SMOKE_REPORT_PATH:-}"
 SPARKBOT_OPENROUTER_SMOKE_PROMPT_FOR_KEY="${SPARKBOT_OPENROUTER_SMOKE_PROMPT_FOR_KEY:-false}"
+SPARKBOT_OPENROUTER_SMOKE_ENV_FILE="${SPARKBOT_OPENROUTER_SMOKE_ENV_FILE:-}"
 OPENROUTER_KEY_VAR="OPENROUTER""_API_KEY"
 OPENROUTER_KEY_VALUE="${!OPENROUTER_KEY_VAR-}"
+
+load_openrouter_key_from_env_file() {
+  if [[ -z "${SPARKBOT_OPENROUTER_SMOKE_ENV_FILE}" || -n "${OPENROUTER_KEY_VALUE}" ]]; then
+    return 0
+  fi
+
+  OPENROUTER_KEY_VALUE="$(
+    SPARKBOT_OPENROUTER_SMOKE_ENV_FILE="${SPARKBOT_OPENROUTER_SMOKE_ENV_FILE}" python3 - <<'PYENV'
+import os
+import sys
+from pathlib import Path
+
+path = Path(os.environ["SPARKBOT_OPENROUTER_SMOKE_ENV_FILE"].strip()).expanduser()
+if not path.is_file():
+    print("SPARKBOT_OPENROUTER_SMOKE_ENV_FILE does not exist or is not a file.", file=sys.stderr)
+    raise SystemExit(1)
+
+for raw_line in path.read_text(encoding="utf-8").splitlines():
+    line = raw_line.strip()
+    if not line or line.startswith("#"):
+        continue
+    if line.startswith("export "):
+        line = line[len("export "):].lstrip()
+    key, separator, value = line.partition("=")
+    if separator and key.strip() == "OPENROUTER_API_KEY":
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", chr(34)}:
+            value = value[1:-1]
+        print(value)
+        raise SystemExit(0)
+PYENV
+  )"
+}
 
 case "${SPARKBOT_OPENROUTER_SMOKE_BACKEND_HOST}" in
   127.0.0.1|localhost) ;;
@@ -28,6 +62,8 @@ case "${SPARKBOT_OPENROUTER_SMOKE_PROMPT_FOR_KEY}" in
     ;;
 esac
 
+load_openrouter_key_from_env_file
+
 if [[ -z "${OPENROUTER_KEY_VALUE}" && "${SPARKBOT_OPENROUTER_SMOKE_PROMPT_FOR_KEY}" == "true" ]]; then
   if [[ ! -t 0 ]]; then
     echo "OPENROUTER_API_KEY is not set and SPARKBOT_OPENROUTER_SMOKE_PROMPT_FOR_KEY=true requires an interactive terminal." >&2
@@ -41,6 +77,7 @@ if [[ -z "${OPENROUTER_KEY_VALUE}" ]]; then
   echo "Set OPENROUTER_API_KEY before running the real OpenRouter free-model smoke." >&2
   exit 1
 fi
+export "${OPENROUTER_KEY_VAR}=${OPENROUTER_KEY_VALUE}"
 
 case "${SPARKBOT_OPENROUTER_SMOKE_MODEL}" in
   *:free) ;;
@@ -67,6 +104,7 @@ stop_backend() {
 
 cleanup() {
   stop_backend
+  unset "${OPENROUTER_KEY_VAR}"
   rm -rf "${WORK_DIR}"
 }
 trap cleanup EXIT
@@ -123,7 +161,6 @@ start_backend() {
   env \
     SPARKBOT_DATA_DIR="${DATA_DIR}" \
     SPARKBOT_PROVIDER_CALLS_ENABLED=true \
-    "${OPENROUTER_KEY_VAR}=${OPENROUTER_KEY_VALUE}" \
     SPARKBOT_OPENROUTER_MODEL="${SPARKBOT_OPENROUTER_SMOKE_MODEL}" \
     SPARKBOT_BACKEND_HOST="${SPARKBOT_OPENROUTER_SMOKE_BACKEND_HOST}" \
     SPARKBOT_BACKEND_PORT="${SPARKBOT_OPENROUTER_SMOKE_BACKEND_PORT}" \

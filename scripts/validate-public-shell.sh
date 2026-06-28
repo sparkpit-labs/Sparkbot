@@ -57,6 +57,29 @@ if ! grep -q "requires an interactive terminal" "${VENV_DIR}/openrouter-free-smo
 fi
 rm -f "${VENV_DIR}/openrouter-free-smoke-prompt-noninteractive.out"
 
+if SPARKBOT_OPENROUTER_SMOKE_ENV_FILE="${VENV_DIR}/missing-openrouter.env" bash scripts/run-openrouter-free-smoke.sh >"${VENV_DIR}/openrouter-free-smoke-missing-env-file.out" 2>&1; then
+  echo "FAIL: OpenRouter free smoke should reject a missing SPARKBOT_OPENROUTER_SMOKE_ENV_FILE." >&2
+  exit 1
+fi
+if ! grep -q "SPARKBOT_OPENROUTER_SMOKE_ENV_FILE does not exist" "${VENV_DIR}/openrouter-free-smoke-missing-env-file.out"; then
+  echo "FAIL: OpenRouter free smoke missing-env-file error changed unexpectedly." >&2
+  cat "${VENV_DIR}/openrouter-free-smoke-missing-env-file.out" >&2
+  exit 1
+fi
+rm -f "${VENV_DIR}/openrouter-free-smoke-missing-env-file.out"
+
+printf "OPENROUTER_API_KEY=placeholder\n" >"${VENV_DIR}/openrouter-free-smoke.env"
+if SPARKBOT_OPENROUTER_SMOKE_ENV_FILE="${VENV_DIR}/openrouter-free-smoke.env" SPARKBOT_OPENROUTER_SMOKE_MODEL=openai/gpt-4o-mini bash scripts/run-openrouter-free-smoke.sh >"${VENV_DIR}/openrouter-free-smoke-env-file-paid-model.out" 2>&1; then
+  echo "FAIL: OpenRouter free smoke should read the env file and reject non-free models before dispatch." >&2
+  exit 1
+fi
+if ! grep -q "must end in :free" "${VENV_DIR}/openrouter-free-smoke-env-file-paid-model.out"; then
+  echo "FAIL: OpenRouter free smoke env-file non-free-model error changed unexpectedly." >&2
+  cat "${VENV_DIR}/openrouter-free-smoke-env-file-paid-model.out" >&2
+  exit 1
+fi
+rm -f "${VENV_DIR}/openrouter-free-smoke.env" "${VENV_DIR}/openrouter-free-smoke-env-file-paid-model.out"
+
 if env "OPENROUTER""_API_KEY=placeholder" SPARKBOT_OPENROUTER_SMOKE_MODEL=openai/gpt-4o-mini bash scripts/run-openrouter-free-smoke.sh >"${VENV_DIR}/openrouter-free-smoke-paid-model.out" 2>&1; then
   echo "FAIL: OpenRouter free smoke should reject non-free models before dispatch." >&2
   exit 1
