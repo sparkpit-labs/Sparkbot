@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
+import { fallbackProviderConfigStatus } from "./providers/providerSetupStatus";
 
 const capabilitiesPayload = {
   service: "sparkbot-server",
@@ -854,6 +855,43 @@ describe("App", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it("keeps fallback provider catalogue aligned with install-test provider coverage", () => {
+    const providers = Object.fromEntries(fallbackProviderConfigStatus.providers.map((provider) => [provider.id, provider]));
+
+    expect(Object.keys(providers)).toEqual([
+      "local-ollama",
+      "openrouter",
+      "openai",
+      "anthropic",
+      "google",
+      "groq",
+      "minimax",
+      "xai",
+      "openai-codex-subscription",
+      "claude-subscription"
+    ]);
+    expect(fallbackProviderConfigStatus.provider_calls).toBe("disabled-by-default");
+    expect(fallbackProviderConfigStatus.credential_storage).toBe("not-implemented");
+
+    expect(providers.openrouter.default_model).toMatch(/:free$/);
+    expect(providers.openrouter.model_examples.every((model) => model.endsWith(":free"))).toBe(true);
+    expect(providers.openrouter.prompt_endpoint).toBe("/provider-config/openrouter/prompt");
+
+    expect(providers.openai.model_examples).toContain("gpt-5.3-codex");
+    expect(providers.anthropic.model_examples).toEqual(expect.arrayContaining(["claude-sonnet-4-6", "claude-opus-4-6"]));
+    expect(providers.google.model_examples).toContain("gemini/gemini-3.1-pro");
+    expect(providers.groq.model_examples).toContain("groq/llama-3.3-70b-versatile");
+    expect(providers.minimax.model_examples).toContain("minimax/MiniMax-M2.7");
+    expect(providers.xai.model_examples).toContain("xai/grok-4-1-fast-reasoning");
+
+    expect(providers["openai-codex-subscription"].provider_aliases).toEqual(["openai_codex"]);
+    expect(providers["openai-codex-subscription"].runtime_gate).toBe("lima-guardian-required");
+    expect(providers["openai-codex-subscription"].adapter_configured).toBe(false);
+    expect(providers["claude-subscription"].provider_aliases).toEqual(["claude_sub"]);
+    expect(providers["claude-subscription"].runtime_gate).toBe("lima-guardian-required");
+    expect(providers["claude-subscription"].adapter_configured).toBe(false);
   });
 
   it("renders workstation navigation, preview-only shell sections, fallback statuses, and read-only health panel", async () => {
