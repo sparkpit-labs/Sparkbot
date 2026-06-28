@@ -191,12 +191,12 @@ http://127.0.0.1:8000/local-models/status
 
 Local Ollama prompt calls remain disabled by default. To test the local-only response flow, create or select a local chat session, optionally check local memory notes to include in that one prompt, start Ollama locally, and run the backend with `SPARKBOT_LOCAL_MODELS_ENABLED=true` plus a configured or typed local model name. Successful responses are stored as `assistant-local` messages in the selected session.
 
-API provider prompt calls also remain disabled by default. Use `.env.example` as the public-safe local template. To test the guarded OpenRouter free-model path, configure backend environment values and submit an explicit prompt to the OpenRouter endpoint:
+API provider prompt calls also remain disabled by default. Do not paste provider keys into the Sparkbot UI. For a saved local setup, copy `.env.example` to `.env`, run `chmod 600 .env`, and fill only the backend env values you intend to test. For one-time OpenRouter validation, use the silent `read -rsp` flow in `docs/PROVIDER_SETUP_SHELL.md` so the key is not written to shell history. To test the guarded OpenRouter free-model path, configure backend environment values and submit an explicit prompt to the OpenRouter endpoint:
 
 ```bash
-SPARKBOT_PROVIDER_CALLS_ENABLED=true \
-OPENROUTER_API_KEY=... \
-SPARKBOT_OPENROUTER_MODEL=meta-llama/llama-3.2-3b-instruct:free \
+cp .env.example .env
+chmod 600 .env
+# edit .env locally, then start the backend
 bash scripts/start-backend-dev.sh
 ```
 

@@ -19,7 +19,14 @@ Provider Setup is now an environment-driven onboarding surface for local models,
 
 OpenRouter is the default cloud prompt path in the public shell because free `:free` model IDs are enforced by default. Other API-key providers also expose explicit guarded prompt endpoints when backend env keys and `SPARKBOT_PROVIDER_CALLS_ENABLED=true` are set. All provider prompt calls are off by default.
 
-Required environment, usually copied from `.env.example` into a local `.env` file:
+For a saved local setup, copy `.env.example` to `.env`, restrict the file permissions, and fill only the backend keys you intend to test. Do not paste provider keys into the Sparkbot UI and do not commit `.env`:
+
+```bash
+cp .env.example .env
+chmod 600 .env
+```
+
+Required environment inside that local env file:
 
 ```bash
 SPARKBOT_PROVIDER_CALLS_ENABLED=true
@@ -43,13 +50,16 @@ curl -i -X POST http://127.0.0.1:8000/provider-config/openrouter/prompt \
   -d '{"prompt":"Say OK.","model":"mistralai/mistral-7b-instruct:free"}'
 ```
 
-For an operator-owned real OpenRouter free-model smoke, set a local backend `OPENROUTER_API_KEY` and run the guarded wrapper:
+For an operator-owned real OpenRouter free-model smoke without saving the key in shell history, read the key silently into the current shell and unset it after the wrapper exits:
 
 ```bash
-OPENROUTER_API_KEY=... \
+read -rsp "OpenRouter key: " OPENROUTER_API_KEY
+printf "\n"
+export OPENROUTER_API_KEY
 SPARKBOT_OPENROUTER_SMOKE_MODEL=mistralai/mistral-7b-instruct:free \
 SPARKBOT_OPENROUTER_SMOKE_REPORT_PATH=./openrouter-free-smoke-report.txt \
 bash scripts/run-openrouter-free-smoke.sh
+unset OPENROUTER_API_KEY
 ```
 
 The wrapper starts a temporary localhost backend with provider calls enabled, rejects non-`:free` models before startup, submits one explicit OpenRouter prompt, validates the Sparkbot response contract, and does not print the model response text or key value. It is not part of default validation because it requires an operator-owned provider key and a real external OpenRouter call.
