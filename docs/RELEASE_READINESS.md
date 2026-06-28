@@ -11,8 +11,8 @@ This document tracks public shell readiness for review and phased release decisi
 
 ## Not yet in scope
 
-- Provider credential workflows
-- Model execution and routing
+- Browser credential entry or credential storage
+- Automatic model execution, broad routing, and provider fallback
 - Approval token workflows
 - Policy enforcement runtime
 - Sensitive action execution

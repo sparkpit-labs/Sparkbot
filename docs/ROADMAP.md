@@ -26,9 +26,9 @@ Establish a read-only Workstation shell skeleton and static Round Table preview 
 
 Add a read-only Chat Shell preview with no message handling, persistence, model calls, provider credentials, or send actions.
 
-## Phase 5: Provider setup shell preview
+## Phase 5: Provider setup shell
 
-Add a read-only Provider Setup preview with planned provider profiles and no credential, save, test, or runtime behavior.
+Add env-driven Provider Setup status for local Ollama, OpenRouter, API-key providers, and Codex/Claude subscription readiness. Explicit provider prompt smokes remain disabled by default and require backend environment enablement; browser credential entry, credential storage, automatic routing, and silent provider fallback remain out of scope.
 
 ## Phase 6: Guardian-gated controls shell preview
 

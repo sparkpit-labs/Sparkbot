@@ -108,7 +108,7 @@ const surfaceStatuses: SurfaceStatus[] = [
     label: "Provider Config",
     endpoint: "GET /provider-config/status",
     status: "preview",
-    summary: "No credential handling, provider calls, or model routing."
+    summary: "Env-driven provider status; explicit prompt smokes are disabled by default with no browser credential storage."
   },
   {
     id: "connector-status",
