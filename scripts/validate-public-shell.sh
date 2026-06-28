@@ -91,6 +91,36 @@ if ! grep -q "must end in :free" "${VENV_DIR}/openrouter-free-smoke-paid-model.o
 fi
 rm -f "${VENV_DIR}/openrouter-free-smoke-paid-model.out"
 
+HOME="${VENV_DIR}/readiness-home" bash scripts/check-provider-install-readiness.sh >"${VENV_DIR}/provider-install-readiness-default.out"
+if ! grep -q "TODO openrouter_key_source" "${VENV_DIR}/provider-install-readiness-default.out"; then
+  echo "FAIL: provider install readiness should report missing OpenRouter key source by default." >&2
+  cat "${VENV_DIR}/provider-install-readiness-default.out" >&2
+  exit 1
+fi
+if ! grep -q "TODO lima_adapter_url set SPARKBOT_LIMA_PROVIDER_ADAPTER_URL" "${VENV_DIR}/provider-install-readiness-default.out"; then
+  echo "FAIL: provider install readiness should report missing LIMA adapter URL by default." >&2
+  cat "${VENV_DIR}/provider-install-readiness-default.out" >&2
+  exit 1
+fi
+rm -f "${VENV_DIR}/provider-install-readiness-default.out"
+
+printf "OPENROUTER_API_KEY=placeholder\n" >"${VENV_DIR}/provider-install-readiness.env"
+SPARKBOT_OPENROUTER_SMOKE_ENV_FILE="${VENV_DIR}/provider-install-readiness.env" \
+SPARKBOT_LIMA_PROVIDER_ADAPTER_URL=http://127.0.0.1:19999/provider-adapter/dispatch \
+HOME="${VENV_DIR}/readiness-home" \
+  bash scripts/check-provider-install-readiness.sh >"${VENV_DIR}/provider-install-readiness-ready-inputs.out"
+if ! grep -q "PASS openrouter_key_source source=env-file" "${VENV_DIR}/provider-install-readiness-ready-inputs.out"; then
+  echo "FAIL: provider install readiness should accept a local OpenRouter env file." >&2
+  cat "${VENV_DIR}/provider-install-readiness-ready-inputs.out" >&2
+  exit 1
+fi
+if ! grep -q "PASS lima_adapter_url localhost-dispatch-path" "${VENV_DIR}/provider-install-readiness-ready-inputs.out"; then
+  echo "FAIL: provider install readiness should accept localhost LIMA adapter URLs with dispatch paths." >&2
+  cat "${VENV_DIR}/provider-install-readiness-ready-inputs.out" >&2
+  exit 1
+fi
+rm -f "${VENV_DIR}/provider-install-readiness.env" "${VENV_DIR}/provider-install-readiness-ready-inputs.out"
+
 python3 -m compileall backend
 
 python3 -m venv "${VENV_DIR}"

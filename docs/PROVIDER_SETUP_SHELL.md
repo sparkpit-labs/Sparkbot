@@ -72,6 +72,14 @@ The env-file reader parses only `OPENROUTER_API_KEY` from plain `KEY=VALUE` or `
 
 The wrapper reads the key from the silent prompt or opt-in env file without echoing it, keeps it only for that process, starts a temporary localhost backend with provider calls enabled, rejects non-`:free` models before startup, submits one explicit OpenRouter prompt, validates the Sparkbot response contract, and does not print the model response text or key value. It is not part of default validation because it requires an operator-owned provider key and a real external OpenRouter call.
 
+Before running the external smoke, use the non-dispatching readiness helper to confirm the local inputs without printing secrets:
+
+```bash
+bash scripts/check-provider-install-readiness.sh
+```
+
+Set `SPARKBOT_PROVIDER_INSTALL_READINESS_REPORT_PATH=./provider-install-readiness.txt` to write the same sanitized PASS/TODO lines to a report file.
+
 ## Subscription sign-in readiness
 
 For Codex subscription readiness, install the Codex CLI, run `codex login`, choose ChatGPT sign-in, finish the browser login, and restart Sparkbot. Sparkbot detects token-shaped signed-in auth state and treats empty or invalid auth files as not signed in. If the backend runs under a different user or profile, set `CODEX_HOME` to the signed-in profile directory or `SPARKBOT_CODEX_AUTH_FILE` to the auth file path. Use `SPARKBOT_CODEX_CLI` only when the CLI is not on `PATH`. `SPARKBOT_CODEX_MODEL` is the public-shell default model setting; `SPARKBOT_CODEX_SUBSCRIPTION_MODEL` is accepted as a prototype-compatible alias.

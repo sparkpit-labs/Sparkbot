@@ -9,9 +9,10 @@ Sparkbot is ready for LIMA-side install smoke testing when these local checks pa
 ```bash
 bash scripts/run-local-smoke-test.sh
 bash scripts/run-lima-provider-adapter-contract-smoke.sh
+bash scripts/check-provider-install-readiness.sh
 ```
 
-The first command verifies local startup, local data isolation, provider setup status, OpenRouter free-model enforcement, API-key provider onboarding with placeholder backend keys, and disabled-by-default model-call gates. The second command verifies Sparkbot's subscription-provider client against a local mock adapter, including sanitized report generation and fail-closed handling for `denied`, `blocked`, `timeout`, and `failed` adapter statuses.
+The first command verifies local startup, local data isolation, provider setup status, OpenRouter free-model enforcement, API-key provider onboarding with placeholder backend keys, and disabled-by-default model-call gates. The second command verifies Sparkbot's subscription-provider client against a local mock adapter, including sanitized report generation and fail-closed handling for `denied`, `blocked`, `timeout`, and `failed` adapter statuses. The third command prints non-secret PASS/TODO lines for OpenRouter key source, OpenRouter `:free` model selection, localhost LIMA adapter URL shape, and Codex/Claude CLI sign-in readiness.
 
 These checks prove Sparkbot-side wiring only. They do not prove real Codex or Claude subscription dispatch.
 
@@ -49,6 +50,13 @@ bash scripts/run-lima-install-provider-smoke.sh
 ```
 
 The report contains provider IDs, selected model IDs, PASS/FAIL markers, and adapter audit IDs. It does not include prompt text, model response text, auth files, provider keys, or adapter credentials.
+
+To create a pre-smoke readiness report without dispatching any provider call, run:
+
+```bash
+SPARKBOT_PROVIDER_INSTALL_READINESS_REPORT_PATH=./provider-install-readiness.txt \
+bash scripts/check-provider-install-readiness.sh
+```
 
 ## Evidence To Return
 
