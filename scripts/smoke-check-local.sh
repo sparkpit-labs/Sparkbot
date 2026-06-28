@@ -11,6 +11,7 @@ provider_config_status_url="${SPARKBOT_BACKEND_URL%/}/provider-config/status"
 openrouter_prompt_url="${SPARKBOT_BACKEND_URL%/}/provider-config/openrouter/prompt"
 openai_prompt_url="${SPARKBOT_BACKEND_URL%/}/provider-config/openai/prompt"
 codex_subscription_prompt_url="${SPARKBOT_BACKEND_URL%/}/provider-config/openai-codex-subscription/prompt"
+claude_subscription_prompt_url="${SPARKBOT_BACKEND_URL%/}/provider-config/claude-subscription/prompt"
 connector_status_url="${SPARKBOT_BACKEND_URL%/}/connector-status"
 guardian_status_url="${SPARKBOT_BACKEND_URL%/}/guardian/status"
 round_table_status_url="${SPARKBOT_BACKEND_URL%/}/round-table/status"
@@ -158,6 +159,15 @@ if [[ "${provider_calls_mode}" == "disabled-by-default" ]]; then
     403) ;;
     *)
       echo "Codex subscription prompt did not return 403 while provider calls are disabled; got ${codex_subscription_prompt_code}." >&2
+      exit 1
+      ;;
+  esac
+  echo "Checking Claude subscription prompt remains disabled by default at ${claude_subscription_prompt_url}"
+  claude_subscription_prompt_code="$(curl -sS -o /dev/null -w "%{http_code}" -X POST "${claude_subscription_prompt_url}" -H "Content-Type: application/json" -d '{"prompt":"smoke","model":"claude-sub/sonnet"}')"
+  case "${claude_subscription_prompt_code}" in
+    403) ;;
+    *)
+      echo "Claude subscription prompt did not return 403 while provider calls are disabled; got ${claude_subscription_prompt_code}." >&2
       exit 1
       ;;
   esac
