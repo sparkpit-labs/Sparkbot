@@ -39,7 +39,7 @@ bash scripts/run-lima-install-provider-smoke.sh
 
 The script starts a temporary Sparkbot backend on `127.0.0.1:18280`, enables explicit provider calls, uses host subscription readiness, dispatches explicit smoke prompts through the configured localhost adapter, validates response metadata, prints adapter audit IDs, and shuts the backend down. It does not execute Codex or Claude CLIs directly from Sparkbot.
 
-Use `SPARKBOT_LIMA_INSTALL_SMOKE_BACKEND_PORT=<port>` if `18280` is already occupied.
+Use `SPARKBOT_LIMA_INSTALL_SMOKE_BACKEND_PORT=<port>` if `18280` is already occupied. For a saved local env file, set `SPARKBOT_LIMA_INSTALL_SMOKE_ENV_FILE=.env` or the shared `SPARKBOT_PROVIDER_INSTALL_ENV_FILE=.env`; the wrapper parses `SPARKBOT_LIMA_PROVIDER_ADAPTER_URL` without executing the file.
 
 To create a sanitized evidence file for handoff, add `SPARKBOT_LIMA_INSTALL_SMOKE_REPORT_PATH`:
 
@@ -54,6 +54,7 @@ The report contains provider IDs, selected model IDs, PASS/FAIL markers, and ada
 To create a pre-smoke readiness report without dispatching any provider call, run:
 
 ```bash
+SPARKBOT_PROVIDER_INSTALL_ENV_FILE=.env \
 SPARKBOT_PROVIDER_INSTALL_READINESS_REPORT_PATH=./provider-install-readiness.txt \
 bash scripts/check-provider-install-readiness.sh
 ```

@@ -35,6 +35,18 @@ if ! grep -q "must be an http localhost endpoint" "${VENV_DIR}/lima-install-smok
 fi
 rm -f "${VENV_DIR}/lima-install-smoke-nonlocal-url.out"
 
+printf "SPARKBOT_LIMA_PROVIDER_ADAPTER_URL=https://example.com/provider-adapter/dispatch\n" >"${VENV_DIR}/lima-install-smoke.env"
+if SPARKBOT_LIMA_INSTALL_SMOKE_ENV_FILE="${VENV_DIR}/lima-install-smoke.env" bash scripts/run-lima-install-provider-smoke.sh >"${VENV_DIR}/lima-install-smoke-env-file-nonlocal-url.out" 2>&1; then
+  echo "FAIL: LIMA install provider smoke should reject non-local adapter URLs read from env files." >&2
+  exit 1
+fi
+if ! grep -q "must be an http localhost endpoint" "${VENV_DIR}/lima-install-smoke-env-file-nonlocal-url.out"; then
+  echo "FAIL: LIMA install provider smoke env-file non-local URL error changed unexpectedly." >&2
+  cat "${VENV_DIR}/lima-install-smoke-env-file-nonlocal-url.out" >&2
+  exit 1
+fi
+rm -f "${VENV_DIR}/lima-install-smoke.env" "${VENV_DIR}/lima-install-smoke-env-file-nonlocal-url.out"
+
 if bash scripts/run-openrouter-free-smoke.sh >"${VENV_DIR}/openrouter-free-smoke-missing-key.out" 2>&1; then
   echo "FAIL: OpenRouter free smoke should require OPENROUTER_API_KEY." >&2
   exit 1
@@ -80,6 +92,18 @@ if ! grep -q "must end in :free" "${VENV_DIR}/openrouter-free-smoke-env-file-pai
 fi
 rm -f "${VENV_DIR}/openrouter-free-smoke.env" "${VENV_DIR}/openrouter-free-smoke-env-file-paid-model.out"
 
+printf "OPENROUTER_API_KEY=placeholder\n" >"${VENV_DIR}/openrouter-free-smoke-shared.env"
+if SPARKBOT_PROVIDER_INSTALL_ENV_FILE="${VENV_DIR}/openrouter-free-smoke-shared.env" SPARKBOT_OPENROUTER_SMOKE_MODEL=openai/gpt-4o-mini bash scripts/run-openrouter-free-smoke.sh >"${VENV_DIR}/openrouter-free-smoke-shared-env-file-paid-model.out" 2>&1; then
+  echo "FAIL: OpenRouter free smoke should reject non-free models when key is read from shared provider env file." >&2
+  exit 1
+fi
+if ! grep -q "must end in :free" "${VENV_DIR}/openrouter-free-smoke-shared-env-file-paid-model.out"; then
+  echo "FAIL: OpenRouter free smoke shared env-file paid-model error changed unexpectedly." >&2
+  cat "${VENV_DIR}/openrouter-free-smoke-shared-env-file-paid-model.out" >&2
+  exit 1
+fi
+rm -f "${VENV_DIR}/openrouter-free-smoke-shared.env" "${VENV_DIR}/openrouter-free-smoke-shared-env-file-paid-model.out"
+
 if env "OPENROUTER""_API_KEY=placeholder" SPARKBOT_OPENROUTER_SMOKE_MODEL=openai/gpt-4o-mini bash scripts/run-openrouter-free-smoke.sh >"${VENV_DIR}/openrouter-free-smoke-paid-model.out" 2>&1; then
   echo "FAIL: OpenRouter free smoke should reject non-free models before dispatch." >&2
   exit 1
@@ -104,9 +128,8 @@ if ! grep -q "TODO lima_adapter_url set SPARKBOT_LIMA_PROVIDER_ADAPTER_URL" "${V
 fi
 rm -f "${VENV_DIR}/provider-install-readiness-default.out"
 
-printf "OPENROUTER_API_KEY=placeholder\n" >"${VENV_DIR}/provider-install-readiness.env"
-SPARKBOT_OPENROUTER_SMOKE_ENV_FILE="${VENV_DIR}/provider-install-readiness.env" \
-SPARKBOT_LIMA_PROVIDER_ADAPTER_URL=http://127.0.0.1:19999/provider-adapter/dispatch \
+printf "OPENROUTER_API_KEY=placeholder\nSPARKBOT_LIMA_PROVIDER_ADAPTER_URL=http://127.0.0.1:19999/provider-adapter/dispatch\n" >"${VENV_DIR}/provider-install-readiness.env"
+SPARKBOT_PROVIDER_INSTALL_ENV_FILE="${VENV_DIR}/provider-install-readiness.env" \
 HOME="${VENV_DIR}/readiness-home" \
   bash scripts/check-provider-install-readiness.sh >"${VENV_DIR}/provider-install-readiness-ready-inputs.out"
 if ! grep -q "PASS openrouter_key_source source=env-file" "${VENV_DIR}/provider-install-readiness-ready-inputs.out"; then
@@ -114,7 +137,7 @@ if ! grep -q "PASS openrouter_key_source source=env-file" "${VENV_DIR}/provider-
   cat "${VENV_DIR}/provider-install-readiness-ready-inputs.out" >&2
   exit 1
 fi
-if ! grep -q "PASS lima_adapter_url localhost-dispatch-path" "${VENV_DIR}/provider-install-readiness-ready-inputs.out"; then
+if ! grep -q "PASS lima_adapter_url source=env-file" "${VENV_DIR}/provider-install-readiness-ready-inputs.out"; then
   echo "FAIL: provider install readiness should accept localhost LIMA adapter URLs with dispatch paths." >&2
   cat "${VENV_DIR}/provider-install-readiness-ready-inputs.out" >&2
   exit 1

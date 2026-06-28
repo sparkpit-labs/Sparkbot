@@ -3,7 +3,9 @@ set -euo pipefail
 
 SPARKBOT_PROVIDER_INSTALL_READINESS_REPORT_PATH="${SPARKBOT_PROVIDER_INSTALL_READINESS_REPORT_PATH:-}"
 SPARKBOT_OPENROUTER_SMOKE_MODEL="${SPARKBOT_OPENROUTER_SMOKE_MODEL:-${SPARKBOT_OPENROUTER_MODEL:-meta-llama/llama-3.2-3b-instruct:free}}"
-SPARKBOT_OPENROUTER_SMOKE_ENV_FILE="${SPARKBOT_OPENROUTER_SMOKE_ENV_FILE:-}"
+SPARKBOT_PROVIDER_INSTALL_ENV_FILE="${SPARKBOT_PROVIDER_INSTALL_ENV_FILE:-}"
+SPARKBOT_OPENROUTER_SMOKE_ENV_FILE="${SPARKBOT_OPENROUTER_SMOKE_ENV_FILE:-${SPARKBOT_PROVIDER_INSTALL_ENV_FILE}}"
+SPARKBOT_LIMA_INSTALL_SMOKE_ENV_FILE="${SPARKBOT_LIMA_INSTALL_SMOKE_ENV_FILE:-${SPARKBOT_PROVIDER_INSTALL_ENV_FILE}}"
 SPARKBOT_LIMA_PROVIDER_ADAPTER_URL="${SPARKBOT_LIMA_PROVIDER_ADAPTER_URL:-}"
 
 OPENROUTER_KEY_VAR="OPENROUTER""_API_KEY"
@@ -43,6 +45,41 @@ for raw_line in path.read_text(encoding="utf-8").splitlines():
 raise SystemExit(1)
 PYENV
 }
+
+lima_adapter_url_from_env_file() {
+  if [[ -z "${SPARKBOT_LIMA_INSTALL_SMOKE_ENV_FILE}" || -n "${SPARKBOT_LIMA_PROVIDER_ADAPTER_URL}" ]]; then
+    return 1
+  fi
+
+  SPARKBOT_LIMA_PROVIDER_ADAPTER_URL="$(
+    SPARKBOT_LIMA_INSTALL_SMOKE_ENV_FILE="${SPARKBOT_LIMA_INSTALL_SMOKE_ENV_FILE}" python3 - <<'PYENV'
+import os
+import sys
+from pathlib import Path
+
+path = Path(os.environ["SPARKBOT_LIMA_INSTALL_SMOKE_ENV_FILE"].strip()).expanduser()
+if not path.is_file():
+    raise SystemExit(1)
+
+for raw_line in path.read_text(encoding="utf-8").splitlines():
+    line = raw_line.strip()
+    if not line or line.startswith("#"):
+        continue
+    if line.startswith("export "):
+        line = line[len("export "):].lstrip()
+    key, separator, value = line.partition("=")
+    if separator and key.strip() == "SPARKBOT_LIMA_PROVIDER_ADAPTER_URL":
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", chr(34)}:
+            value = value[1:-1]
+        print(value)
+        raise SystemExit(0)
+raise SystemExit(1)
+PYENV
+  )"
+  validate_lima_adapter_url
+}
+
 
 codex_auth_ready() {
   CODEX_HOME="${CODEX_HOME:-}" SPARKBOT_CODEX_AUTH_FILE="${SPARKBOT_CODEX_AUTH_FILE:-}" python3 - <<'PYCodex'
@@ -123,19 +160,31 @@ if [[ -n "${!OPENROUTER_KEY_VAR-}" ]]; then
 elif has_openrouter_key_in_env_file; then
   emit "PASS openrouter_key_source source=env-file"
 else
-  emit "TODO openrouter_key_source provide OPENROUTER_API_KEY or SPARKBOT_OPENROUTER_SMOKE_ENV_FILE"
+  emit "TODO openrouter_key_source provide OPENROUTER_API_KEY, SPARKBOT_OPENROUTER_SMOKE_ENV_FILE, or SPARKBOT_PROVIDER_INSTALL_ENV_FILE"
 fi
 
-if validate_lima_adapter_url; then
+lima_adapter_url_status=0
+validate_lima_adapter_url || lima_adapter_url_status=$?
+if [[ "${lima_adapter_url_status}" -eq 0 ]]; then
   emit "PASS lima_adapter_url localhost-dispatch-path"
 else
-  case "$?" in
-    1) emit "TODO lima_adapter_url set SPARKBOT_LIMA_PROVIDER_ADAPTER_URL" ;;
-    2) emit "TODO lima_adapter_url must be http localhost or 127.0.0.1" ;;
-    3) emit "TODO lima_adapter_url remove credentials query parameters and fragments" ;;
-    4) emit "TODO lima_adapter_url include an explicit dispatch path" ;;
-    *) emit "TODO lima_adapter_url invalid adapter URL" ;;
-  esac
+  if [[ "${lima_adapter_url_status}" -eq 1 && -z "${SPARKBOT_LIMA_PROVIDER_ADAPTER_URL}" && -n "${SPARKBOT_LIMA_INSTALL_SMOKE_ENV_FILE}" ]]; then
+    if lima_adapter_url_from_env_file; then
+      emit "PASS lima_adapter_url source=env-file"
+      lima_adapter_url_status=0
+    else
+      lima_adapter_url_status=$?
+    fi
+  fi
+  if [[ "${lima_adapter_url_status}" -ne 0 ]]; then
+    case "${lima_adapter_url_status}" in
+      1) emit "TODO lima_adapter_url set SPARKBOT_LIMA_PROVIDER_ADAPTER_URL" ;;
+      2) emit "TODO lima_adapter_url must be http localhost or 127.0.0.1" ;;
+      3) emit "TODO lima_adapter_url remove credentials query parameters and fragments" ;;
+      4) emit "TODO lima_adapter_url include an explicit dispatch path" ;;
+      *) emit "TODO lima_adapter_url invalid adapter URL" ;;
+    esac
+  fi
 fi
 
 if command -v codex >/dev/null 2>&1 || [[ -n "${SPARKBOT_CODEX_CLI:-}" ]]; then

@@ -6,7 +6,42 @@ SPARKBOT_LIMA_INSTALL_SMOKE_BACKEND_HOST="${SPARKBOT_LIMA_INSTALL_SMOKE_BACKEND_
 SPARKBOT_LIMA_INSTALL_SMOKE_BACKEND_PORT="${SPARKBOT_LIMA_INSTALL_SMOKE_BACKEND_PORT:-18280}"
 SPARKBOT_LIMA_INSTALL_SMOKE_DATA_DIR="${SPARKBOT_LIMA_INSTALL_SMOKE_DATA_DIR:-}"
 SPARKBOT_LIMA_INSTALL_SMOKE_REPORT_PATH="${SPARKBOT_LIMA_INSTALL_SMOKE_REPORT_PATH:-}"
+SPARKBOT_PROVIDER_INSTALL_ENV_FILE="${SPARKBOT_PROVIDER_INSTALL_ENV_FILE:-}"
+SPARKBOT_LIMA_INSTALL_SMOKE_ENV_FILE="${SPARKBOT_LIMA_INSTALL_SMOKE_ENV_FILE:-${SPARKBOT_PROVIDER_INSTALL_ENV_FILE}}"
 SPARKBOT_LIMA_PROVIDER_ADAPTER_URL="${SPARKBOT_LIMA_PROVIDER_ADAPTER_URL:-}"
+
+load_lima_adapter_url_from_env_file() {
+  if [[ -z "${SPARKBOT_LIMA_INSTALL_SMOKE_ENV_FILE}" || -n "${SPARKBOT_LIMA_PROVIDER_ADAPTER_URL}" ]]; then
+    return 0
+  fi
+
+  SPARKBOT_LIMA_PROVIDER_ADAPTER_URL="$(
+    SPARKBOT_LIMA_INSTALL_SMOKE_ENV_FILE="${SPARKBOT_LIMA_INSTALL_SMOKE_ENV_FILE}" python3 - <<'PYENV'
+import os
+import sys
+from pathlib import Path
+
+path = Path(os.environ["SPARKBOT_LIMA_INSTALL_SMOKE_ENV_FILE"].strip()).expanduser()
+if not path.is_file():
+    print("SPARKBOT_LIMA_INSTALL_SMOKE_ENV_FILE does not exist or is not a file.", file=sys.stderr)
+    raise SystemExit(1)
+
+for raw_line in path.read_text(encoding="utf-8").splitlines():
+    line = raw_line.strip()
+    if not line or line.startswith("#"):
+        continue
+    if line.startswith("export "):
+        line = line[len("export "):].lstrip()
+    key, separator, value = line.partition("=")
+    if separator and key.strip() == "SPARKBOT_LIMA_PROVIDER_ADAPTER_URL":
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", chr(34)}:
+            value = value[1:-1]
+        print(value)
+        raise SystemExit(0)
+PYENV
+  )"
+}
 
 case "${SPARKBOT_LIMA_INSTALL_SMOKE_BACKEND_HOST}" in
   127.0.0.1|localhost) ;;
@@ -15,6 +50,8 @@ case "${SPARKBOT_LIMA_INSTALL_SMOKE_BACKEND_HOST}" in
     exit 1
     ;;
 esac
+
+load_lima_adapter_url_from_env_file
 
 if [[ -z "${SPARKBOT_LIMA_PROVIDER_ADAPTER_URL}" ]]; then
   echo "Set SPARKBOT_LIMA_PROVIDER_ADAPTER_URL to the localhost LIMA Guardian provider adapter endpoint." >&2

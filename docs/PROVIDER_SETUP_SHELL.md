@@ -62,13 +62,13 @@ bash scripts/run-openrouter-free-smoke.sh
 For a saved local `.env` file, use the opt-in env-file reader instead of exporting the key:
 
 ```bash
-SPARKBOT_OPENROUTER_SMOKE_ENV_FILE=.env \
+SPARKBOT_PROVIDER_INSTALL_ENV_FILE=.env \
 SPARKBOT_OPENROUTER_SMOKE_MODEL=mistralai/mistral-7b-instruct:free \
 SPARKBOT_OPENROUTER_SMOKE_REPORT_PATH=./openrouter-free-smoke-report.txt \
 bash scripts/run-openrouter-free-smoke.sh
 ```
 
-The env-file reader parses only `OPENROUTER_API_KEY` from plain `KEY=VALUE` or `export KEY=VALUE` lines. It does not execute `.env` contents or print the key.
+The env-file reader parses only `OPENROUTER_API_KEY` from plain `KEY=VALUE` or `export KEY=VALUE` lines. Use `SPARKBOT_OPENROUTER_SMOKE_ENV_FILE` for an OpenRouter-only file or `SPARKBOT_PROVIDER_INSTALL_ENV_FILE` for a shared provider install file. It does not execute `.env` contents or print the key.
 
 The wrapper reads the key from the silent prompt or opt-in env file without echoing it, keeps it only for that process, starts a temporary localhost backend with provider calls enabled, rejects non-`:free` models before startup, submits one explicit OpenRouter prompt, validates the Sparkbot response contract, and does not print the model response text or key value. It is not part of default validation because it requires an operator-owned provider key and a real external OpenRouter call.
 
