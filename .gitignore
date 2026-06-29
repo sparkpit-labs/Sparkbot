@@ -14,3 +14,10 @@ frontend/node_modules/
 frontend/dist/
 frontend/.vite/
 coverage/
+
+# Generated provider install and smoke evidence reports. Keep local unless explicitly reviewed for release notes.
+provider-install-readiness*.txt
+openrouter-free-smoke-report*.txt
+lima-install-smoke-report*.txt
+lima-contract-smoke-report*.txt
+*smoke-report.txt
