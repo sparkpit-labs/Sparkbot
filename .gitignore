@@ -8,6 +8,9 @@ backend/*.egg-info/
 build/
 dist/
 .env
+.env.*
+!.env.example
+*.env
 logs/
 data/
 frontend/node_modules/
