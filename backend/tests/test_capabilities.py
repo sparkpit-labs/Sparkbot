@@ -31,54 +31,6 @@ def test_capabilities_are_static_and_public_safe() -> None:
             "notes": "Public shell interface.",
         },
         {
-            "id": "local-workstation-store",
-            "label": "Local Workstation store",
-            "status": "available",
-            "notes": "Local SQLite storage for Workstation data.",
-        },
-        {
-            "id": "local-chat-drafts",
-            "label": "Local chat drafts",
-            "status": "available",
-            "notes": "Stores operator and note messages locally without model calls.",
-        },
-        {
-            "id": "local-memory-notes",
-            "label": "Local memory notes",
-            "status": "available",
-            "notes": "Stores local notes and supports explicit per-prompt selection without automatic retrieval or model memory.",
-        },
-        {
-            "id": "local-work-lane-cards",
-            "label": "Local work lane cards",
-            "status": "available",
-            "notes": "Stores local planning cards and optional local chat-session links without scheduler or task execution.",
-        },
-        {
-            "id": "local-data-export",
-            "label": "Local data export",
-            "status": "available",
-            "notes": "Downloads a read-only JSON backup of local Workstation data without import, sync, or upload.",
-        },
-        {
-            "id": "local-runtime-settings",
-            "label": "Local runtime settings",
-            "status": "available",
-            "notes": "Shows env-driven local runtime paths and Ollama settings without credential fields or save actions.",
-        },
-        {
-            "id": "local-model-adapter",
-            "label": "Local model adapter",
-            "status": "disabled-by-default",
-            "notes": "Localhost-only Ollama adapter; prompt calls require explicit operator enablement.",
-        },
-        {
-            "id": "local-ollama",
-            "label": "Local Ollama",
-            "status": "disabled-by-default",
-            "notes": "Uses only localhost or 127.0.0.1 and no credentials or cloud providers.",
-        },
-        {
             "id": "workstation",
             "label": "Workstation shell",
             "status": "preview",
@@ -89,6 +41,12 @@ def test_capabilities_are_static_and_public_safe() -> None:
             "label": "Chat shell",
             "status": "preview",
             "notes": "No model calls or message persistence.",
+        },
+        {
+            "id": "work-page",
+            "label": "Work Page shell",
+            "status": "preview",
+            "notes": "No file reads, file writes, connector calls, or worker execution.",
         },
         {
             "id": "round-table",
@@ -103,16 +61,10 @@ def test_capabilities_are_static_and_public_safe() -> None:
             "notes": "No credential storage or provider calls.",
         },
         {
-            "id": "model-seats",
-            "label": "Model Seat preview",
+            "id": "local-ai-settings",
+            "label": "Local AI Settings shell",
             "status": "preview",
-            "notes": "No model assignment, routing, calls, credentials, or seat persistence.",
-        },
-        {
-            "id": "work-lanes",
-            "label": "Task Lane preview",
-            "status": "preview",
-            "notes": "No scheduler, background jobs, task execution, notifications, or task persistence.",
+            "notes": "No credentials, endpoint checks, provider calls, or model routing.",
         },
         {
             "id": "guardian-controls",
@@ -134,9 +86,9 @@ def test_capabilities_are_static_and_public_safe() -> None:
         },
         {
             "id": "model-calls",
-            "label": "Cloud model calls",
+            "label": "Model calls",
             "status": "guarded-future",
-            "notes": "No cloud provider runtime or production model routing.",
+            "notes": "No provider runtime or model routing.",
         },
         {
             "id": "credential-storage",
@@ -167,7 +119,6 @@ def test_capability_statuses_use_contract_values() -> None:
     statuses = {item["status"] for item in payload["capabilities"]}
     assert statuses <= ALLOWED_CAPABILITY_STATUSES
     assert "guarded-future" in statuses
-    assert "disabled-by-default" in statuses
 
 
 def test_guarded_future_capabilities_are_present_and_inactive() -> None:
@@ -179,9 +130,12 @@ def test_guarded_future_capabilities_are_present_and_inactive() -> None:
         assert capabilities[capability_id]["status"] == "guarded-future"
 
     inactive_notes = " ".join(item["notes"].lower() for item in payload["capabilities"])
+    assert "no file reads" in inactive_notes
+    assert "file writes" in inactive_notes
     assert "no connector calls" in inactive_notes
     assert "external sends" in inactive_notes
-    assert "no cloud provider runtime" in inactive_notes
+    assert "endpoint checks" in inactive_notes
+    assert "no provider runtime" in inactive_notes
     assert "no credential entry" in inactive_notes
     assert "no terminal" in inactive_notes
     assert "available" not in {
@@ -199,10 +153,10 @@ def test_preview_shell_capabilities_do_not_claim_runtime_operation() -> None:
 
     preview_expectations = {
         "chat": ["no model calls", "message persistence"],
+        "work-page": ["no file reads", "file writes", "connector calls"],
         "round-table": ["no meeting engine", "agent orchestration"],
         "provider-setup": ["no credential storage", "provider calls"],
-        "model-seats": ["no model assignment", "routing", "seat persistence"],
-        "work-lanes": ["no scheduler", "background jobs", "task persistence"],
+        "local-ai-settings": ["no credentials", "endpoint checks", "provider calls", "model routing"],
         "guardian-controls": ["no policy enforcement runtime"],
     }
 

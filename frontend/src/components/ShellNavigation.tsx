@@ -1,5 +1,4 @@
 import { shellSections, shellStatusLabels, type ShellSectionStatus } from "../workstation/shellSections";
-import StatusPill from "./StatusPill";
 
 type ShellNavigationProps = {
   activeSectionId: string;
@@ -28,7 +27,7 @@ export default function ShellNavigation({ activeSectionId, onSelectSection }: Sh
             type="button"
           >
             <span className="shell-navigation-label">{section.label}</span>
-            <StatusPill status={section.status} />
+            <span className={`status-badge status-${section.status}`}>{formatShellStatus(section.status)}</span>
             <span className="shell-navigation-summary">{section.summary}</span>
           </button>
         ))}
