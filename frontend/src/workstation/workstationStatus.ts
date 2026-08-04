@@ -24,54 +24,6 @@ export const workstationStatusItems: WorkstationStatusItem[] = [
     summary: "Public shell interface."
   },
   {
-    id: "local-workstation-store",
-    name: "Local Workstation store",
-    status: "available",
-    summary: "Local SQLite storage for Workstation data."
-  },
-  {
-    id: "local-chat-drafts",
-    name: "Local chat drafts",
-    status: "available",
-    summary: "Stores operator and note messages locally without model calls."
-  },
-  {
-    id: "local-memory-notes",
-    name: "Local memory notes",
-    status: "available",
-    summary: "Stores local notes and supports explicit per-prompt selection without automatic retrieval or model memory."
-  },
-  {
-    id: "local-work-lane-cards",
-    name: "Local work lane cards",
-    status: "available",
-    summary: "Stores local planning cards and optional local chat-session links without scheduler or task execution."
-  },
-  {
-    id: "local-data-export",
-    name: "Local data export",
-    status: "available",
-    summary: "Downloads a read-only JSON backup of local Workstation data without import, sync, or upload."
-  },
-  {
-    id: "local-runtime-settings",
-    name: "Local runtime settings",
-    status: "available",
-    summary: "Shows env-driven local runtime paths and Ollama settings without credential fields or save actions."
-  },
-  {
-    id: "local-model-adapter",
-    name: "Local model adapter",
-    status: "disabled-by-default",
-    summary: "Localhost-only Ollama adapter; prompt calls require explicit operator enablement."
-  },
-  {
-    id: "local-ollama",
-    name: "Local Ollama",
-    status: "disabled-by-default",
-    summary: "Uses only localhost or 127.0.0.1 and no credentials or cloud providers."
-  },
-  {
     id: "workstation",
     name: "Workstation shell",
     status: "preview",
@@ -82,6 +34,12 @@ export const workstationStatusItems: WorkstationStatusItem[] = [
     name: "Chat shell",
     status: "preview",
     summary: "No model calls or message persistence."
+  },
+  {
+    id: "work-page",
+    name: "Work Page shell",
+    status: "preview",
+    summary: "No file reads, file writes, connector calls, or worker execution."
   },
   {
     id: "round-table",
@@ -96,16 +54,10 @@ export const workstationStatusItems: WorkstationStatusItem[] = [
     summary: "No credential storage or provider calls."
   },
   {
-    id: "model-seats",
-    name: "Model Seat preview",
+    id: "local-ai-settings",
+    name: "Local AI Settings shell",
     status: "preview",
-    summary: "No model assignment, routing, calls, credentials, or seat persistence."
-  },
-  {
-    id: "work-lanes",
-    name: "Task Lane preview",
-    status: "preview",
-    summary: "No scheduler, background jobs, task execution, notifications, or task persistence."
+    summary: "No credentials, endpoint checks, provider calls, or model routing."
   },
   {
     id: "guardian-controls",
@@ -127,9 +79,9 @@ export const workstationStatusItems: WorkstationStatusItem[] = [
   },
   {
     id: "model-calls",
-    name: "Cloud model calls",
+    name: "Model calls",
     status: "guarded-future",
-    summary: "No cloud provider runtime or production model routing."
+    summary: "No provider runtime or model routing."
   },
   {
     id: "credential-storage",
@@ -157,8 +109,9 @@ export function capabilityToStatusItem(capability: PublicCapability): Workstatio
 export const workstationRoadmapItems: string[] = [
   "Define workstation view structure with stable public contracts.",
   "Document chat interaction contracts before enabling message handling or model behavior.",
+  "Keep Work Page and Local AI Settings previews inert until public-safe local action contracts exist.",
   "Expand Round Table preview surfaces only after public interaction contracts are documented.",
   "Document provider setup contracts before enabling credential or network behavior.",
   "Document Guardian control contracts before enabling approval or enforcement behavior.",
-  "Prepare model seat, task lane, provider, and guardrail integration points without runtime activation."
+  "Prepare provider and guardrail integration points without runtime activation."
 ];
