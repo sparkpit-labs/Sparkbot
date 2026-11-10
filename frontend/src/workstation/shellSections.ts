@@ -37,8 +37,8 @@ export const shellSections: ShellSection[] = [
   {
     id: "round-table",
     label: "Round Table",
-    status: "preview",
-    summary: "Static seat layout for future multi-participant work."
+    status: "available",
+    summary: "Local rooms where you and AI agents on this computer work together."
   },
   {
     id: "provider-setup",

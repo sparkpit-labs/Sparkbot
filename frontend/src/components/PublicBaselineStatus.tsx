@@ -86,8 +86,8 @@ const surfaceStatuses: SurfaceStatus[] = [
     id: "round-table",
     label: "Round Table",
     endpoint: "GET /round-table/status",
-    status: "preview",
-    summary: "No meeting engine, agent orchestration, model calls, or turn persistence."
+    status: "available",
+    summary: "Local rooms and agent seats; agents answer through a runner on this computer. No model calls in Sparkbot."
   },
   {
     id: "model-seats",
