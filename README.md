@@ -1,6 +1,6 @@
 # Sparkbot
 
-Sparkbot is an early public, local-first AI workstation shell from SparkPit Labs. It is for builders, hobbyists, and technical users who want a self-hosted workspace for future chat, model seats, Round Table collaboration, provider setup, and safety-gated controls.
+Sparkbot is an early public, local-first AI workstation shell from SparkPit Labs. It is for builders, hobbyists, and technical users who want a self-hosted workspace where they and their AI agents work together, with future chat, model seats, provider setup, and safety-gated controls.
 
 The current repository is a validated shell baseline. It is useful for review, local validation, and continued public development, but it is not a complete product release.
 
@@ -21,7 +21,7 @@ The current repository is a validated shell baseline. It is useful for review, l
 | Workstation shell | Preview | Read-only product layout. |
 | Chat shell | Preview | Disabled planned composer; no send action. |
 | Work Page | Preview | Read-only program/workspace planning; no file reads, writes, connector calls, or worker execution. |
-| Round Table | Preview | Inert planned seats for future collaboration. |
+| Round Table | Available | Local rooms where you and AI agents on this computer (Claude Code, Codex, MCP agents) talk; agents answer @mentions through a runner you start. Sparkbot makes no model calls. See `docs/ROUND_TABLE_SHELL.md`. |
 | Provider Setup | Preview | No API key fields, save action, or provider calls. |
 | Local AI Settings | Preview | Read-only local setup route; no credentials, endpoint checks, provider calls, or model routing. |
 | Guardian Controls | Preview | No approvals, enforcement, or sensitive actions. |
@@ -125,6 +125,17 @@ bash scripts/smoke-check-local.sh
 
 Open `http://127.0.0.1:15173` for the browser check. See `docs/LOCAL_SMOKE_TEST.md` for details.
 
+### 6. Optional: seat an AI agent at a Round Table room
+
+With the backend and frontend running, open Round Table, click **New room**, then **Add agent**. Sparkbot shows a one-time seat key and two commands. With Claude Code installed and signed in:
+
+```bash
+python tools/sparkbot-roundtable.py login --profile claude
+python tools/sparkbot-roundtable.py run --profile claude --agent claude
+```
+
+Then post `@claude hello` in the room. Use `--agent codex` for Codex. See `docs/ROUND_TABLE_SHELL.md` for how answers are isolated and what the seat key can do.
+
 ## What this repository does not do yet
 
 - No desktop installer or desktop binary.
@@ -134,7 +145,7 @@ Open `http://127.0.0.1:15173` for the browser check. See `docs/LOCAL_SMOKE_TEST.
 - No local model endpoint checks.
 - No credential storage.
 - No file ingestion or file mutation workflows.
-- No Round Table meeting engine.
+- No Round Table guests from other devices, and no tool use by Round Table agents (answers are text only).
 - No Guardian policy enforcement runtime.
 - No terminal, tool execution, connector calls, external sends, or file mutation controls.
 - No production deployment workflow.
@@ -155,6 +166,7 @@ Key docs:
 - `docs/CONNECTOR_SAFETY_CONTRACT.md` for future connector safety gates.
 - `docs/PROVIDER_CONFIG_CONTRACT.md` for future provider setup and model-call gates.
 - `docs/GUARDIAN_POLICY_CONTRACT.md` for future sensitive-action policy gates.
+- `docs/ROUND_TABLE_SHELL.md` for Round Table rooms, agent seats, the runner and its safety rules.
 - `docs/ROADMAP.md` for staged product direction.
 - `docs/RELEASE_READINESS.md` for current release-readiness boundaries.
 - `docs/PUBLIC_ARTIFACT_MANIFEST.md` for included and excluded public artifacts.
@@ -162,7 +174,7 @@ Key docs:
 
 ## Security and privacy posture
 
-Current validation does not require secrets. The repository does not accept provider credentials, store credentials, call models, execute tools, run connectors, or send data to external services. Product surfaces beyond the backend health endpoint and frontend shell are previews until explicit public contracts and runtime gates are added.
+Current validation does not require secrets. The server does not accept provider credentials, call models, execute tools, run connectors, or send data to external services. The one key it issues is a Round Table seat key, which it stores only as a hash and which only reaches agents' rooms. Round Table agents run through `tools/sparkbot-roundtable.py`, a separate script you start yourself: it runs your own signed-in Claude Code or Codex CLI with tools, MCP servers and settings turned off, and never passes keys to it. Other product surfaces are previews until explicit public contracts and runtime gates are added.
 
 Future provider, connector, model-call, credential, and Guardian runtime work must satisfy the public contracts in `docs/` before implementation branches can claim active behavior.
 

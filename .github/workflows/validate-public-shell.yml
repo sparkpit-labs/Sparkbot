@@ -18,20 +18,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20.19.0"
-
-      - name: Clone source-of-truth for release sync validation
-        env:
-          SOURCE_REPO: ${{ vars.SOURCE_OF_TRUTH_REPO || 'sparkpit-labs/Sparkbot' }}
+      - name: Run public safety scan
+        # The release-sync comparison needs a source branch that no longer
+        # exists; this repository is now its own source of truth.
         run: |
-          git clone --depth 1 --branch public-release-final-cleanup-assessment "https://github.com/${SOURCE_REPO}" /tmp/source-of-truth
-
-      - name: Run public alignment and sync checks
-        run: |
-          bash scripts/check-public-alignment.sh --source-repo /tmp/source-of-truth --source-ref public-release-final-cleanup-assessment
+          bash scripts/check-public-safety.sh
 
   backend:
     runs-on: ubuntu-latest
@@ -105,6 +96,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e "backend[dev]"
+          export SPARKBOT_DATA_DIR="$(mktemp -d)"
           python -m uvicorn app.main:app --host 127.0.0.1 --port 18000 --app-dir backend > /tmp/backend-service.log 2>&1 &
           SERVER_PID=$!
 
@@ -116,39 +108,63 @@ jobs:
           done
 
           python - <<'PY'
-import json
-import urllib.error
-import urllib.request
+          import json
+          import urllib.error
+          import urllib.request
 
-base = "http://127.0.0.1:18000"
-resp = urllib.request.urlopen(f"{base}/health")
-if resp.status != 200:
-    raise SystemExit("health check failed")
+          base = "http://127.0.0.1:18000"
+          resp = urllib.request.urlopen(f"{base}/health")
+          if resp.status != 200:
+              raise SystemExit("health check failed")
 
-payload = json.loads(urllib.request.urlopen(f"{base}/capabilities").read())
-if not payload.get("service"):
-    raise SystemExit("capabilities payload missing service")
+          payload = json.loads(urllib.request.urlopen(f"{base}/capabilities").read())
+          if not payload.get("service"):
+              raise SystemExit("capabilities payload missing service")
 
-req = urllib.request.Request(
-    f"{base}/operator/command-center/actions",
-    data=json.dumps(
-        {
-            "action_id": "smoke-check",
-            "action_name": "end-to-end",
-            "action_class": "terminal",
-            "feature": "terminal",
-            "operator_confirmation": False,
-            "tenant_id": "tenant-smoke",
-            "user_id": "user-smoke",
-        }
-    ).encode("utf-8"),
-    headers={"Content-Type": "application/json"},
-    method="POST",
-)
-resp = urllib.request.urlopen(req)
-smoke = json.loads(resp.read())
-if smoke.get("allowed"):
-    raise SystemExit("safety policy smoke test expected blocked destructive action")
+          req = urllib.request.Request(
+              f"{base}/operator/command-center/actions",
+              data=json.dumps(
+                  {
+                      "action_id": "smoke-check",
+                      "action_name": "end-to-end",
+                      "action_class": "terminal",
+                      "feature": "terminal",
+                      "operator_confirmation": False,
+                      "tenant_id": "tenant-smoke",
+                      "user_id": "user-smoke",
+                  }
+              ).encode("utf-8"),
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+          try:
+              urllib.request.urlopen(req)
+              raise SystemExit("safety policy smoke test expected blocked destructive action")
+          except urllib.error.HTTPError as error:
+              smoke = json.loads(error.read())
+              if error.code != 409 or smoke.get("allowed"):
+                  raise SystemExit(f"unexpected command-center answer {error.code}: {smoke}")
+
+          # Round Table: owner creates a room and seat; the seat reads it back.
+          owner = {"Content-Type": "application/json", "X-Sparkbot-Local": "1"}
+
+          def call(method, path, body=None, headers=None):
+              data = json.dumps(body).encode("utf-8") if body is not None else None
+              request = urllib.request.Request(f"{base}{path}", data=data, headers=headers or {}, method=method)
+              return json.loads(urllib.request.urlopen(request).read())
+
+          room = call("POST", "/roundtable/rooms", {"name": "Smoke"}, owner)
+          seat = call("POST", f"/roundtable/rooms/{room['id']}/seats", {"display_name": "Smoke", "slug": "smoke"}, owner)
+          call("POST", f"/roundtable/rooms/{room['id']}/messages", {"content": "@smoke hello"}, owner)
+          seen = call("GET", "/roundtable/seat/messages", headers={"Authorization": f"Bearer {seat['key']}"})
+          if [m["content"] for m in seen["messages"]] != ["@smoke hello"]:
+              raise SystemExit(f"round table smoke failed: {seen}")
+          try:
+              call("GET", "/roundtable/rooms")
+              raise SystemExit("owner route answered without the local header")
+          except urllib.error.HTTPError as error:
+              if error.code != 403:
+                  raise
 
           PY
 

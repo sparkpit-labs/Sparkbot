@@ -40,8 +40,8 @@ const capabilitiesPayload = {
     {
       id: "round-table",
       label: "Round Table",
-      status: "preview",
-      notes: "No meeting engine or agent orchestration."
+      status: "available",
+      notes: "Local rooms. AI agents on this computer join with seat keys and answer @mentions through a runner you start. Sparkbot itself makes no model calls."
     },
     {
       id: "provider-setup",
@@ -120,7 +120,7 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: /Workstation.*Preview/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Chat.*Preview/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Work Page.*Preview/i })).toBeDefined();
-    expect(screen.getByRole("button", { name: /Round Table.*Preview/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Round Table.*Available/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Provider Setup.*Preview/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Local AI Settings.*Preview/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Guardian Controls.*Preview/i })).toBeDefined();
@@ -151,14 +151,9 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Remote index" })).toBeDefined();
     expect(screen.getByText(/no upload controls, no document editor/i)).toBeDefined();
     expect(screen.getByRole("heading", { name: "Round Table" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Round Table Preview" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Operator" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Assistant seat" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Research seat" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Builder seat" })).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Reviewer seat" })).toBeDefined();
-    expect(screen.getByText(/multi-agent collaboration is planned/i)).toBeDefined();
-    expect(screen.getByText(/does not start meetings, call models, run a turn engine/i)).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Round Table Rooms" })).toBeDefined();
+    expect(screen.getByText(/Sparkbot makes no model calls/i)).toBeDefined();
+    expect(await screen.findByText(/Round Table needs the local backend/i)).toBeDefined();
     expect(screen.getAllByText("Preview").length).toBeGreaterThanOrEqual(7);
     expect(screen.getByRole("heading", { name: "Provider Setup Preview" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Local model provider" })).toBeDefined();
@@ -192,11 +187,13 @@ describe("App", () => {
   it("renders backend capability statuses when the capabilities API responds", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(
-        new Response(JSON.stringify(capabilitiesPayload), {
-          status: 200,
-          headers: { "Content-Type": "application/json" }
-        })
+      vi.fn().mockImplementation(async (url: string) =>
+        String(url).endsWith("/capabilities")
+          ? new Response(JSON.stringify(capabilitiesPayload), {
+              status: 200,
+              headers: { "Content-Type": "application/json" }
+            })
+          : new Response("{}", { status: 404 })
       )
     );
 

@@ -20,7 +20,7 @@ Add the initial local-first backend and frontend surfaces with safe defaults and
 
 ## Phase 4: Workstation shell skeleton and Round Table preview
 
-Establish a read-only Workstation shell skeleton and static Round Table preview seats. Active collaboration behavior remains planned until public interaction contracts and validation gates are documented.
+Establish a read-only Workstation shell skeleton and static Round Table preview seats. Done; Round Table has since become local rooms where you and AI agents on this computer work together (see `ROUND_TABLE_SHELL.md`). Guests from other devices and agent tool use remain planned.
 
 ## Phase 4a: Chat shell preview
 

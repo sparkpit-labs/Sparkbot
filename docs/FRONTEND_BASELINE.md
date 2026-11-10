@@ -10,12 +10,11 @@ This repository now includes an early public v1.0.0 frontend foundation for Spar
 - Configurable API base URL via `VITE_SPARKBOT_API_BASE_URL`.
 - Minimal frontend test coverage with Vitest and Testing Library.
 - Frontend-only continuous integration workflow.
-- Static Workstation and Round Table preview surfaces.
+- Static Workstation preview surfaces and the local Round Table room panel.
 
 ## What Is Intentionally Excluded
 
 - Active Workstation runtime behavior.
-- Active Round Table runtime behavior.
 - Desktop packaging.
 - Provider setup and model runtime wiring.
 - Guarded control runtimes.

@@ -5,7 +5,7 @@ import GuardianControlsPreview from "./GuardianControlsPreview";
 import LocalAiSettingsPreview from "./LocalAiSettingsPreview";
 import ProviderSetupPreview from "./ProviderSetupPreview";
 import RoadmapCard from "./RoadmapCard";
-import RoundTablePreview from "./RoundTablePreview";
+import RoundTableRoom from "./RoundTableRoom";
 import ShellNavigation from "./ShellNavigation";
 import StatusCard from "./StatusCard";
 import WorkPagePreview from "./WorkPagePreview";
@@ -27,8 +27,8 @@ export default function WorkstationShell({
       <div className="workstation-shell-header">
         <h2>Workstation Shell</h2>
         <p>
-          A read-only map of the current public shell surfaces. It shows what is available, what is previewed, and
-          what remains guarded without enabling orchestration, chat runtime, model execution, or tool actions.
+          A map of the current public shell surfaces. It shows what is available, what is previewed, and what remains
+          guarded. Round Table rooms work locally; chat runtime, model execution and tool actions stay off.
         </p>
       </div>
 
@@ -52,7 +52,7 @@ export default function WorkstationShell({
           </section>
 
           <ChatShellPreview />
-          <RoundTablePreview />
+          <RoundTableRoom />
           <WorkPagePreview />
           <LocalAiSettingsPreview />
           <ProviderSetupPreview />

@@ -6,7 +6,10 @@ from app.api.capabilities import ALLOWED_CAPABILITY_STATUSES, CapabilityStatus
 
 router = APIRouter()
 
-ImplementationStatus = Literal["not-implemented"]
+MeetingEngine = Literal["local-rooms"]
+AgentOrchestration = Literal["runner-on-this-computer"]
+ModelCalls = Literal["none-in-sparkbot"]
+TurnPersistence = Literal["local-sqlite"]
 
 
 class RoundTableSeat(TypedDict):
@@ -20,43 +23,32 @@ class RoundTableStatusResponse(TypedDict):
     service: str
     mode: str
     status: CapabilityStatus
-    meeting_engine: ImplementationStatus
-    agent_orchestration: ImplementationStatus
-    model_calls: ImplementationStatus
-    turn_persistence: ImplementationStatus
+    meeting_engine: MeetingEngine
+    agent_orchestration: AgentOrchestration
+    model_calls: ModelCalls
+    turn_persistence: TurnPersistence
+    rooms_api: str
     seats: list[RoundTableSeat]
 
 
 ROUND_TABLE_SEATS: list[RoundTableSeat] = [
     {
-        "id": "operator",
-        "label": "Operator",
-        "status": "preview",
-        "notes": "Human operator role shown as part of the shell preview.",
+        "id": "owner",
+        "label": "Owner",
+        "status": "available",
+        "notes": "You, in the Sparkbot app on this computer. Only owner messages wake agents.",
     },
     {
-        "id": "assistant",
-        "label": "Assistant seat",
-        "status": "preview",
-        "notes": "Assistant role preview only. No model calls are made.",
+        "id": "agent",
+        "label": "Agent seat",
+        "status": "available",
+        "notes": "An AI agent on this computer, joined with a seat key. It answers @mentions through a runner you start.",
     },
     {
-        "id": "research",
-        "label": "Research seat",
+        "id": "guest",
+        "label": "Guest seat",
         "status": "planned",
-        "notes": "Research role is planned. No agent runtime is implemented.",
-    },
-    {
-        "id": "builder",
-        "label": "Builder seat",
-        "status": "planned",
-        "notes": "Builder role is planned. No tool execution is implemented.",
-    },
-    {
-        "id": "reviewer",
-        "label": "Reviewer seat",
-        "status": "planned",
-        "notes": "Reviewer role is planned. No review workflow runtime is implemented.",
+        "notes": "People joining from other devices are planned. Rooms are local to this computer today.",
     },
 ]
 
@@ -66,11 +58,12 @@ def round_table_status() -> RoundTableStatusResponse:
     return {
         "service": "sparkbot-server",
         "mode": "local",
-        "status": "preview",
-        "meeting_engine": "not-implemented",
-        "agent_orchestration": "not-implemented",
-        "model_calls": "not-implemented",
-        "turn_persistence": "not-implemented",
+        "status": "available",
+        "meeting_engine": "local-rooms",
+        "agent_orchestration": "runner-on-this-computer",
+        "model_calls": "none-in-sparkbot",
+        "turn_persistence": "local-sqlite",
+        "rooms_api": "/roundtable/rooms",
         "seats": ROUND_TABLE_SEATS,
     }
 

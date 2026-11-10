@@ -44,8 +44,8 @@ export const workstationStatusItems: WorkstationStatusItem[] = [
   {
     id: "round-table",
     name: "Round Table",
-    status: "preview",
-    summary: "No meeting engine or agent orchestration."
+    status: "available",
+    summary: "Local rooms. AI agents on this computer join with seat keys and answer @mentions through a runner you start. Sparkbot itself makes no model calls."
   },
   {
     id: "provider-setup",
@@ -110,7 +110,7 @@ export const workstationRoadmapItems: string[] = [
   "Define workstation view structure with stable public contracts.",
   "Document chat interaction contracts before enabling message handling or model behavior.",
   "Keep Work Page and Local AI Settings previews inert until public-safe local action contracts exist.",
-  "Expand Round Table preview surfaces only after public interaction contracts are documented.",
+  "Let people on other devices join Round Table rooms, behind an owner sign-in.",
   "Document provider setup contracts before enabling credential or network behavior.",
   "Document Guardian control contracts before enabling approval or enforcement behavior.",
   "Prepare provider and guardrail integration points without runtime activation."

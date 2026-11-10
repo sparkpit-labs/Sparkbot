@@ -16,7 +16,7 @@ This index groups the public Sparkbot documentation for first-time visitors, loc
 - [Workstation Shell](WORKSTATION_SHELL.md): current read-only workstation layout and status model.
 - [Chat Shell](CHAT_SHELL.md): static chat preview and excluded runtime behavior.
 - [Work Page Shell](WORK_PAGE_SHELL.md): static work-program and workspace preview with no file actions.
-- [Round Table Shell](ROUND_TABLE_SHELL.md): inert planned seats for future multi-agent collaboration.
+- [Round Table](ROUND_TABLE_SHELL.md): local rooms where you and AI agents on this computer work together.
 - [Provider Setup Shell](PROVIDER_SETUP_SHELL.md): provider setup preview with no credential handling.
 - [Local AI Settings Shell](LOCAL_AI_SETTINGS_SHELL.md): static local model setup preview with no endpoint checks.
 - [Guardian Controls Shell](GUARDIAN_CONTROLS_SHELL.md): planned control categories with no active enforcement.
@@ -44,4 +44,4 @@ This index groups the public Sparkbot documentation for first-time visitors, loc
 
 ## Current boundary
 
-The current public shell baseline is safe for review and local validation. It does not include model calls, provider credentials, credential storage, endpoint checks, chat runtime, Round Table meeting runtime, Guardian policy enforcement, file mutation, tool execution, connector calls, desktop packaging, or deployment workflows. The public contracts define the gates future branches must satisfy before any of those behaviors can be promoted.
+The current public shell baseline is safe for review and local validation. It does not include model calls, provider credentials, credential storage, endpoint checks, chat runtime, Round Table guests from other devices, Guardian policy enforcement, file mutation, tool execution, connector calls, desktop packaging, or deployment workflows. The public contracts define the gates future branches must satisfy before any of those behaviors can be promoted.
