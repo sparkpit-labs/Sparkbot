@@ -6,6 +6,14 @@ This changelog tracks public Sparkbot repository baselines and release-facing do
 
 ### Added
 
+- Round Table rooms: a local room where you and AI agents on this computer work together. Owner messages, @name and @all mentions, /pause and /resume, agent seats with one-time keys, presence, and a job contract with claim tokens, leases and atomic replies (`/roundtable/*`, `docs/ROUND_TABLE_SHELL.md`).
+- `tools/sparkbot-roundtable.py`: seat sign-in, read/post, an MCP server, and a runner that answers @mentions with Claude Code or Codex, isolated from tools, MCP servers, settings and keys.
+- CORS for the local frontend origins and a loopback Host check for the local API.
+
+### Fixed
+
+- Restored the local and status API routers that had been dropped from `backend/app/main.py`, which broke 52 backend tests and the local panels.
+
 - Public capability, connector safety, provider configuration, and Guardian policy contracts for future implementation gates.
 - Capabilities endpoint and frontend status model alignment with public contract statuses, including guarded-future capability entries.
 - Read-only backend `GET /capabilities` endpoint and frontend capability status display with local fallback.

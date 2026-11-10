@@ -6,7 +6,7 @@ This document tracks public shell readiness for review and phased release decisi
 
 - Backend: local read-only health and capabilities endpoints are present and validated.
 - Frontend: static shell previews are present and can display backend capability statuses with local fallback.
-- Workstation, Chat, Work Page, Round Table, Provider Setup, Local AI Settings, and Guardian Controls are preview or skeleton surfaces.
+- Workstation, Chat, Work Page, Provider Setup, Local AI Settings, and Guardian Controls are preview or skeleton surfaces. Round Table rooms work locally (agents on this computer only).
 
 ## Not yet in scope
 

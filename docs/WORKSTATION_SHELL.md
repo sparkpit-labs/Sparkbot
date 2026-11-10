@@ -10,7 +10,7 @@ The current public shell baseline includes a local Workstation shell skeleton fo
 - Planned follow-up roadmap card for next product slices.
 - Static Chat Shell preview with a disabled read-only planned composer and no send action.
 - Static Work Page preview with inert program queue, workspace file, and remote-index cards.
-- Static Round Table preview with inert Operator, Assistant, Research, Builder, and Reviewer seats.
+- Round Table rooms: conversation, People panel, agent seats and pause (see `ROUND_TABLE_SHELL.md`).
 - Static Provider Setup preview with inert local, compatible provider, and custom endpoint cards.
 - Static Local AI Settings preview with inert local runtime setup, model-seat, and readiness-check cards.
 - Static Guardian Controls preview with inert local action, provider access, workspace, connection, checkpoint, and audit cards.
@@ -23,7 +23,7 @@ The current public shell baseline includes a local Workstation shell skeleton fo
 - Workstation shell: Preview
 - Chat shell: Preview
 - Work Page shell: Preview
-- Round Table: Preview
+- Round Table: Available
 - Provider setup: Planned
 - Local AI Settings shell: Preview
 - Guardian-gated controls: Planned
@@ -39,7 +39,6 @@ Status labels in the UI mean:
 
 - Workstation agent orchestration
 - Chat runtime implementation
-- Round Table runtime implementation
 - Work Page file handling, connector search, or worker assignment execution
 - Model calls
 - Tool execution
@@ -64,4 +63,4 @@ pytest backend/tests -q
 
 ## Scope Notes
 
-This is a product-direction shell slice only. It does not claim release readiness and does not activate Chat, Work Page, Round Table, Provider Setup, Local AI Settings, or Guardian Controls runtime behavior beyond the existing read-only backend health and capabilities fetches.
+This is a product-direction shell slice only. It does not claim release readiness and does not activate Chat, Work Page, Provider Setup, Local AI Settings, or Guardian Controls runtime behavior beyond the existing read-only backend health and capabilities fetches.
