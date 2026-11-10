@@ -55,7 +55,7 @@ jobs:
       - name: Build unsigned NSIS
         run: |
           $env:RUSTFLAGS = "--remap-path-prefix=$PWD=/source"
-          npx --yes @tauri-apps/cli@2.10.0 build --bundles nsis
+          npx --yes @tauri-apps/cli@2.12.4 build --bundles nsis
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Checksums and provenance
         run: |
