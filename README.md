@@ -138,7 +138,7 @@ Then post `@claude hello` in the room. Use `--agent codex` for Codex. See `docs/
 
 ## What this repository does not do yet
 
-- No desktop installer or desktop binary.
+- Windows installer is an unsigned pilot; clean-machine acceptance and release signing are pending.
 - No real chat runtime.
 - No model calls or model routing.
 - No provider credential setup.
@@ -170,7 +170,7 @@ Key docs:
 - `docs/ROADMAP.md` for staged product direction.
 - `docs/RELEASE_READINESS.md` for current release-readiness boundaries.
 - `docs/PUBLIC_ARTIFACT_MANIFEST.md` for included and excluded public artifacts.
-- `docs/DESKTOP_PACKAGING_PLAN.md` for desktop packaging planning only.
+- `docs/DESKTOP_PACKAGING_PLAN.md` for the Windows build, lifecycle and acceptance checklist.
 
 ## Security and privacy posture
 

@@ -55,7 +55,7 @@ The public capability safety contracts define review gates for future runtime wo
 
 ## Desktop packaging status
 
-Desktop packaging is planned but not implemented. The current repository contains planning notes and release gates only. No installer, desktop binary, auto-update path, or code signing configuration is present.
+Windows pilot packaging is implemented with Tauri/NSIS and bundled backend and connector executables. CI performs automated lifecycle smoke checks before producing an unsigned artifact. Clean-machine install, agent reply, upgrade and uninstall acceptance remain open. No auto-update path or code signing is configured. See `DESKTOP_PACKAGING_PLAN.md`.
 
 ## Contribution and security posture
 

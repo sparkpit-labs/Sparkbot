@@ -8,6 +8,32 @@ use tauri::Manager;
 
 struct Backend(Mutex<Child>);
 
+fn show_startup_error(message: &str) {
+    #[cfg(windows)]
+    {
+        #[link(name = "user32")]
+        extern "system" {
+            fn MessageBoxW(
+                window: *mut std::ffi::c_void,
+                text: *const u16,
+                caption: *const u16,
+                flags: u32,
+            ) -> i32;
+        }
+        let text: Vec<u16> = message.encode_utf16().chain(Some(0)).collect();
+        let title: Vec<u16> = "Sparkbot could not start"
+            .encode_utf16()
+            .chain(Some(0))
+            .collect();
+        // Both UTF-16 buffers remain alive for the duration of this modal call.
+        unsafe {
+            MessageBoxW(std::ptr::null_mut(), text.as_ptr(), title.as_ptr(), 0x10);
+        }
+    }
+    #[cfg(not(windows))]
+    eprintln!("{message}");
+}
+
 fn stop_backend(child: &mut Child) {
     // EOF is the backend's shutdown signal, including if the desktop crashes.
     drop(child.stdin.take());
@@ -62,8 +88,14 @@ fn main() {
             app.manage(Backend(Mutex::new(child)));
             Ok(())
         })
-        .build(tauri::generate_context!())
-        .expect("Unable to start Sparkbot Roundtable");
+        .build(tauri::generate_context!());
+    let app = match app {
+        Ok(app) => app,
+        Err(error) => {
+            show_startup_error(&error.to_string());
+            return;
+        }
+    };
     app.run(|handle, event| {
         if let tauri::RunEvent::Exit = event {
             if let Some(backend) = handle.try_state::<Backend>() {
