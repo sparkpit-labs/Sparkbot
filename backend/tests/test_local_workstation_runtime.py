@@ -270,7 +270,9 @@ def test_local_export_returns_read_only_workstation_snapshot(client: TestClient)
     assert client.get(f"/local/work-lane-cards/{card['id']}").status_code == 200
 
 
-def test_local_runtime_settings_reports_env_driven_local_status(client: TestClient, tmp_path: Path) -> None:
+def test_local_runtime_settings_reports_env_driven_local_status(client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Exercise home-path masking consistently on Windows and Unix runners.
+    monkeypatch.setattr(Path, "home", lambda: tmp_path.parent)
     response = client.get("/local/runtime/settings")
 
     assert response.status_code == 200
@@ -284,11 +286,11 @@ def test_local_runtime_settings_reports_env_driven_local_status(client: TestClie
     assert payload["credentials"] == "not-supported"
     assert payload["data_directory"] == {
         "configured_by": "SPARKBOT_DATA_DIR",
-        "display_path": str(tmp_path),
+        "display_path": str(Path("~") / tmp_path.name),
     }
     assert payload["sqlite_database"] == {
         "filename": "sparkbot_public.sqlite3",
-        "display_path": str(tmp_path / "sparkbot_public.sqlite3"),
+        "display_path": str(Path("~") / tmp_path.name / "sparkbot_public.sqlite3"),
     }
     assert payload["local_models"]["enabled"] is False
     assert payload["local_models"]["adapter"] == "ollama"

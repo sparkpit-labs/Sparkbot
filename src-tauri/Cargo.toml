@@ -1,0 +1,12 @@
+[package]
+name = "sparkbot-roundtable-desktop"
+version = "0.2.0"
+edition = "2021"
+license = "MIT"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+

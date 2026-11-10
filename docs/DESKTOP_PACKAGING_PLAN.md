@@ -1,86 +1,27 @@
-# Desktop Packaging Plan
+# Windows desktop package
 
-This document describes the planned desktop packaging direction for Sparkbot. Desktop packaging is not implemented in the current repository state.
+The public Roundtable now has a Tauri v2 Windows shell and an unsigned NSIS build workflow. The app and its two bundled Python executables are built exclusively from this repository. The package version is 0.2.0 and the application identity is `com.sparkpitlabs.sparkbot.public`.
 
-## Current status
+## Runtime and safety
 
-- No desktop app exists yet.
-- No installer exists yet.
-- No desktop binary exists yet.
-- No auto-update path exists yet.
-- No code signing setup exists yet.
-- The current supported path is local development mode with the backend and frontend run separately.
+- The desktop starts its own backend on 127.0.0.1:18765 and waits for that process to report readiness. An occupied port fails startup; it never adopts or stops an unrelated backend.
+- The backend accepts the exact desktop webview origins. Existing local host and owner-header checks remain active. No listener binds to the network interface.
+- Closing the desktop closes the backend stdin pipe, requesting shutdown. The desktop waits up to five seconds before terminating its child. A desktop crash also closes the pipe.
+- Room data retains the public runtime's user-data location. The installer does not migrate or delete data from other builds. Uninstall retains user data and connector profiles.
+- The packaged connector is a separate foreground executable. The Add agent panel provides PowerShell commands using its installed path and the desktop URL. Python is bundled; agent CLIs and their login remain user prerequisites. No runner starts automatically.
+- The frontend has no general shell permission. Its single desktop command returns the bundled connector path.
+- No signing or automatic updater is configured. Updates are manually installed. Guests on other devices are not supported.
 
-## Target platforms
+## Build
 
-1. Windows first
-2. Linux later
-3. macOS later, if the packaging path and signing requirements are justified
+`.github/workflows/windows-installer.yml` builds on Windows. It runs the public safety scan, backend/frontend tests, freezes the backend and connector with PyInstaller, exercises the frozen backend, builds the desktop frontend and Tauri/NSIS installer, and uploads the installer with SHA256SUMS.txt and BUILD-NOTES.txt. It publishes an Actions artifact, not a GitHub Release.
 
-Windows is the first target because it is the most important local-first desktop path for the intended public workstation audience.
+For a local build, follow the workflow commands on Windows with Node 22, Python 3.12, Rust and Microsoft C++ build tools. Build frontend assets with `VITE_SPARKBOT_API_BASE_URL=http://127.0.0.1:18765` and `VITE_SPARKBOT_DESKTOP=true`. Cargo.lock and the npm lockfile are committed. Python build dependencies currently use bounded project requirements rather than a full transitive lock.
 
-## Candidate packaging paths
+## Validation and remaining acceptance
 
-### Tauri
+The automated smoke test creates a disposable room, checks owner-header enforcement and desktop CORS, checks occupied-port rejection, restarts to verify data persistence, and verifies process exit. It makes no model calls.
 
-Tauri is a candidate because it can provide a smaller desktop wrapper around the existing frontend while keeping the backend/frontend split explicit. It would require a clear decision on how the local backend process is started, supervised, updated, and stopped.
+A successful build is not installer acceptance. On a spare PC or Windows Sandbox, test install, first launch, room creation, an installed connector login and reply, close/reopen, reinstall/upgrade, and uninstall. Verify no backend process remains and saved data remains as documented. Check SmartScreen behavior for this unsigned pilot.
 
-### Electron
-
-Electron is a candidate because it has broad packaging maturity and familiar desktop distribution patterns. It would likely have a larger install footprint and should be chosen only if the development and support tradeoffs justify it.
-
-### Web app plus local backend runner
-
-This path keeps the current architecture closest to the existing public baseline. The frontend remains a web app, and the backend runs as an explicit local service started by the user or a future local runner. This is the simplest near-term validation path.
-
-### Plain local development mode
-
-This is the current baseline. Users install backend and frontend dependencies, run validation, then start local backend and frontend development servers explicitly. This is not a packaged desktop release.
-
-## Decision criteria
-
-- Smallest reasonable install footprint
-- Local-first operation
-- Simple user install path
-- Compatibility with the backend/frontend split
-- Clear process lifecycle for the local backend
-- Code signing requirements and cost
-- Update strategy
-- Security posture
-- Fresh install reliability
-- Uninstall and reinstall behavior
-- Public build reproducibility
-
-## Release gates
-
-Desktop packaging should not be claimed until these gates pass:
-
-- Fresh clone validation passes.
-- Backend build and tests pass.
-- Frontend install, audit, tests, and build pass.
-- Local runtime smoke test passes.
-- Installer smoke test passes on the target platform.
-- Uninstall and reinstall test passes.
-- No secrets are present in artifacts.
-- Public safety scan is clean.
-- Code signing decision is documented.
-- Versioning and artifact naming are documented.
-- Update strategy is documented, even if automatic updates are intentionally deferred.
-
-## Explicit exclusions for the current baseline
-
-- No installer is added.
-- No desktop binary is added.
-- No desktop framework is added.
-- No auto-update implementation is added.
-- No code signing configuration is added.
-- No production packaging claim is made.
-- No provider setup, credential storage, model calls, chat runtime, Guardian runtime, terminal, tool execution, connector calls, or deployment behavior is added.
-
-## Next planning steps
-
-1. Decide whether the first packaged path should be Tauri, Electron, or a web app plus local backend runner.
-2. Define the local backend process lifecycle for a packaged app.
-3. Define Windows smoke tests for install, launch, local health check, shutdown, uninstall, and reinstall.
-4. Define artifact naming, versioning, and signing expectations.
-5. Keep the local development mode as the fallback path until a packaged path is validated.
+Signed: Atlas | 2026-11-09
