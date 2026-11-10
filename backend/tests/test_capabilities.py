@@ -51,8 +51,8 @@ def test_capabilities_are_static_and_public_safe() -> None:
         {
             "id": "round-table",
             "label": "Round Table",
-            "status": "preview",
-            "notes": "No meeting engine or agent orchestration.",
+            "status": "available",
+            "notes": "Local rooms. AI agents on this computer join with seat keys and answer @mentions through a runner you start. Sparkbot itself makes no model calls.",
         },
         {
             "id": "provider-setup",
@@ -154,7 +154,6 @@ def test_preview_shell_capabilities_do_not_claim_runtime_operation() -> None:
     preview_expectations = {
         "chat": ["no model calls", "message persistence"],
         "work-page": ["no file reads", "file writes", "connector calls"],
-        "round-table": ["no meeting engine", "agent orchestration"],
         "provider-setup": ["no credential storage", "provider calls"],
         "local-ai-settings": ["no credentials", "endpoint checks", "provider calls", "model routing"],
         "guardian-controls": ["no policy enforcement runtime"],

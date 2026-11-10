@@ -61,8 +61,8 @@ CAPABILITIES: list[Capability] = [
     {
         "id": "round-table",
         "label": "Round Table",
-        "status": "preview",
-        "notes": "No meeting engine or agent orchestration.",
+        "status": "available",
+        "notes": "Local rooms. AI agents on this computer join with seat keys and answer @mentions through a runner you start. Sparkbot itself makes no model calls.",
     },
     {
         "id": "provider-setup",

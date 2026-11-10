@@ -1,14 +1,9 @@
-from collections.abc import Mapping
 from typing import Any
 
 from fastapi.testclient import TestClient
 
 from app.api.capabilities import ALLOWED_CAPABILITY_STATUSES
 from app.main import app
-
-
-def _seat_by_id(payload: Mapping[str, Any]) -> dict[str, Mapping[str, Any]]:
-    return {seat["id"]: seat for seat in payload["seats"]}
 
 
 def _walk_keys(value: Any) -> list[str]:
@@ -25,7 +20,7 @@ def _walk_keys(value: Any) -> list[str]:
     return []
 
 
-def test_round_table_status_is_static_preview() -> None:
+def test_round_table_status_describes_local_rooms() -> None:
     client = TestClient(app)
     response = client.get("/round-table/status")
 
@@ -34,57 +29,24 @@ def test_round_table_status_is_static_preview() -> None:
 
     assert payload["service"] == "sparkbot-server"
     assert payload["mode"] == "local"
-    assert payload["status"] == "preview"
-    assert payload["meeting_engine"] == "not-implemented"
-    assert payload["agent_orchestration"] == "not-implemented"
-    assert payload["model_calls"] == "not-implemented"
-    assert payload["turn_persistence"] == "not-implemented"
-    assert payload["seats"] == [
-        {
-            "id": "operator",
-            "label": "Operator",
-            "status": "preview",
-            "notes": "Human operator role shown as part of the shell preview.",
-        },
-        {
-            "id": "assistant",
-            "label": "Assistant seat",
-            "status": "preview",
-            "notes": "Assistant role preview only. No model calls are made.",
-        },
-        {
-            "id": "research",
-            "label": "Research seat",
-            "status": "planned",
-            "notes": "Research role is planned. No agent runtime is implemented.",
-        },
-        {
-            "id": "builder",
-            "label": "Builder seat",
-            "status": "planned",
-            "notes": "Builder role is planned. No tool execution is implemented.",
-        },
-        {
-            "id": "reviewer",
-            "label": "Reviewer seat",
-            "status": "planned",
-            "notes": "Reviewer role is planned. No review workflow runtime is implemented.",
-        },
-    ]
+    assert payload["status"] == "available"
+    assert payload["meeting_engine"] == "local-rooms"
+    assert payload["agent_orchestration"] == "runner-on-this-computer"
+    assert payload["model_calls"] == "none-in-sparkbot"
+    assert payload["turn_persistence"] == "local-sqlite"
+    assert payload["rooms_api"] == "/roundtable/rooms"
+    assert [seat["id"] for seat in payload["seats"]] == ["owner", "agent", "guest"]
 
 
-def test_round_table_seats_remain_non_runtime_contract_values() -> None:
+def test_round_table_seat_statuses_are_contract_values() -> None:
     client = TestClient(app)
-    payload = client.get("/round-table/status").json()
-    seats = _seat_by_id(payload)
+    seats = {seat["id"]: seat for seat in client.get("/round-table/status").json()["seats"]}
 
-    assert {seat["status"] for seat in payload["seats"]} <= ALLOWED_CAPABILITY_STATUSES
-    assert all(seat["status"] != "available" for seat in payload["seats"])
-    assert seats["operator"]["status"] == "preview"
-    assert seats["assistant"]["status"] == "preview"
-    assert seats["research"]["status"] == "planned"
-    assert seats["builder"]["status"] == "planned"
-    assert seats["reviewer"]["status"] == "planned"
+    assert {seat["status"] for seat in seats.values()} <= ALLOWED_CAPABILITY_STATUSES
+    assert seats["owner"]["status"] == "available"
+    assert seats["agent"]["status"] == "available"
+    # Guests from other devices are not built yet; the status must say so.
+    assert seats["guest"]["status"] == "planned"
 
 
 def test_round_table_status_contains_no_secret_fields() -> None:
@@ -96,33 +58,14 @@ def test_round_table_status_contains_no_secret_fields() -> None:
         normalized = key.lower().replace("-", "_")
         assert not any(fragment in normalized for fragment in disallowed_key_fragments)
 
-    assert payload["meeting_engine"] == "not-implemented"
-    assert payload["agent_orchestration"] == "not-implemented"
-    assert payload["model_calls"] == "not-implemented"
-    assert payload["turn_persistence"] == "not-implemented"
 
-
-def test_round_table_status_does_not_claim_active_runtime() -> None:
-    client = TestClient(app)
-    payload = client.get("/round-table/status").json()
-    serialized = str(payload).lower()
-
-    assert "available" not in serialized
-    assert "meeting engine active" not in serialized
-    assert "agent orchestration active" not in serialized
-    assert "model calls enabled" not in serialized
-    assert "turn persistence enabled" not in serialized
-
-
-def test_no_round_table_runtime_endpoint_was_introduced() -> None:
+def test_round_table_status_is_read_only() -> None:
     client = TestClient(app)
 
     for method_name in ["post", "put", "patch", "delete"]:
-        method = getattr(client, method_name)
-        response = method("/round-table/status")
+        response = getattr(client, method_name)("/round-table/status")
         assert response.status_code == 405
 
+    # The working API lives under /roundtable and is owner- or seat-guarded.
     assert client.get("/round-table/start").status_code == 404
-    assert client.get("/round-table/invite").status_code == 404
     assert client.get("/round-table/run").status_code == 404
-    assert client.get("/round-table/turn").status_code == 404
