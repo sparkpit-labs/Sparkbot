@@ -15,6 +15,7 @@ def main() -> None:
     os.environ.pop("SPARKBOT_ALLOWED_HOSTS", None)
     import uvicorn
     from app.main import app
+    app.state.desktop_shutdown = threading.Event()
 
     class DesktopServer(uvicorn.Server):
         async def startup(self, sockets=None):
@@ -22,10 +23,14 @@ def main() -> None:
             if self.started:
                 print("SPARKBOT_READY", flush=True)
 
-    server = DesktopServer(uvicorn.Config(app, host="127.0.0.1", port=PORT, log_level="warning", access_log=False))
+    server = DesktopServer(uvicorn.Config(
+        app, host="127.0.0.1", port=PORT, log_level="warning", access_log=False,
+        timeout_graceful_shutdown=2,
+    ))
 
     def watch_parent() -> None:
         sys.stdin.buffer.read()
+        app.state.desktop_shutdown.set()
         server.should_exit = True
 
     threading.Thread(target=watch_parent, daemon=True).start()

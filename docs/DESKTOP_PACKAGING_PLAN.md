@@ -6,7 +6,7 @@ The public Roundtable now has a Tauri v2 Windows shell and an unsigned NSIS buil
 
 - The desktop starts its own backend on 127.0.0.1:18765 and waits for that process to report readiness. An occupied port fails startup; it never adopts or stops an unrelated backend.
 - The backend accepts the exact desktop webview origins. Existing local host and owner-header checks remain active. No listener binds to the network interface.
-- Closing the desktop closes the backend stdin pipe, requesting shutdown. The desktop waits up to five seconds before terminating its child. A desktop crash also closes the pipe.
+- Closing the desktop closes the backend stdin pipe, requesting shutdown. The desktop waits up to five seconds before terminating its child. A desktop crash also closes the pipe. Shutdown wakes waiting agent long polls so they cannot keep the backend alive.
 - Room data retains the public runtime's user-data location. The installer does not migrate or delete data from other builds. Uninstall retains user data and connector profiles.
 - The packaged connector is a separate foreground executable. The Add agent panel provides PowerShell commands using its installed path and the desktop URL. Python is bundled; agent CLIs and their login remain user prerequisites. No runner starts automatically.
 - The frontend has no general shell permission. Its single desktop command returns the bundled connector path.
@@ -20,7 +20,7 @@ For a local build, follow the workflow commands on Windows with Node 22, Python 
 
 ## Validation and remaining acceptance
 
-The automated smoke test creates a disposable room, checks owner-header enforcement and desktop CORS, checks occupied-port rejection, restarts to verify data persistence, and verifies process exit. It makes no model calls.
+The automated smoke test creates a disposable room, checks owner-header enforcement and desktop CORS, checks occupied-port rejection, restarts to verify data persistence, and verifies process exit both while idle and while an agent long poll is waiting. It makes no model calls.
 
 A successful build is not installer acceptance. On a spare PC or Windows Sandbox, test install, first launch, room creation, an installed connector login and reply, close/reopen, reinstall/upgrade, and uninstall. Verify no backend process remains and saved data remains as documented. Check SmartScreen behavior for this unsigned pilot.
 

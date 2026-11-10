@@ -9,6 +9,8 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
+from urllib.error import URLError
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -75,8 +77,22 @@ def main():
         try:
             saved = request(f"/roundtable/rooms/{room_id}")
             assert saved["name"] == "Desktop smoke"
+            seat = request(f"/roundtable/rooms/{room_id}/seats", {"display_name": "Smoke agent", "slug": "smoke-agent"})
+            def poll():
+                try:
+                    req = Request("http://127.0.0.1:18765/roundtable/seat/jobs/next?wait=30",
+                                  headers={"Authorization": "Bearer " + seat["key"]})
+                    with urlopen(req, timeout=35) as response:
+                        response.read()
+                except (URLError, OSError):
+                    pass  # Closing the app interrupts a waiting runner.
+            poller = threading.Thread(target=poll, daemon=True)
+            poller.start()
+            time.sleep(1)
         finally:
             stop(child)
+        poller.join(timeout=5)
+        assert not poller.is_alive(), "Agent long poll survived desktop shutdown"
     print("PASS: packaged backend startup, room write, owner guard, desktop CORS, port conflict, persistence and shutdown")
 
 
