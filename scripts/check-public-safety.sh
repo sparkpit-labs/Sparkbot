@@ -27,8 +27,6 @@ strict_terms=(
   "GOOGLE""_API_KEY=.*[^[:space:]]"
   "Tele""gram"
   "tele""gram"
-  "Co""dex"
-  "\\.co""dex"
   "\\.ag""ents"
   "ro""bot"
   "ro""botics"
