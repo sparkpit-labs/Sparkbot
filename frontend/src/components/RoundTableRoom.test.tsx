@@ -6,7 +6,7 @@ import RoundTableRoom from "./RoundTableRoom";
 
 type Call = { url: string; method: string; body: unknown; headers: Record<string, string> };
 
-function fakeBackend() {
+function fakeBackend(jobs: Record<string, unknown>[] = []) {
   const calls: Call[] = [];
   const room = { id: "r1", name: "Planning", paused: false, seat_count: 0, created_at: "", updated_at: "" };
   const seats: Record<string, unknown>[] = [];
@@ -21,7 +21,7 @@ function fakeBackend() {
     calls.push({ url: url.pathname + url.search, method, body, headers: (init.headers ?? {}) as Record<string, string> });
     const path = url.pathname;
     if (path === "/roundtable/rooms" && method === "GET") return json({ rooms: [room] });
-    if (path === "/roundtable/rooms/r1" && method === "GET") return json({ ...room, seats });
+    if (path === "/roundtable/rooms/r1" && method === "GET") return json({ ...room, seats, jobs });
     if (path === "/roundtable/rooms/r1/messages" && method === "GET") {
       const after = Number(url.searchParams.get("after") ?? 0);
       return json({ messages: messages.filter((m) => Number(m.seq) > after) });
@@ -102,4 +102,11 @@ describe("roundtable helpers", () => {
     expect(agentCommands("codex", "codex")[1]).toBe("python tools/sparkbot-roundtable.py run --profile codex --agent codex");
     expect(agentCommands("helper", "other")[1]).toBe("python tools/sparkbot-roundtable.py mcp --profile helper");
   });
+});
+
+it("shows failed job status and recovery instructions independently of messages", async () => {
+  fakeBackend([{id: "j1", trigger_message_id: "m1", status: "failed", display_name: "Claude", reason: "Agent CLI not found. Install it and restart the runner."}]);
+  render(<RoundTableRoom />);
+  await screen.findByText("Claude: failed");
+  expect(screen.getByText(/Agent CLI not found/)).toBeTruthy();
 });

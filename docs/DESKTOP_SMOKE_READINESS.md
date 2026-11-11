@@ -1,6 +1,6 @@
 # Desktop Smoke Readiness
 
-Sparkbot does not include a desktop installer or desktop binary yet. This document defines the current local-first smoke path used before any packaging work is approved.
+This document describes the source-development smoke path. The Windows pilot also runs `scripts/smoke-desktop.py` against its frozen backend; see `DESKTOP_PACKAGING_PLAN.md` for installer-specific validation and remaining clean-machine acceptance.
 
 ## One-Command Smoke Path
 

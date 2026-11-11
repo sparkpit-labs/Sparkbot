@@ -25,7 +25,7 @@ The current repository is a validated shell baseline. It is useful for review, l
 | Provider Setup | Preview | No API key fields, save action, or provider calls. |
 | Local AI Settings | Preview | Read-only local setup route; no credentials, endpoint checks, provider calls, or model routing. |
 | Guardian Controls | Preview | No approvals, enforcement, or sensitive actions. |
-| Desktop packaging | Planned | No installer or desktop binary exists yet. |
+| Desktop packaging | Windows pilot | Tauri/NSIS build workflow; unsigned, clean-machine acceptance pending. |
 | Connectors | Guarded future | No connector calls or external sends. |
 | Model calls | Guarded future | No model routing or provider runtime is active. |
 | Credential storage | Guarded future | No secrets are accepted, stored, or transmitted. |
@@ -138,7 +138,7 @@ Then post `@claude hello` in the room. Use `--agent codex` for Codex. See `docs/
 
 ## What this repository does not do yet
 
-- No desktop installer or desktop binary.
+- Windows installer is an unsigned pilot; clean-machine acceptance and release signing are pending.
 - No real chat runtime.
 - No model calls or model routing.
 - No provider credential setup.
@@ -170,7 +170,7 @@ Key docs:
 - `docs/ROADMAP.md` for staged product direction.
 - `docs/RELEASE_READINESS.md` for current release-readiness boundaries.
 - `docs/PUBLIC_ARTIFACT_MANIFEST.md` for included and excluded public artifacts.
-- `docs/DESKTOP_PACKAGING_PLAN.md` for desktop packaging planning only.
+- `docs/DESKTOP_PACKAGING_PLAN.md` for the Windows build, lifecycle and acceptance checklist.
 
 ## Security and privacy posture
 

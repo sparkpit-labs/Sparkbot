@@ -129,7 +129,7 @@ def create_room(payload: RoomCreate) -> dict:
 def get_room(room_id: str) -> dict:
     try:
         rt = store()
-        return {**rt.get_room(room_id), "seats": rt.list_seats(room_id)}
+        return {**rt.get_room(room_id), "seats": rt.list_seats(room_id), "jobs": rt.recent_jobs(room_id)}
     except (RoundtableError, RoundtableNotFound) as error:
         raise _fail(error) from error
 
@@ -235,16 +235,22 @@ def seat_post(payload: SeatMessage, seat: dict = Depends(require_seat)) -> dict:
 
 
 @seat_router.get("/jobs/next", response_model=None)
-def next_job(wait: int = Query(default=0, ge=0, le=LONG_POLL_MAX_SECONDS), seat: dict = Depends(require_seat)) -> Any:
+def next_job(request: Request, wait: int = Query(default=0, ge=0, le=LONG_POLL_MAX_SECONDS), seat: dict = Depends(require_seat)) -> Any:
     rt = store()
     deadline = time.monotonic() + wait
+    shutdown = getattr(request.app.state, "desktop_shutdown", None)
     while True:
+        if shutdown is not None and shutdown.is_set():
+            return Response(status_code=status.HTTP_204_NO_CONTENT)
         job = rt.claim_next(seat)
         if job is not None:
             return {"job": job}
         if time.monotonic() >= deadline:
             return Response(status_code=status.HTTP_204_NO_CONTENT)
-        time.sleep(LONG_POLL_STEP_SECONDS)
+        if shutdown is not None:
+            shutdown.wait(LONG_POLL_STEP_SECONDS)
+        else:
+            time.sleep(LONG_POLL_STEP_SECONDS)
 
 
 @seat_router.post("/jobs/{job_id}/heartbeat", response_model=None)

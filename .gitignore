@@ -14,3 +14,5 @@ frontend/node_modules/
 frontend/dist/
 frontend/.vite/
 coverage/
+src-tauri/target/
+src-tauri/binaries/

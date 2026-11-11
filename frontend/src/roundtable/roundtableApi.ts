@@ -4,7 +4,10 @@ import { localJsonRequest } from "../localWorkstation/localRequests";
 // origin after a CORS check, so other web pages cannot drive the room.
 const OWNER_HEADERS = { "X-Sparkbot-Local": "1" };
 
+export type RoundtableJob = { id: string; trigger_message_id: string; status: string; display_name: string; reason?: string };
+
 export type RoundtableRoom = {
+  jobs?: RoundtableJob[];
   id: string;
   name: string;
   paused: boolean;
@@ -115,9 +118,10 @@ export function suggestSlug(name: string): string {
 
 export type AgentKind = "claude" | "codex" | "other";
 
-export function agentCommands(slug: string, agent: AgentKind): string[] {
-  const script = "python tools/sparkbot-roundtable.py";
-  const login = `${script} login --profile ${slug}`;
+export function agentCommands(slug: string, agent: AgentKind, desktopCommand?: string): string[] {
+  const script = desktopCommand || "python tools/sparkbot-roundtable.py";
+  const url = desktopCommand ? " --url http://127.0.0.1:18765" : "";
+  const login = `${script} login --profile ${slug}${url}`;
   if (agent === "other") {
     return [login, `${script} mcp --profile ${slug}`];
   }

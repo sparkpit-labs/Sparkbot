@@ -1,4 +1,5 @@
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
+import { desktopConnectorCommand } from "../desktop";
 
 import {
   agentCommands,
@@ -48,6 +49,7 @@ export default function RoundTableRoom() {
   const [agentKind, setAgentKind] = useState<AgentKind>("claude");
   const [invite, setInvite] = useState<Invite | null>(null);
   const [notice, setNotice] = useState("");
+  const [connectorCommand, setConnectorCommand] = useState<string>();
   const lastSeq = useRef(0);
   const listRef = useRef<HTMLOListElement>(null);
 
@@ -64,6 +66,7 @@ export default function RoundTableRoom() {
 
   useEffect(() => {
     void loadRooms();
+    void desktopConnectorCommand().then(setConnectorCommand).catch(() => setNotice("Could not locate the installed agent connector. Restart Sparkbot and try again."));
   }, [loadRooms]);
 
   const refresh = useCallback(async () => {
@@ -243,6 +246,14 @@ export default function RoundTableRoom() {
                 </li>
               ))}
             </ol>
+            {(room.jobs || []).some((job) => job.status !== "done") ? (
+              <section aria-label="Agent activity" aria-live="polite">
+                <h3>Agent activity</h3>
+                {(room.jobs || []).filter((job) => job.status !== "done").map((job) => (
+                  <p key={job.id}><strong>{job.display_name}: {job.status === "claimed" ? "working" : job.status}</strong>{job.reason ? ` â€” ${job.reason}` : ""}</p>
+                ))}
+              </section>
+            ) : null}
             <div className="round-table-composer">
               <label htmlFor="round-table-draft">Message the room</label>
               <textarea
@@ -319,8 +330,7 @@ export default function RoundTableRoom() {
               <div className="round-table-invite" role="status">
                 <h3>Start {invite.seat.display_name}</h3>
                 <p>
-                  This seat key is shown once. Run these from the Sparkbot folder in a terminal; paste the key when the
-                  first one asks for it.
+                  This seat key is shown once. {connectorCommand ? "Run these in PowerShell" : "Run these from the Sparkbot folder in a terminal"}; paste the key when the first one asks for it.
                 </p>
                 <div className="copy-row">
                   <code className="seat-key">{invite.seat.key}</code>
@@ -328,7 +338,7 @@ export default function RoundTableRoom() {
                     Copy key
                   </button>
                 </div>
-                {agentCommands(invite.seat.slug, invite.agent).map((command) => (
+                {(import.meta.env.VITE_SPARKBOT_DESKTOP === "true" && !connectorCommand ? [] : agentCommands(invite.seat.slug, invite.agent, connectorCommand)).map((command) => (
                   <div className="copy-row" key={command}>
                     <code>{command}</code>
                     <button type="button" onClick={() => copy(command)}>
