@@ -4,7 +4,10 @@ import { localJsonRequest } from "../localWorkstation/localRequests";
 // origin after a CORS check, so other web pages cannot drive the room.
 const OWNER_HEADERS = { "X-Sparkbot-Local": "1" };
 
+export type RoundtableJob = { id: string; trigger_message_id: string; status: string; display_name: string; reason?: string };
+
 export type RoundtableRoom = {
+  jobs?: RoundtableJob[];
   id: string;
   name: string;
   paused: boolean;

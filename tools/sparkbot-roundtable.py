@@ -167,8 +167,12 @@ def _native(found: str | None, candidates: Callable[[Path], list[Path]], label: 
 
 
 def codex_executable() -> str:
+    found = shutil.which("codex")
+    native = Path.home() / ".local" / "bin" / ("codex.exe" if os.name == "nt" else "codex")
+    if not found and native.is_file():
+        found = str(native)
     return _native(
-        shutil.which("codex"),
+        found,
         lambda base: list((base / "node_modules" / "@openai").glob("codex/node_modules/@openai/codex-*/vendor/*/bin/codex.exe")),
         "Codex CLI",
     )
@@ -204,8 +208,12 @@ CLAUDE_REQUIRED_FLAGS = (
 
 
 def claude_executable() -> str:
+    found = shutil.which("claude")
+    native = Path.home() / ".local" / "bin" / ("claude.exe" if os.name == "nt" else "claude")
+    if not found and native.is_file():
+        found = str(native)
     return _native(
-        shutil.which("claude"),
+        found,
         lambda base: [base / "node_modules" / "@anthropic-ai" / "claude-code" / "bin" / "claude.exe"],
         "Claude Code CLI",
     )
@@ -247,20 +255,29 @@ def _supervise(proc: subprocess.Popen, timeout: float, checkpoint: Callable[[], 
     checkpoint()
 
 
+def cli_help(command: list[str], timeout: float):
+    try:
+        return subprocess.run(command, capture_output=True, timeout=timeout, env=runner_environment(), check=False)
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise RoundtableError("Agent CLI could not start. Check its installation and try again.") from error
+
+
 class CodexAdapter:
     label = "Codex"
 
     def __init__(self, timeout: float = 120):
         self.timeout = timeout
 
-    def run(self, prompt: str, checkpoint: Callable[[], None]) -> str:
+    def preflight(self) -> str:
         executable = codex_executable()
         # Fail closed on older CLIs rather than run with the user's MCP config.
-        help_result = subprocess.run(
-            [executable, "exec", "--help"], capture_output=True, timeout=10, env=runner_environment(), check=False
-        )
+        help_result = cli_help([executable, "exec", "--help"], 10)
         if help_result.returncode or b"--ignore-user-config" not in help_result.stdout:
             raise RoundtableError("Codex CLI is missing the isolation flags this runner needs; update it")
+        return executable
+
+    def run(self, prompt: str, checkpoint: Callable[[], None]) -> str:
+        executable = self.preflight()
         directory = tempfile.mkdtemp(prefix="roundtable-run-")
         try:
             output = Path(directory) / "reply.txt"
@@ -295,13 +312,15 @@ class ClaudeAdapter:
     def __init__(self, timeout: float = 120):
         self.timeout = timeout
 
-    def run(self, prompt: str, checkpoint: Callable[[], None]) -> str:
+    def preflight(self) -> str:
         executable = claude_executable()
-        help_result = subprocess.run(
-            [executable, "--help"], capture_output=True, timeout=20, env=runner_environment(), check=False
-        )
+        help_result = cli_help([executable, "--help"], 20)
         if help_result.returncode or any(flag not in help_result.stdout for flag in CLAUDE_REQUIRED_FLAGS):
             raise RoundtableError("Claude Code CLI is missing the isolation flags this runner needs; update it")
+        return executable
+
+    def run(self, prompt: str, checkpoint: Callable[[], None]) -> str:
+        executable = self.preflight()
         directory = tempfile.mkdtemp(prefix="roundtable-run-")
         try:
             mcp_config = Path(directory) / "no-mcp.json"
@@ -387,12 +406,12 @@ class RunnerStore:
         _write_private_json(path, [*recent, now])
         return True
 
-    def audit(self, event: str, job_id: str = "") -> None:
+    def audit(self, event: str, job_id: str = "", reason: str = "") -> None:
         path = Path(str(self.base) + ".log")
         if path.exists() and path.stat().st_size > 1_000_000:
             os.replace(path, Path(str(path) + ".1"))
         with path.open("a", encoding="utf-8") as log:
-            log.write(json.dumps({"at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "event": event, "job_id": job_id}) + "\n")
+            log.write(json.dumps({"at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "event": event, "job_id": job_id, "reason": reason}) + "\n")
 
 
 class CompletionUncertain(RoundtableError):
@@ -481,8 +500,10 @@ class Runner:
                 self.store.audit("claim_lost_or_cancelled", job["id"])
                 return
             reason = str(error) if isinstance(error, RoundtableError) and error.status is None else "agent or connection failed"
-            self.fail(job, reason[:120])
-            self.store.audit("failed", job["id"])
+            reason = safe_failure_reason(reason)
+            _out(f"Job {job['id']} failed: {reason}", err=True)
+            self.fail(job, reason)
+            self.store.audit("failed", job["id"], reason=reason)
 
     def run(self, once: bool = False) -> None:
         failures = 0
@@ -518,6 +539,8 @@ def cmd_run(args) -> int:
         seat = session.client.me()["seat"]
         name = str(seat.get("display_name") or profile)[:100]
         adapter = RUNNER_ADAPTERS[args.agent](args.timeout)
+        if hasattr(adapter, "preflight"):
+            adapter.preflight()
         _out(f"{name} (@{seat.get('slug')}) is listening with {getattr(adapter, 'label', args.agent)}. Ctrl+C stops it.")
         Runner(session.client, adapter, store, name).run(args.once)
     return 0
@@ -827,11 +850,77 @@ class McpServer:
 # ── CLI ────────────────────────────────────────────────────────────────────────
 
 
+def safe_failure_reason(reason: str) -> str:
+    known = (
+        "Agent CLI could not start. Check its installation and try again.",
+        "Codex CLI not found. Install it and sign in first.",
+        "Claude Code CLI not found. Install it and sign in first.",
+        "Codex CLI is missing the isolation flags this runner needs; update it",
+        "Claude Code CLI is missing the isolation flags this runner needs; update it",
+        "Codex failed; check that it is signed in and up to date",
+        "Claude Code failed; check that it is signed in and up to date",
+        "Claude Code is signed out on this computer: run `claude auth login`",
+        "Agent timeout", "Agent reply limit exceeded", "Missing or oversized agent reply",
+        "Agent returned an empty reply", "Empty agent reply", "local hourly cap reached",
+    )
+    return reason if reason in known else "Agent or connection failed; check the CLI login and connection, then send a new mention."
+
+
+def _windows_key_loop(keyboard, alive, timeout=120, clock=time.monotonic, sleep=time.sleep):
+    deadline = clock() + timeout
+    chars = []
+    while clock() < deadline:
+        if not alive():
+            raise RoundtableError("Login cancelled: the terminal closed. Open PowerShell and try login again.")
+        if not keyboard.kbhit():
+            sleep(0.05)
+            continue
+        ch = keyboard.getwch()
+        if ch in ("\x03", "\x1b"):
+            raise RoundtableError("Login cancelled; no seat key saved.")
+        if ch in ("\r", "\n"):
+            print()
+            return "".join(chars).strip()
+        if ch == "\b":
+            if chars: chars.pop()
+        elif ch in ("\x00", "\xe0"):
+            keyboard.getwch()
+        elif ch.isprintable() and len(chars) < 512:
+            chars.append(ch)
+    raise RoundtableError("Login timed out after two minutes; no key saved. Run login again when ready.")
+
+
+def read_seat_key() -> str:
+    if os.name != "nt":
+        try:
+            return getpass.getpass("Seat key (typing is hidden): ").strip()
+        except EOFError as error:
+            raise RoundtableError("Login cancelled: input closed; no key saved.") from error
+    import ctypes
+    import msvcrt
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel.GetStdHandle.restype = ctypes.c_void_p
+    kernel.GetConsoleMode.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_ulong)]
+    handle = kernel.GetStdHandle(-10)
+    mode = ctypes.c_ulong()
+    def console_pids():
+        entries = (ctypes.c_ulong * 128)()
+        count = kernel.GetConsoleProcessList(entries, len(entries))
+        return set(entries[:min(count, len(entries))])
+    owners = console_pids() - {os.getpid(), os.getppid()}
+    def alive():
+        return bool(kernel.GetConsoleMode(handle, ctypes.byref(mode))) and (not owners or bool(owners & console_pids()))
+    if not alive():
+        raise RoundtableError("Login needs an interactive PowerShell terminal; no key saved.")
+    print("Seat key (typing is hidden; Enter submits, Esc cancels; two-minute timeout): ", end="", flush=True)
+    return _windows_key_loop(msvcrt, alive)
+
+
 def cmd_login(args, transport: Transport | None = None) -> int:
     path = config_path(args.profile)
     cfg = _read_json(path)
     url = (args.url or cfg.get("url") or DEFAULT_URL).rstrip("/")
-    key = os.getenv("SPARKBOT_SEAT_KEY") or getpass.getpass("Seat key (starts with rts_, typing is hidden): ").strip()
+    key = os.getenv("SPARKBOT_SEAT_KEY") or read_seat_key()
     me = Client(url, key, transport).me()
     _write_private_json(path, {"url": url, "key": key})
     _out(f"Signed in as {me['seat']['display_name']} (@{me['seat']['slug']}) in room {me['rooms'][0]['name']}.")

@@ -129,7 +129,7 @@ def create_room(payload: RoomCreate) -> dict:
 def get_room(room_id: str) -> dict:
     try:
         rt = store()
-        return {**rt.get_room(room_id), "seats": rt.list_seats(room_id)}
+        return {**rt.get_room(room_id), "seats": rt.list_seats(room_id), "jobs": rt.recent_jobs(room_id)}
     except (RoundtableError, RoundtableNotFound) as error:
         raise _fail(error) from error
 

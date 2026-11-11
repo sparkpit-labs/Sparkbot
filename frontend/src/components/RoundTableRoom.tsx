@@ -246,6 +246,14 @@ export default function RoundTableRoom() {
                 </li>
               ))}
             </ol>
+            {(room.jobs || []).some((job) => job.status !== "done") ? (
+              <section aria-label="Agent activity" aria-live="polite">
+                <h3>Agent activity</h3>
+                {(room.jobs || []).filter((job) => job.status !== "done").map((job) => (
+                  <p key={job.id}><strong>{job.display_name}: {job.status === "claimed" ? "working" : job.status}</strong>{job.reason ? ` â€” ${job.reason}` : ""}</p>
+                ))}
+              </section>
+            ) : null}
             <div className="round-table-composer">
               <label htmlFor="round-table-draft">Message the room</label>
               <textarea

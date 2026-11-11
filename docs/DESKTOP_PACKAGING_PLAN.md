@@ -1,6 +1,6 @@
 # Windows desktop package
 
-The public Roundtable now has a Tauri v2 Windows shell and an unsigned NSIS build workflow. The app and its two bundled Python executables are built exclusively from this repository. The package version is 0.2.0 and the application identity is `com.sparkpitlabs.sparkbot.public`.
+The public Roundtable now has a Tauri v2 Windows shell and an unsigned NSIS build workflow. The app and its two bundled Python executables are built exclusively from this repository. The package version is 0.2.1 and the application identity is `com.sparkpitlabs.sparkbot.public`.
 
 ## Runtime and safety
 
@@ -25,3 +25,13 @@ The automated smoke test creates a disposable room, checks owner-header enforcem
 A successful build is not installer acceptance. On a spare PC or Windows Sandbox, test install, first launch, room creation, an installed connector login and reply, close/reopen, reinstall/upgrade, and uninstall. Verify no backend process remains and saved data remains as documented. Check SmartScreen behavior for this unsigned pilot.
 
 Signed: Atlas | 2026-11-09
+
+## Pilot fixes in 0.2.1
+
+The runner checks native CLI discovery and required isolation flags before announcing readiness. The default per-user native CLI directory is checked even if PATH has not been refreshed. Sign-in failures remain runtime errors, shown in the console and local audit without arbitrary exception payloads. The room refresh includes a bounded, owner-only agent activity summary with pending, working and failed states.
+
+On Windows, interactive login has a two-minute deadline, Esc/Ctrl+C cancellation and console-lifetime checks. Redirected or closed input fails without saving a profile. The installer and uninstaller check write access to their own three executables before changing files and abort if any is locked; they do not terminate unrelated applications. CI checks this on a disposable Windows runner, including clean install/uninstall and a closed-input frozen login.
+
+These automated checks complement the spare-PC retest; they do not establish that every terminal-host combination behaves identically. Revoke the test seat exposed in chat before further agent testing. New builds use the 0.2.1 filename and their own published hash; 0.2.0 hashes do not apply.
+
+Signed: Atlas | 2026-11-10

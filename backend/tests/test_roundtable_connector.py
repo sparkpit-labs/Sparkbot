@@ -94,10 +94,10 @@ def test_invite_saves_a_private_profile_and_whoami_works(api: TestClient, capsys
 def test_login_with_a_key_from_the_app(api: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     room = owner_room(api)
     seat = api.post(f"/roundtable/rooms/{room['id']}/seats", json={"display_name": "Codex", "slug": "codex"}, headers=OWNER).json()
-    monkeypatch.setattr(rt.getpass, "getpass", lambda prompt: seat["key"])
+    monkeypatch.setattr(rt, "read_seat_key", lambda: seat["key"])
     assert rt.main(["login", "--profile", "codex"]) == 0
     assert json.loads(rt.config_path("codex").read_text())["key"] == seat["key"]
-    monkeypatch.setattr(rt.getpass, "getpass", lambda prompt: "rts_wrong_key")
+    monkeypatch.setattr(rt, "read_seat_key", lambda: "rts_wrong_key")
     assert rt.main(["login", "--profile", "other"]) == 1
     assert not rt.config_path("other").exists()
 
@@ -197,7 +197,7 @@ class FakeStore:
     def reserve(self) -> bool:
         return self.allowed
 
-    def audit(self, event: str, job_id: str = "") -> None:
+    def audit(self, event: str, job_id: str = "", reason: str = "") -> None:
         self.events.append(event)
 
 
@@ -357,3 +357,65 @@ def test_claude_adapter(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mode: s
     assert "--bare" not in argv and all("ROOM DATA" not in a for a in argv)
     assert "ANTHROPIC_API_KEY" not in seen["env"]
     assert "roundtable-run-" in seen["cwd"] and not Path(seen["cwd"]).exists()
+
+
+def test_missing_cli_fails_before_listening(api, monkeypatch, capsys):
+    rt.main(["invite", "--name", "Claude", "--slug", "claude"])
+    monkeypatch.setattr(rt, "claude_executable", lambda: (_ for _ in ()).throw(rt.RoundtableError("Claude Code CLI not found. Install it and sign in first.")))
+    assert rt.main(["run", "--profile", "claude", "--agent", "claude", "--once"]) == 1
+    captured = capsys.readouterr()
+    assert "not found" in captured.err
+    assert "is listening" not in captured.out
+
+
+def test_claude_native_install_without_path(monkeypatch, tmp_path):
+    monkeypatch.setattr(rt.shutil, "which", lambda _: None)
+    monkeypatch.setattr(rt.Path, "home", lambda: tmp_path)
+    binary = tmp_path / ".local" / "bin" / ("claude.exe" if os.name == "nt" else "claude")
+    binary.parent.mkdir(parents=True)
+    binary.write_bytes(b"fake")
+    assert rt.claude_executable() == str(binary)
+
+
+def test_failed_job_is_visible_without_logging_secret(api, monkeypatch, capsys):
+    class Broken(FakeAgent):
+        def run(self, prompt, checkpoint):
+            raise rt.RoundtableError("Claude Code CLI not found. Install it and sign in first.")
+    monkeypatch.setitem(rt.RUNNER_ADAPTERS, "fake", Broken)
+    rt.main(["invite", "--name", "Claude", "--slug", "claude"])
+    room = api.get("/roundtable/rooms", headers=OWNER).json()["rooms"][0]
+    owner_say(api, room["id"], "@claude hello")
+    rt.main(["run", "--profile", "claude", "--agent", "fake", "--once"])
+    assert "not found" in capsys.readouterr().err
+    log = (rt._home() / "roundtable-claude-runner.log").read_text()
+    assert "CLI not found" in log and "rts_" not in log
+    result = api.get(f"/roundtable/rooms/{room['id']}", headers=OWNER).json()
+    assert result["jobs"][0]["status"] == "failed"
+    assert "CLI not found" in result["jobs"][0]["reason"]
+    assert "claim_hash" not in json.dumps(result["jobs"])
+    assert api.get(f"/roundtable/rooms/{room['id']}").status_code == 403
+    assert rt.safe_failure_reason("secret rts_example") == "Agent or connection failed; check the CLI login and connection, then send a new mention."
+
+
+@pytest.mark.parametrize("characters,expected", [(list("sample\r"), "sample"), (list("ab\bc\r"), "ac")])
+def test_windows_hidden_key_input(characters, expected):
+    class Keyboard:
+        def kbhit(self): return bool(characters)
+        def getwch(self): return characters.pop(0)
+    assert rt._windows_key_loop(Keyboard(), lambda: True) == expected
+
+
+def test_windows_login_timeout_closed_console_and_cancel():
+    class Keyboard:
+        def kbhit(self): return False
+    now = [0.0]
+    def advance(seconds): now[0] += seconds
+    with pytest.raises(rt.RoundtableError, match="timed out"):
+        rt._windows_key_loop(Keyboard(), lambda: True, timeout=0.1, clock=lambda: now[0], sleep=advance)
+    with pytest.raises(rt.RoundtableError, match="terminal closed"):
+        rt._windows_key_loop(Keyboard(), lambda: False)
+    class Cancel:
+        def kbhit(self): return True
+        def getwch(self): return "\x1b"
+    with pytest.raises(rt.RoundtableError, match="cancelled"):
+        rt._windows_key_loop(Cancel(), lambda: True)

@@ -186,6 +186,32 @@ class RoundtableStore:
 
     # -- rooms --------------------------------------------------------------
 
+    def recent_jobs(self, room_id: str) -> list[dict[str, Any]]:
+        self.get_room(room_id)
+        with self._read() as connection:
+            rows = connection.execute(
+                """SELECT j.id, j.trigger_message_id, j.status, j.reason, s.display_name
+                   FROM roundtable_jobs j JOIN roundtable_seats s ON s.id = j.seat_id
+                   WHERE j.room_id = ? ORDER BY j.created_at DESC, j.id DESC LIMIT 20""",
+                (room_id,),
+            ).fetchall()
+        jobs = []
+        for row in rows:
+            item = dict(row)
+            reason = item.pop("reason") or ""
+            # Never expose arbitrary stored failure payloads or credentials.
+            if item["status"] == "failed":
+                if "CLI not found" in reason:
+                    item["reason"] = "Agent CLI not found. Install it, sign in, restart the runner, and send a new mention."
+                elif "signed out" in reason or "signed in" in reason:
+                    item["reason"] = "Check the agent CLI sign-in, restart the runner, and send a new mention."
+                elif "timeout" in reason.lower():
+                    item["reason"] = "Agent timed out. Check the agent and send a new mention."
+                else:
+                    item["reason"] = "Agent could not answer. Check its runner console and CLI setup, then send a new mention."
+            jobs.append(item)
+        return jobs
+
     def list_rooms(self) -> list[dict[str, Any]]:
         with self._read() as connection:
             rows = connection.execute(
