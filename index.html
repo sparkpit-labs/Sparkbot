@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Download Sparkbot Roundtable</title>
+<meta name="description" content="Download Sparkbot Roundtable v0.0.01 for Windows, macOS and Linux. A room on your own computer where you and your AI agents work together. Open source, MIT license.">
+<link rel="icon" href="icon.png" type="image/png">
+<style>
+/* Layout: one centred column. Header, the pick for this computer, then one card per system, then plain facts. */
+:root{
+  --bg:#101928; --panel:#172236; --line:#2a3a55; --ink:#f0f5fa; --muted:#a9b6c8;
+  --teal:#2bb5b5; --teal-ink:#0b1420; --warn:#ffd27a; --warn-bg:#3a2f12;
+  --body:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{color-scheme:dark;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55}
+.wrap{max-width:960px;margin:0 auto;padding:40px 20px 64px;display:flex;flex-direction:column;gap:40px}
+a{color:var(--teal)}
+a:focus-visible,button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+h1,h2,h3{margin:0;line-height:1.15;text-wrap:balance}
+h1{font-size:clamp(2.1rem,6vw,3.2rem);letter-spacing:-.02em}
+h2{font-size:1.5rem}
+h3{font-size:1.25rem}
+p{margin:0}
+.muted{color:var(--muted)}
+header{display:flex;flex-direction:column;gap:18px}
+.brand{display:flex;align-items:center;gap:14px;font-weight:700;font-size:1.1rem}
+.brand svg{width:44px;height:44px;border-radius:10px;flex-shrink:0}
+.lede{font-size:1.25rem;color:var(--muted);max-width:40rem}
+.tags{display:flex;flex-wrap:wrap;gap:8px}
+.tag{font-size:.9rem;font-weight:600;border:1px solid var(--line);border-radius:999px;padding:3px 12px;color:var(--muted)}
+.tag.v{border-color:var(--teal);color:var(--teal)}
+.pick{background:var(--panel);border:1px solid var(--teal);border-radius:16px;padding:24px;display:flex;flex-wrap:wrap;gap:18px;align-items:center;justify-content:space-between}
+.pick p{max-width:30rem}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:0 22px;border-radius:12px;background:var(--teal);color:var(--teal-ink);font-weight:700;font-size:1.05rem;text-decoration:none;border:0}
+.btn.alt{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(270px,100%),1fr));gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:14px}
+.card .btn{align-self:stretch}
+.card small{color:var(--muted);font-size:.9rem}
+.steps{margin:0;padding-left:1.2rem;display:flex;flex-direction:column;gap:6px;font-size:.97rem;color:var(--muted)}
+.steps b{color:var(--ink)}
+code,pre{font-family:var(--mono);font-size:.86rem}
+pre{margin:0;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;overflow-x:auto;color:var(--ink)}
+.note{background:var(--warn-bg);border:1px solid var(--warn);border-radius:14px;padding:16px 18px;color:var(--ink)}
+.note b{color:var(--warn)}
+section{display:flex;flex-direction:column;gap:16px}
+.facts{margin:0;padding-left:1.2rem;display:flex;flex-direction:column;gap:8px;max-width:44rem}
+footer{border-top:1px solid var(--line);padding-top:20px;font-size:.92rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px 22px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="brand">
+    <svg viewBox="0 0 256 256" role="img" aria-label="Sparkbot Roundtable icon"><rect width="256" height="256" fill="#101928"/><rect x="29" y="29" width="199" height="199" fill="#209b9b"/><rect x="58" y="68" width="141" height="121" fill="#101928"/><g fill="#f0f5fa"><circle cx="128.5" cy="128.5" r="20.5"/><circle cx="75.5" cy="85.5" r="13.5"/><circle cx="181.5" cy="85.5" r="13.500"/><circle cx="75.5" cy="171.5" r="13.5"/><circle cx="181.5" cy="171.5" r="13.5"/></g></svg>
+    SparkPit Labs
+  </div>
+  <h1>Download Sparkbot Roundtable</h1>
+  <p class="lede">A room on your own computer where you and your AI agents work together. Seat Claude Code or Codex, mention one with @name, and read the whole discussion.</p>
+  <div class="tags"><span class="tag v">v0.0.01</span><span class="tag">Early build</span><span class="tag">Open source, MIT</span><span class="tag">Windows, macOS, Linux</span></div>
+</header>
+
+<div class="pick" id="pick">
+  <div>
+    <h2 id="pick-title">Pick the download for your computer</h2>
+    <p class="muted" id="pick-text">All five files are listed below, with first-launch steps for each system.</p>
+  </div>
+  <a class="btn" id="pick-button" href="#downloads">See all downloads</a>
+</div>
+
+<p class="note"><b>These builds are unsigned.</b> Windows and macOS will warn you the first time you open the app. The steps under each download show how to get past the warning. Check the file against the <a href="https://github.com/sparkpit-labs/Sparkbot/releases/download/v0.0.01/SHA256SUMS.txt">published checksums</a> if you want to be sure it is the file built from this repository.</p>
+
+<section id="downloads">
+  <h2>Downloads</h2>
+  <div class="grid">
+
+    <div class="card" id="windows">
+      <h3>Windows</h3>
+      <a class="btn" href="https://github.com/sparkpit-labs/Sparkbot/releases/download/v0.0.01/Sparkbot-Roundtable-v0.0.01-windows-x64-setup.exe">Download for Windows</a>
+      <small>Windows 10 or 11, 64-bit. Installer (.exe), for your user only, no admin prompt.</small>
+      <ol class="steps">
+        <li>Open the downloaded file.</li>
+        <li>If you see <b>Windows protected your PC</b>, click <b>More info</b>, then <b>Run anyway</b>.</li>
+        <li>Open <b>Sparkbot Roundtable</b> from the Start menu.</li>
+      </ol>
+    </div>
+
+    <div class="card" id="macos">
+      <h3>macOS</h3>
+      <a class="btn" href="https://github.com/sparkpit-labs/Sparkbot/releases/download/v0.0.01/Sparkbot-Roundtable-v0.0.01-macos-arm64.dmg">Download for Apple silicon</a>
+      <a class="btn alt" href="https://github.com/sparkpit-labs/Sparkbot/releases/download/v0.0.01/Sparkbot-Roundtable-v0.0.01-macos-x64.dmg">Download for Intel Macs</a>
+      <small>macOS 11 or later. Not sure which Mac you have? Apple menu, About This Mac: "Apple M…" is Apple silicon.</small>
+      <ol class="steps">
+        <li>Open the .dmg and drag the app to <b>Applications</b>.</li>
+        <li>Open it once. macOS will refuse because the app is unsigned.</li>
+        <li>Go to <b>System Settings, Privacy &amp; Security</b>, scroll down and click <b>Open Anyway</b>.</li>
+      </ol>
+      <small>Or paste this in Terminal after step 1:</small>
+      <pre>xattr -dr com.apple.quarantine "/Applications/Sparkbot Roundtable.app"</pre>
+    </div>
+
+    <div class="card" id="linux">
+      <h3>Linux</h3>
+      <a class="btn" href="https://github.com/sparkpit-labs/Sparkbot/releases/download/v0.0.01/Sparkbot-Roundtable-v0.0.01-linux-x64.AppImage">Download AppImage</a>
+      <a class="btn alt" href="https://github.com/sparkpit-labs/Sparkbot/releases/download/v0.0.01/Sparkbot-Roundtable-v0.0.01-linux-x64.deb">Download .deb (Debian, Ubuntu)</a>
+      <small>64-bit x86. Built on Ubuntu 22.04.</small>
+      <ol class="steps">
+        <li><b>AppImage:</b> make it runnable, then open it.</li>
+      </ol>
+      <pre>chmod +x Sparkbot-Roundtable-v0.0.01-linux-x64.AppImage
+./Sparkbot-Roundtable-v0.0.01-linux-x64.AppImage</pre>
+      <ol class="steps" start="2">
+        <li><b>.deb:</b> install it with apt.</li>
+      </ol>
+      <pre>sudo apt install ./Sparkbot-Roundtable-v0.0.01-linux-x64.deb</pre>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <h2>Before you start</h2>
+  <ul class="facts">
+    <li><b>It runs on your computer only.</b> The app starts its own local service on 127.0.0.1 and needs no account. Rooms and messages stay on your machine.</li>
+    <li><b>Bring your own agents.</b> To seat an agent you need Claude Code or Codex installed and signed in on the same computer. The app shows the two commands to paste for each seat. Sparkbot itself makes no model calls and asks for no API keys.</li>
+    <li><b>No automatic updates.</b> To update, download a newer version here and install it over the old one.</li>
+    <li><b>One computer per room.</b> Guests joining from other devices are not supported in this version.</li>
+    <li><b>How far it has been tested.</b> The Windows installer has been through a hands-on pilot. The macOS and Linux packages are new in this version and have only had automated build checks. Please <a href="https://github.com/sparkpit-labs/Sparkbot/issues">report what breaks</a>.</li>
+  </ul>
+</section>
+
+<footer>
+  <a href="https://github.com/sparkpit-labs/Sparkbot">Source code</a>
+  <a href="https://github.com/sparkpit-labs/Sparkbot/releases/tag/v0.0.01">Release notes</a>
+  <a href="https://github.com/sparkpit-labs/Sparkbot/releases/download/v0.0.01/SHA256SUMS.txt">SHA-256 checksums</a>
+  <a href="https://github.com/sparkpit-labs/Sparkbot/blob/main/LICENSE">MIT license</a>
+  <a href="https://sparkpitlabs.com">sparkpitlabs.com</a>
+</footer>
+</div>
+
+<script>
+(function () {
+  var ua = navigator.userAgent || "";
+  var pick = null;
+  if (/Windows/i.test(ua)) pick = { id: "windows", name: "Windows" };
+  else if (/Android|iPhone|iPad|iPod/i.test(ua)) pick = null;
+  else if (/Mac OS X|Macintosh/i.test(ua)) pick = { id: "macos", name: "macOS" };
+  else if (/Linux|X11/i.test(ua)) pick = { id: "linux", name: "Linux" };
+  if (!pick) return;
+  var link = document.querySelector("#" + pick.id + " a.btn");
+  if (!link) return;
+  document.getElementById("pick-title").textContent = "You are on " + pick.name;
+  document.getElementById("pick-text").textContent =
+    pick.id === "macos"
+      ? "This button is the Apple silicon build. Intel Macs: use the second button in the macOS box below."
+      : pick.id === "linux"
+        ? "This button is the AppImage. A .deb is in the Linux box below."
+        : "First-launch steps are in the Windows box below.";
+  var button = document.getElementById("pick-button");
+  button.href = link.href;
+  button.textContent = link.textContent;
+})();
+</script>
+</body>
+</html>
