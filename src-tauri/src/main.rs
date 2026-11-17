@@ -30,8 +30,38 @@ fn show_startup_error(message: &str) {
             MessageBoxW(std::ptr::null_mut(), text.as_ptr(), title.as_ptr(), 0x10);
         }
     }
-    #[cfg(not(windows))]
-    eprintln!("{message}");
+    #[cfg(target_os = "macos")]
+    {
+        // Arguments are passed separately, so the message is never parsed as script.
+        let _ = Command::new("osascript")
+            .args([
+                "-e",
+                "on run argv",
+                "-e",
+                "display alert \"Sparkbot could not start\" message (item 1 of argv) as critical",
+                "-e",
+                "end run",
+                message,
+            ])
+            .status();
+    }
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        // Best effort: a desktop without zenity still gets the message on stderr.
+        let shown = Command::new("zenity")
+            .args(["--error", "--title=Sparkbot could not start", "--no-markup", "--text", message])
+            .status()
+            .map(|status| status.success())
+            .unwrap_or(false);
+        if !shown {
+            eprintln!("{message}");
+        }
+    }
+}
+
+/// A bundled helper that sits beside the desktop executable on every platform.
+fn sidecar(name: &str) -> std::io::Result<std::path::PathBuf> {
+    Ok(std::env::current_exe()?.with_file_name(format!("{name}{}", std::env::consts::EXE_SUFFIX)))
 }
 
 fn stop_backend(child: &mut Child) {
@@ -50,20 +80,21 @@ fn stop_backend(child: &mut Child) {
 
 #[tauri::command]
 fn desktop_connector_command() -> Result<String, String> {
-    let path = std::env::current_exe()
-        .map_err(|e| e.to_string())?
-        .with_file_name("sparkbot-roundtable.exe");
-    Ok(format!(
-        "& '{}'",
-        path.to_string_lossy().replace('\'', "''")
-    ))
+    let path = sidecar("sparkbot-roundtable").map_err(|e| e.to_string())?;
+    let path = path.to_string_lossy();
+    // The command is pasted into PowerShell on Windows and a POSIX shell elsewhere.
+    #[cfg(windows)]
+    let command = format!("& '{}'", path.replace('\'', "''"));
+    #[cfg(not(windows))]
+    let command = format!("'{}'", path.replace('\'', "'\\''"));
+    Ok(command)
 }
 
 fn main() {
     let app = tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![desktop_connector_command])
         .setup(|app| {
-            let binary = std::env::current_exe()?.with_file_name("sparkbot-server.exe");
+            let binary = sidecar("sparkbot-server")?;
             let mut command = Command::new(binary);
             command.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null());
             #[cfg(windows)] {

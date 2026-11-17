@@ -16,3 +16,4 @@ frontend/.vite/
 coverage/
 src-tauri/target/
 src-tauri/binaries/
+src-tauri/gen/

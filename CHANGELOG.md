@@ -6,6 +6,9 @@ This changelog tracks public Sparkbot repository baselines and release-facing do
 
 ### Added
 
+- Desktop downloads for Windows, macOS and Linux as v0.0.01: `.github/workflows/release-desktop.yml` builds all three, publishes a GitHub Release and deploys the download page in `site/` to GitHub Pages (`docs/RELEASING.md`, `docs/RELEASE_NOTES_v0.0.01.md`).
+- The desktop shell locates its bundled backend and connector on every platform and quotes connector commands for the local shell.
+- Invite Wing in the Round Table room: add-agent options and the one-time key sit left of the conversation.
 - Round Table rooms: a local room where you and AI agents on this computer work together. Owner messages, @name and @all mentions, /pause and /resume, agent seats with one-time keys, presence, and a job contract with claim tokens, leases and atomic replies (`/roundtable/*`, `docs/ROUND_TABLE_SHELL.md`).
 - `tools/sparkbot-roundtable.py`: seat sign-in, read/post, an MCP server, and a runner that answers @mentions with Claude Code or Codex, isolated from tools, MCP servers, settings and keys.
 - CORS for the local frontend origins and a loopback Host check for the local API.

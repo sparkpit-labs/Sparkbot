@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { agentCommands, suggestSlug } from "../roundtable/roundtableApi";
@@ -86,6 +86,25 @@ describe("RoundTableRoom", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Done, hide the key" }));
     expect(screen.queryByText("rts_s1_onetimekey")).toBeNull();
+  });
+
+  it("keeps the invite options and the one-time key in the Invite Wing, left of the conversation", async () => {
+    fakeBackend();
+    render(<RoundTableRoom />);
+
+    const wing = await screen.findByRole("complementary", { name: "Invite wing" });
+    const people = screen.getByRole("complementary", { name: "People in this room" });
+    const conversation = screen.getByLabelText("Room messages");
+
+    expect(within(wing).getByLabelText("Agent")).toBeDefined();
+    expect(within(wing).getByLabelText("Name in the room")).toBeDefined();
+    expect(within(people).queryByRole("button", { name: "Add agent" })).toBeNull();
+    expect(wing.compareDocumentPosition(conversation) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    fireEvent.click(within(wing).getByRole("button", { name: "Add agent" }));
+    expect(await within(wing).findByText("rts_s1_onetimekey")).toBeDefined();
+    expect(within(people).queryByText("rts_s1_onetimekey")).toBeNull();
+    await waitFor(() => expect(within(people).getByRole("button", { name: /^Remove / })).toBeDefined());
   });
 
   it("explains what to do when the backend is not running", async () => {

@@ -25,7 +25,7 @@ The current repository is a validated shell baseline. It is useful for review, l
 | Provider Setup | Preview | No API key fields, save action, or provider calls. |
 | Local AI Settings | Preview | Read-only local setup route; no credentials, endpoint checks, provider calls, or model routing. |
 | Guardian Controls | Preview | No approvals, enforcement, or sensitive actions. |
-| Desktop packaging | Windows pilot | Tauri/NSIS build workflow; unsigned, clean-machine acceptance pending. |
+| Desktop packaging | Early downloads | Unsigned v0.0.01 packages for Windows, macOS and Linux from the [download page](https://sparkpit-labs.github.io/Sparkbot/). Windows had a hands-on pilot; macOS and Linux are automated builds only. |
 | Connectors | Guarded future | No connector calls or external sends. |
 | Model calls | Guarded future | No model routing or provider runtime is active. |
 | Credential storage | Guarded future | No secrets are accepted, stored, or transmitted. |

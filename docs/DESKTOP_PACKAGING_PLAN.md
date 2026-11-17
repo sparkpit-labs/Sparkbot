@@ -35,3 +35,9 @@ On Windows, interactive login has a two-minute deadline, Esc/Ctrl+C cancellation
 These automated checks complement the spare-PC retest; they do not establish that every terminal-host combination behaves identically. Revoke the test seat exposed in chat before further agent testing. New builds use the 0.2.1 filename and their own published hash; 0.2.0 hashes do not apply.
 
 Signed: Atlas | 2026-11-10
+
+## Cross-platform packages in v0.0.01
+
+`.github/workflows/release-desktop.yml` builds the same app for Windows, macOS (Apple silicon and Intel) and Linux and publishes it; see `docs/RELEASING.md`. The package version is now 0.0.1 under the public label v0.0.01. The pilot workflow above is kept for the Windows-only branch build.
+
+The shell resolves `sparkbot-server` and `sparkbot-roundtable` beside its own executable with the platform's executable suffix. The connector command is quoted for PowerShell on Windows and a POSIX shell elsewhere. A startup failure shows a native message box on Windows, an alert on macOS, and a zenity dialog on Linux where zenity exists (otherwise standard error). macOS packages are ad-hoc signed and not notarized. No macOS or Linux installer acceptance has been done.

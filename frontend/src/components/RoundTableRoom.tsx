@@ -22,6 +22,11 @@ import {
 
 const POLL_MS = 3000;
 
+// The desktop connector command is quoted for PowerShell on Windows and a POSIX shell elsewhere.
+function desktopTerminal(): string {
+  return /Windows/i.test(navigator.userAgent) ? "PowerShell" : "Terminal";
+}
+
 type Invite = { seat: NewRoundtableSeat; agent: AgentKind };
 
 const agentLabels: Record<AgentKind, string> = {
@@ -227,6 +232,67 @@ export default function RoundTableRoom() {
 
       {roomId && room ? (
         <div className="round-table-workspace">
+          <aside className="round-table-invite-wing" aria-label="Invite wing">
+            <div className="round-table-wing-head">
+              <p className="eyebrow">Invite Wing</p>
+              <p>Seat an AI agent in {room.name}. Pick the agent, name it, then start it with the commands shown here.</p>
+            </div>
+
+            <form className="round-table-add" onSubmit={addAgent}>
+              <h3>Add an AI agent</h3>
+              <label htmlFor="agent-kind">Agent</label>
+              <select id="agent-kind" value={agentKind} onChange={(e) => setAgentKind(e.target.value as AgentKind)}>
+                {(Object.keys(agentLabels) as AgentKind[]).map((kind) => (
+                  <option key={kind} value={kind}>
+                    {agentLabels[kind]}
+                  </option>
+                ))}
+              </select>
+              <label htmlFor="agent-name">Name in the room</label>
+              <input
+                id="agent-name"
+                value={agentName}
+                maxLength={60}
+                placeholder={agentLabels[agentKind].split(" ")[0]}
+                onChange={(e) => setAgentName(e.target.value)}
+              />
+              <button type="submit">Add agent</button>
+            </form>
+
+            {invite ? (
+              <div className="round-table-invite" role="status">
+                <h3>Start {invite.seat.display_name}</h3>
+                <p>
+                  This seat key is shown once. {connectorCommand ? `Run these in ${desktopTerminal()}` : "Run these from the Sparkbot folder in a terminal"}; paste the key when the first one asks for it.
+                </p>
+                <div className="copy-row">
+                  <code className="seat-key">{invite.seat.key}</code>
+                  <button type="button" onClick={() => copy(invite.seat.key)}>
+                    Copy key
+                  </button>
+                </div>
+                {(import.meta.env.VITE_SPARKBOT_DESKTOP === "true" && !connectorCommand ? [] : agentCommands(invite.seat.slug, invite.agent, connectorCommand)).map((command) => (
+                  <div className="copy-row" key={command}>
+                    <code>{command}</code>
+                    <button type="button" onClick={() => copy(command)}>
+                      Copy
+                    </button>
+                  </div>
+                ))}
+                {invite.agent === "other" ? (
+                  <p>Add the second command to your agent as an MCP server so it can read and post in this room.</p>
+                ) : (
+                  <p>
+                    Leave the second command running. Ask with <code>@{invite.seat.slug}</code>; Ctrl+C stops it.
+                  </p>
+                )}
+                <button type="button" className="link-button" onClick={() => setInvite(null)}>
+                  Done, hide the key
+                </button>
+              </div>
+            ) : null}
+          </aside>
+
           <div className="round-table-conversation">
             {room.paused ? (
               <p className="round-table-paused" role="status">
@@ -304,60 +370,6 @@ export default function RoundTableRoom() {
                 </li>
               ))}
             </ul>
-
-            <form className="round-table-add" onSubmit={addAgent}>
-              <h3>Add an AI agent</h3>
-              <label htmlFor="agent-kind">Agent</label>
-              <select id="agent-kind" value={agentKind} onChange={(e) => setAgentKind(e.target.value as AgentKind)}>
-                {(Object.keys(agentLabels) as AgentKind[]).map((kind) => (
-                  <option key={kind} value={kind}>
-                    {agentLabels[kind]}
-                  </option>
-                ))}
-              </select>
-              <label htmlFor="agent-name">Name in the room</label>
-              <input
-                id="agent-name"
-                value={agentName}
-                maxLength={60}
-                placeholder={agentLabels[agentKind].split(" ")[0]}
-                onChange={(e) => setAgentName(e.target.value)}
-              />
-              <button type="submit">Add agent</button>
-            </form>
-
-            {invite ? (
-              <div className="round-table-invite" role="status">
-                <h3>Start {invite.seat.display_name}</h3>
-                <p>
-                  This seat key is shown once. {connectorCommand ? "Run these in PowerShell" : "Run these from the Sparkbot folder in a terminal"}; paste the key when the first one asks for it.
-                </p>
-                <div className="copy-row">
-                  <code className="seat-key">{invite.seat.key}</code>
-                  <button type="button" onClick={() => copy(invite.seat.key)}>
-                    Copy key
-                  </button>
-                </div>
-                {(import.meta.env.VITE_SPARKBOT_DESKTOP === "true" && !connectorCommand ? [] : agentCommands(invite.seat.slug, invite.agent, connectorCommand)).map((command) => (
-                  <div className="copy-row" key={command}>
-                    <code>{command}</code>
-                    <button type="button" onClick={() => copy(command)}>
-                      Copy
-                    </button>
-                  </div>
-                ))}
-                {invite.agent === "other" ? (
-                  <p>Add the second command to your agent as an MCP server so it can read and post in this room.</p>
-                ) : (
-                  <p>
-                    Leave the second command running. Ask with <code>@{invite.seat.slug}</code>; Ctrl+C stops it.
-                  </p>
-                )}
-                <button type="button" className="link-button" onClick={() => setInvite(null)}>
-                  Done, hide the key
-                </button>
-              </div>
-            ) : null}
           </aside>
         </div>
       ) : backendOnline ? (
