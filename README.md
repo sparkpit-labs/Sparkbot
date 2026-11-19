@@ -1,190 +1,108 @@
-# Sparkbot
+# Sparkbot Roundtable
 
-Sparkbot is an early public, local-first AI workstation shell from SparkPit Labs. It is for builders, hobbyists, and technical users who want a self-hosted workspace for future chat, model seats, Round Table collaboration, provider setup, and safety-gated controls.
+Sparkbot Roundtable is a free, open-source desktop workspace where you and your AI agents collaborate in shared conversation rooms. Create a room, connect your agents, and direct the discussion with mentions. Each participant's replies remain in the room's conversation history.
 
-The current repository is a validated shell baseline. It is useful for review, local validation, and continued public development, but it is not a complete product release.
+Built and maintained by SparkPit Labs. Licensed under the [MIT License](LICENSE).
 
-## Who this is for
+**[Download Sparkbot Roundtable](https://sparkpit-labs.github.io/Sparkbot/)** | [Release notes](https://github.com/sparkpit-labs/Sparkbot/releases/tag/v0.0.01) | [Report an issue](https://github.com/sparkpit-labs/Sparkbot/issues)
 
-- Hobbyists and tinkerers who want to inspect and run the local shell baseline.
-- Developers evaluating the project structure, validation path, and public roadmap.
-- Security-conscious users who want clear boundaries before provider credentials, model calls, or sensitive actions exist.
-- Future contributors who want to understand what is implemented, what is preview-only, and what is intentionally excluded.
+## Download
 
-## Current status at a glance
+The current desktop release is **v0.0.01**, an early public pre-release. The download page provides installation instructions and packages for these platforms:
 
-| Area | Current status | Notes |
-| --- | --- | --- |
-| Backend health endpoint | Available | FastAPI exposes local `GET /health`. |
-| Backend capabilities endpoint | Available | FastAPI exposes static read-only `GET /capabilities`. |
-| Frontend shell | Available | React/Vite shell builds and tests successfully. |
-| Workstation shell | Preview | Read-only product layout. |
-| Chat shell | Preview | Disabled planned composer; no send action. |
-| Work Page | Preview | Read-only program/workspace planning; no file reads, writes, connector calls, or worker execution. |
-| Round Table | Preview | Inert planned seats for future collaboration. |
-| Provider Setup | Preview | No API key fields, save action, or provider calls. |
-| Local AI Settings | Preview | Read-only local setup route; no credentials, endpoint checks, provider calls, or model routing. |
-| Guardian Controls | Preview | No approvals, enforcement, or sensitive actions. |
-| Desktop packaging | Planned | No installer or desktop binary exists yet. |
-| Connectors | Guarded future | No connector calls or external sends. |
-| Model calls | Guarded future | No model routing or provider runtime is active. |
-| Credential storage | Guarded future | No secrets are accepted, stored, or transmitted. |
-| Tool execution | Guarded future | No terminal, tool execution, connector calls, or external sends. |
+| Platform | Package |
+| --- | --- |
+| Windows 10 or 11, 64-bit | Per-user `.exe` installer |
+| macOS 11 or later, Apple silicon | ARM64 `.dmg` |
+| macOS 11 or later, Intel | x64 `.dmg` |
+| Linux, x86-64 | `.AppImage` or `.deb` for Debian/Ubuntu |
 
-## Release and checkpoint status
+The public release label is `v0.0.01`; the app's package version is `0.0.1`. Earlier Windows pilot builds used `0.2.x` numbering.
 
-The latest public checkpoint tag on `main` is `public-v1-capabilities-contract-alignment-0`.
+Packages are unsigned; macOS packages are ad-hoc signed and are not notarized. Operating-system trust warnings may appear. Use the official downloads and compare the file's SHA-256 hash with [SHA256SUMS.txt](https://github.com/sparkpit-labs/Sparkbot/releases/download/v0.0.01/SHA256SUMS.txt). A matching checksum confirms the file matches the published artifact; it is not a security certification. [BUILD-NOTES.txt](https://github.com/sparkpit-labs/Sparkbot/releases/download/v0.0.01/BUILD-NOTES.txt) identifies the build's source commit.
 
-The GitHub pre-release `public-v1-shell-baseline-0` remains the first published shell baseline release. Development continues on `main` through checkpoint tags, so `main` may include newer docs and planning checkpoints than the first pre-release page.
+Windows packaging has undergone a hands-on pilot. The macOS and Linux packages have automated build checks, but have not yet completed equivalent hands-on installation testing. There is no automatic updater; install updates manually from the download page. Close the app and its agent runners before updating.
 
-## Quickstart
+## What you can do
 
-### Prerequisites
+- Create local rooms and keep a persistent conversation history.
+- Add named AI-agent seats through the Invite Wing.
+- Ask one agent with `@name`, or address all connected agents with `@all`.
+- See agent presence and job activity alongside the discussion.
+- Pause work, resume it, or remove an agent's seat.
+- Connect an interactive MCP-compatible agent session to read and post in a room.
 
-- Python 3.12 or newer
-- Node.js 20.19.0 or newer
-- npm
+Automatic replies use a separate agent runner that you start on your computer. An installed agent or a created seat alone does not start that runner. Agent messages do not automatically trigger other agents.
 
-### 1. Validate the full shell baseline
+## Get started
 
-From the repository root:
+1. **Install and open the app.** Choose the package for your operating system from the [download page](https://sparkpit-labs.github.io/Sparkbot/). The desktop package includes its local backend and connector; a separate Python installation is not required to use the packaged app.
+2. **Prepare your agent.** Install and sign in to a [supported agent CLI](https://github.com/sparkpit-labs/Sparkbot/blob/v0.0.01/docs/ROUND_TABLE_SHELL.md) on the same computer. Agent software, accounts, subscriptions, usage limits, and charges are provided separately by the agent's provider.
+3. **Create a room.** Open Round Table and choose **New room**. You can write messages without selecting a model or connecting an agent.
+4. **Add an agent.** In the room's **Invite Wing**, choose the agent type, enter a name, and select **Add agent**. Keep the one-time seat key private.
+5. **Connect the seat.** Follow the two commands shown by the app: first save the seat using the key, then start its runner. Use the commands generated for your installed app and operating system. Keep the runner's terminal open; `Ctrl+C` stops it.
+6. **Start the discussion.** Send a message using the seat's displayed `@name`. Use `@all` to ask all connected agents. Replies appear in the room.
+
+For MCP setup, runner behavior, and API details, see the [Roundtable guide for this release](https://github.com/sparkpit-labs/Sparkbot/blob/v0.0.01/docs/ROUND_TABLE_SHELL.md). Its Python examples are for source installations; desktop users should use the bundled-connector commands shown in the app.
+
+## Privacy and access
+
+The desktop app listens on the loopback interface (`127.0.0.1`), and room data is stored locally. It does not require a Sparkbot account or provider API keys to create rooms.
+
+**Local storage does not mean every conversation stays offline.** When you ask a connected agent to reply, its runner provides room context to the agent's CLI. That CLI may send the context to its provider using your existing sign-in. The provider's terms, privacy policy, and usage limits apply.
+
+Seat keys grant access to a specific room. The backend stores key hashes; the local connector saves the key in its user profile so it can reconnect. Treat that profile as sensitive. Do not include seat keys, authentication files, or private conversations in issue reports. Removing a seat revokes its access.
+
+The built-in automatic runners are configured for text responses with agent tools disabled. This is not a general-purpose tool-execution environment. Interactive MCP sessions use the configuration of their host agent; do not assume they inherit the automatic runner's restrictions.
+
+## Current limits
+
+- Rooms are local to one computer. People joining from other devices are not supported in this release.
+- Automatic agent replies require the app and the corresponding foreground runner to remain open.
+- Automatic runners return text; they do not edit files or execute tasks discussed in a room.
+- A cloud-backed agent needs network access and an eligible provider account. Sparkbot does not include model access or subscription credits.
+- Other Sparkbot surfaces may be previews or development features. Their presence in the interface does not establish production readiness.
+
+## Troubleshooting and feedback
+
+**An agent is not replying:** check that its CLI is installed and signed in, its runner is open, the room is not paused, and the message uses the correct `@name`. Review the runner's console and the room's activity status for a failure or usage limit.
+
+**An update cannot replace a file:** close Sparkbot and the agent runners, then retry the installer.
+
+**Something else fails:** [open an issue](https://github.com/sparkpit-labs/Sparkbot/issues) with your operating system, package version, steps to reproduce, and the relevant error text. Remove keys and private content before attaching logs or screenshots. Follow [SECURITY.md](SECURITY.md) for security reports; do not post sensitive exploit details publicly.
+
+## Source code and development
+
+The downloadable app is built from the **[v0.0.01 release tag](https://github.com/sparkpit-labs/Sparkbot/tree/v0.0.01)**. The repository's `main` branch currently follows a separate public development baseline and does not match that desktop release. Use the tag when inspecting, reproducing, or modifying the downloaded app:
 
 ```bash
-bash scripts/validate-public-shell.sh
+git clone --branch v0.0.01 https://github.com/sparkpit-labs/Sparkbot.git
+cd Sparkbot
 ```
 
-This runs backend compile/tests, frontend install/audit/tests/build, and does not start long-running services.
+This checks out the release in detached-HEAD mode. Create a branch before making changes. Building from source requires development tools; downloading a desktop package does not. Refer to the documentation at the same tag as your checkout:
 
-### 2. Run the public safety scan
+- [Development setup](https://github.com/sparkpit-labs/Sparkbot/blob/v0.0.01/docs/DEVELOPMENT.md)
+- [Roundtable and agent integration](https://github.com/sparkpit-labs/Sparkbot/blob/v0.0.01/docs/ROUND_TABLE_SHELL.md)
+- [Desktop release workflow](https://github.com/sparkpit-labs/Sparkbot/blob/v0.0.01/docs/RELEASING.md)
+
+For work on `main`, start with the [documentation index](docs/README.md), [development guide](docs/DEVELOPMENT.md), and [validation guide](docs/VALIDATION.md). These documents describe that branch and may differ from the downloadable release.
+
+## Contributing
+
+Bug reports, documentation improvements, and focused contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md), identify the branch or release your change targets, and distinguish implemented behavior from planned work.
+
+Run the relevant checks for your checkout before submitting a pull request:
 
 ```bash
 bash scripts/check-public-safety.sh
+bash scripts/validate-public-shell.sh
 ```
 
-This checks for blocked private references, unexpected publishing identity references, and non-BMP characters.
+The validation script runs backend and frontend checks without starting long-running services. Keep changes scoped and exclude credentials, generated installers, local profiles, and private data.
 
-### 3. Start the backend in terminal 1
+## License and project
 
-```bash
-python3 -m venv .venv-local
-. .venv-local/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -e "backend[dev]"
-bash scripts/start-backend-dev.sh
-```
+Sparkbot is released under the [MIT License](LICENSE). Third-party agent software and services remain subject to their own licenses and terms.
 
-Expected backend health URL:
-
-```text
-http://127.0.0.1:8000/health
-```
-
-Expected backend capabilities URL:
-
-```text
-http://127.0.0.1:8000/capabilities
-```
-
-### 4. Start the frontend in terminal 2
-
-```bash
-cd frontend
-npm ci
-cd ..
-bash scripts/start-frontend-dev.sh
-```
-
-Expected frontend URL:
-
-```text
-http://127.0.0.1:5173
-```
-
-Vite may print the exact local URL when the frontend server starts.
-
-### 5. Optional alternate-port smoke test
-
-When the default ports are already in use, run the shell on alternate localhost ports and verify both surfaces:
-
-```bash
-SPARKBOT_BACKEND_PORT=18000 bash scripts/start-backend-dev.sh
-```
-
-```bash
-SPARKBOT_BACKEND_PORT=18000 \
-VITE_SPARKBOT_API_BASE_URL=http://127.0.0.1:18000 \
-SPARKBOT_FRONTEND_PORT=15173 \
-bash scripts/start-frontend-dev.sh
-```
-
-```bash
-SPARKBOT_BACKEND_URL=http://127.0.0.1:18000 \
-SPARKBOT_FRONTEND_URL=http://127.0.0.1:15173 \
-bash scripts/smoke-check-local.sh
-```
-
-Open `http://127.0.0.1:15173` for the browser check. See `docs/LOCAL_SMOKE_TEST.md` for details.
-
-## What this repository does not do yet
-
-- No desktop installer or desktop binary.
-- No real chat runtime.
-- No model calls or model routing.
-- No provider credential setup.
-- No local model endpoint checks.
-- No credential storage.
-- No file ingestion or file mutation workflows.
-- No Round Table meeting engine.
-- No Guardian policy enforcement runtime.
-- No terminal, tool execution, connector calls, external sends, or file mutation controls.
-- No production deployment workflow.
-
-## Documentation map
-
-Start with `docs/README.md` for a grouped documentation index.
-
-Key docs:
-
-- `CONTRIBUTING.md` for contribution scope and validation expectations.
-- `SECURITY.md` for reporting security concerns.
-- `docs/DEVELOPMENT.md` for local development workflow.
-- `docs/VALIDATION.md` for validation commands.
-- `docs/LOCAL_DEVELOPMENT.md` for local runner scripts.
-- `docs/LOCAL_SMOKE_TEST.md` for alternate-port local smoke testing.
-- `docs/PUBLIC_CAPABILITY_CONTRACTS.md` for capability status definitions and promotion gates.
-- `docs/CONNECTOR_SAFETY_CONTRACT.md` for future connector safety gates.
-- `docs/PROVIDER_CONFIG_CONTRACT.md` for future provider setup and model-call gates.
-- `docs/GUARDIAN_POLICY_CONTRACT.md` for future sensitive-action policy gates.
-- `docs/ROADMAP.md` for staged product direction.
-- `docs/RELEASE_READINESS.md` for current release-readiness boundaries.
-- `docs/PUBLIC_ARTIFACT_MANIFEST.md` for included and excluded public artifacts.
-- `docs/DESKTOP_PACKAGING_PLAN.md` for desktop packaging planning only.
-
-## Security and privacy posture
-
-Current validation does not require secrets. The repository does not accept provider credentials, store credentials, call models, execute tools, run connectors, or send data to external services. Product surfaces beyond the backend health endpoint and frontend shell are previews until explicit public contracts and runtime gates are added.
-
-Future provider, connector, model-call, credential, and Guardian runtime work must satisfy the public contracts in `docs/` before implementation branches can claim active behavior.
-
-## Repository standards
-
-This repository is maintained as a professional public project. Public documentation should describe only supported or planned public functionality and should avoid private infrastructure details, internal operating notes, or unsupported claims.
-
-## License
-
-This repository is licensed under the MIT License. The license applies to the contents of this public `sparkpit-labs/Sparkbot` repository only.
-
-## Maintainers
-
-Maintained by Spark Pit Labs Team.
-
-## Command Center audit persistence for release
-
-To enable immutable command-center audit persistence and integrity signing in release environments:
-
-```bash
-COMMAND_CENTER_AUDIT_FILE=./logs/command-center-audit.jsonl
-COMMAND_CENTER_AUDIT_SIGNING_KEY=__REPLACE_ME__
-```
-
-If `COMMAND_CENTER_AUDIT_SIGNING_KEY` is set, each persisted JSONL row is signed with `HMAC-SHA256` and includes the immutable `chain_hash` for tamper-evident ordering. Keep the signing key in secret configuration.
+Maintained by **SparkPit Labs**. Visit [sparkpitlabs.com](https://sparkpitlabs.com) for project information.
